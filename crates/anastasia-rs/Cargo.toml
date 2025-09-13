@@ -1,0 +1,12 @@
+[package]
+name = "anastasia-rs"
+version = "0.1.0"
+edition = "2024"
+authors = ["yamdan"]
+
+[dependencies]
+ark-bn254 = "0.5.0"
+flate2 = "1.1.2"
+noir = { git = "https://github.com/zkmopro/noir-rs", features = ["barretenberg"] }
+serde_json = "1.0.143"
+x509-parser = "0.18.0"
