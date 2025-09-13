@@ -1,34 +1,34 @@
 # Gradle files
-android/v1/.gradle/
-android/v1/build/
+.gradle/
+build/
 
 # Local configuration file (sdk path, etc)
-android/v1/local.properties
+local.properties
 
 # Log/OS Files
-android/v1/*.log
+*.log
 
 # Android Studio generated files and folders
-android/v1/captures/
-android/v1/.externalNativeBuild/
-android/v1/.cxx/
-android/v1/*.aab
-android/v1/*.apk
-android/v1/output-metadata.json
+captures/
+.externalNativeBuild/
+.cxx/
+*.aab
+*.apk
+output-metadata.json
 
 # IntelliJ
-android/v1/*.iml
-android/v1/.idea/
-android/v1/misc.xml
-android/v1/deploymentTargetDropDown.xml
-android/v1/render.experimental.xml
+*.iml
+.idea/
+misc.xml
+deploymentTargetDropDown.xml
+render.experimental.xml
 
 # Keystore files
-android/v1/*.jks
-android/v1/*.keystore
+*.jks
+*.keystore
 
 # Google Services (e.g. APIs or Firebase)
-android/v1/google-services.json
+google-services.json
   
 # Android Profiling
-android/v1/*.hprof
+*.hprof
