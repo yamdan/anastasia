@@ -1,0 +1,10 @@
+[package]
+name = "es256_ca"
+version = "0.1.0"
+type = "bin"
+authors = ["yamdan"]
+
+[dependencies]
+#sha256 = { tag = "v0.2.1", git = "https://github.com/noir-lang/sha256" }
+sha256 = { path = "../sha256.20250913" } # Use tweaked v0.2.1 to work with old Noir v1.0.0-beta.8 (required to be used with Mopro)
+poseidon = { tag = "v0.1.1", git = "https://github.com/noir-lang/poseidon" }
