@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import uniffi.mopro.generateNoirProof
 import uniffi.mopro.verifyNoirProof
 import uniffi.mopro.getNoirVerificationKey
+import kotlin.ByteArray
 
 @Composable
 fun NoirComponent() {
@@ -37,17 +38,19 @@ fun NoirComponent() {
     var isVerifyingProof by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf("Ready to generate proof") }
 
-    val circuitFile = getFilePathFromAssets("circuit1/verify_ecdsa.json")
-    val srsFile = getFilePathFromAssets("circuit1/verify_ecdsa.srs")
 
-    // Load existing verification key from assets
-    val existingVk = remember {
-        try {
-            context.assets.open("circuit1/verify_ecdsa.vk").readBytes()
-        } catch (e: Exception) {
-            null
-        }
-    }
+    val dummyCertificate = X509ParseResult(
+        issuer = "",
+        subject = "",
+        signature = byteArrayOf(),
+        publicKey =  PublicKeyInfo(
+            algorithm = "",
+            encoded = byteArrayOf()
+        ),
+        signatureAlgorithm =""
+    )
+
+    val circuit = selectAppropriateCircuit(context, dummyCertificate)
 
 
     Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
@@ -94,18 +97,14 @@ fun NoirComponent() {
                                 val onChain = true  // Use Keccak for Solidity compatibility
                                 val lowMemoryMode = false
 
-                                // First, get or use existing verification key
-                                val vk = existingVk ?: run {
-                                    statusMessage = "Generating verification key..."
-                                    getNoirVerificationKey(circuitFile, srsFile, onChain, lowMemoryMode)
-                                }
+                                val vk = circuit.vk
                                 verificationKey = vk
 
                                 statusMessage = "Generating proof with verification key..."
                                 val startTime = System.currentTimeMillis()
                                 proofBytes = generateNoirProof(
-                                    circuitFile,
-                                    srsFile,
+                                    circuit.circuit,
+                                    circuit.srs,
                                     inputs,
                                     onChain,
                                     vk,
@@ -153,7 +152,7 @@ fun NoirComponent() {
 
                                         val startTime = System.currentTimeMillis()
                                         val result = verifyNoirProof(
-                                            circuitFile,
+                                            circuit.circuit,
                                             proof,
                                             onChain,
                                             vk,
