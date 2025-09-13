@@ -31,6 +31,13 @@ fun getFilePathFromAssets(name: String): String {
         val assetManager = context.assets
         val inputStream = assetManager.open(name)
         val file = File(context.filesDir, name)
+
+        file.parentFile?.let { parentDir ->
+            if (!parentDir.exists()) {
+                parentDir.mkdirs()
+            }
+        }
+
         copyFile(inputStream, file.outputStream())
         file.absolutePath
     }

@@ -37,13 +37,13 @@ fun NoirComponent() {
     var isVerifyingProof by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf("Ready to generate proof") }
 
-    val circuitFile = getFilePathFromAssets("verify_ecdsa.json")
-    val srsFile = getFilePathFromAssets("verify_ecdsa.srs")
+    val circuitFile = getFilePathFromAssets("circuit1/verify_ecdsa.json")
+    val srsFile = getFilePathFromAssets("circuit1/verify_ecdsa.srs")
 
     // Load existing verification key from assets
     val existingVk = remember {
         try {
-            context.assets.open("verify_ecdsa.vk").readBytes()
+            context.assets.open("circuit1/verify_ecdsa.vk").readBytes()
         } catch (e: Exception) {
             null
         }
