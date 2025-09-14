@@ -77,13 +77,15 @@ pub fn prove(
     //    .ok_or("Failed to split honk proof")?;
     let proof = proof_with_public_inputs; // TODO: remove public inputs from proof
 
-    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-    encoder
-        .write_all(&proof)
-        .map_err(|e| format!("Failed to write proof to encoder: {}", e))?;
-    let compressed_proof = encoder
-        .finish()
-        .map_err(|e| format!("Failed to finish compression of proof: {}", e))?;
+    // let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    // encoder
+    //     .write_all(&proof)
+    //     .map_err(|e| format!("Failed to write proof to encoder: {}", e))?;
+    // let compressed_proof = encoder
+    //     .finish()
+    //     .map_err(|e| format!("Failed to finish compression of proof: {}", e))?;
+
+    let compressed_proof = proof; // TODO: enable compression
 
     Ok((
         compressed_proof,
