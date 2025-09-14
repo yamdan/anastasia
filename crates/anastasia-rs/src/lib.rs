@@ -5,4 +5,5 @@ mod poseidon;
 mod prove;
 mod utils;
 
-pub use api::prove;
+pub use api::{ProofResult, prove};
+pub use circuit::{Circuit, CircuitMeta};
