@@ -1,7 +1,7 @@
 use es256_core::{verify, models};
 
-global MAX_TBS_LEN: u32 = 500;
-global MAX_EXTRA_EXT_LEN: u32 = 30;
+global MAX_TBS_LEN: u32 = 700;
+global MAX_EXTRA_EXT_LEN: u32 = 300;
 
 fn main(
     issuer_pk_x: [u8; 32],

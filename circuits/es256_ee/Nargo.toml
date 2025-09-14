@@ -1,5 +1,5 @@
 [package]
-name = "es256_ca"
+name = "es256_ee"
 version = "0.1.0"
 type = "bin"
 authors = ["yamdan"]
