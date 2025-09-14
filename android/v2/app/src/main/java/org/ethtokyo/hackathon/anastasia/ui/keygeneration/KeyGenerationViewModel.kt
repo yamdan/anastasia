@@ -24,9 +24,8 @@ class KeyGenerationViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
 
+            val challengeBytes = challenge?.toByteArray()
             try {
-                val challengeBytes = challenge?.toByteArray()
-
                 // TODO: 実装詳細 - 実際のTEE/StrongBox鍵生成処理
                 val keyPair = keystoreHelper.generateKeyPair(
                     alias = Constants.KEY_ALIAS,
@@ -36,11 +35,25 @@ class KeyGenerationViewModel : ViewModel() {
 
                 _keyGenerationResult.value = Result.success(keyPair)
 
+            }catch(e: android.security.keystore.StrongBoxUnavailableException){
+                try{
+                    val keyPair = keystoreHelper.generateKeyPair(
+                        alias = Constants.KEY_ALIAS,
+                        useStrongBox = false,
+                        attestationChallenge = challengeBytes
+                    )
+
+                    _keyGenerationResult.value = Result.success(keyPair)
+                }catch (e: Exception){
+                    _keyGenerationResult.value = Result.failure(e)
+                }
+
             } catch (e: Exception) {
                 _keyGenerationResult.value = Result.failure(e)
             } finally {
                 _isLoading.value = false
             }
+
         }
     }
 }
