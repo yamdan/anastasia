@@ -9,7 +9,7 @@
         android:id="@+id/tv_app_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Anastasia demo Wallet"
+        android:text="Anastasia Identity Wallet"
         android:textColor="@android:color/white"
         android:textSize="24sp"
         android:textStyle="bold"
