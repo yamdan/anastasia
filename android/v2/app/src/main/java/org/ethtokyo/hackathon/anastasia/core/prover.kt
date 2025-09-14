@@ -7,9 +7,14 @@ import java.security.cert.X509Certificate
 import java.security.interfaces.ECPublicKey
 import android.content.Context
 import uniffi.mopro.CircuitMeta
-import uniffi.mopro.commitAttrs
 import java.math.BigInteger
 import java.security.MessageDigest
+import org.bouncycastle.asn1.ASN1Primitive
+import org.bouncycastle.asn1.ASN1OctetString
+import org.bouncycastle.asn1.x509.AuthorityKeyIdentifier
+import org.bouncycastle.asn1.x509.SubjectKeyIdentifier
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
+import org.bouncycastle.asn1.x509.Extension
 
 fun bytes(vararg ints: Int): ByteArray =
     ints.map { it.toByte() }.toByteArray()
@@ -20,6 +25,10 @@ fun ProofResult.convertProofForInfura(): String {
     return originalProof
 }
 
+private fun bytesToHexString(bytes: ByteArray): String {
+    return bytes.joinToString(" ") { String.format("%02x", it.toUByte().toInt()) }
+}
+
 fun proveParentChildRel(context: Context, child: Certificate, parent: Certificate, caPrevCmt: String, caPrevCmtR: String): ProofResult {
     val circuitForChild = selectAppropriateCircuit(context, child)
     val circuitMetaForLibrary = CircuitMeta(
@@ -28,6 +37,9 @@ fun proveParentChildRel(context: Context, child: Certificate, parent: Certificat
         circuitForChild.vk,
         circuitForChild.srs,
     )
+    println("=== === === circuit : ${circuitForChild.circuit}")
+    println("=== === === vk : ${circuitForChild.vk}")
+    println("=== === === srs : ${circuitForChild.srs}")
 
     val parentX509 = parent as X509Certificate
     val childX509 = child as X509Certificate
@@ -35,6 +47,7 @@ fun proveParentChildRel(context: Context, child: Certificate, parent: Certificat
 
     // child証明書からAuthority Key Identifierを取得、なければparentのSubjectから算出
     val authorityKeyId = extractOrComputeAuthorityKeyId(childX509, parentX509)
+    println("authorityKeyId: ${bytesToHexString(authorityKeyId)}")
 
     // parent証明書から公開鍵のx、y座標を抽出
     val (pubKeyX, pubKeyY) = extractECPublicKeyCoordinates(parentX509)
@@ -52,96 +65,53 @@ fun proveParentChildRel(context: Context, child: Certificate, parent: Certificat
 }
 
 private fun extractOrComputeAuthorityKeyId(child: X509Certificate, parent: X509Certificate): ByteArray {
-    // Authority Key Identifier拡張を取得
-    val authorityKeyIdExtension = child.getExtensionValue("2.5.29.35")
-
-    return if (authorityKeyIdExtension != null) {
-        // 拡張が存在する場合、ASN.1構造をパースして実際の値を抽出
-        parseAuthorityKeyId(authorityKeyIdExtension)
-    } else {
-        // 拡張が存在しない場合、parentのSubject Public Key InfoからSHA-1ハッシュを計算
-        computeSubjectKeyId(parent)
-    }
-}
-
-private fun parseAuthorityKeyId(extensionValue: ByteArray): ByteArray {
-    // ASN.1 OCTET STRINGをスキップし、内部のAuthorityKeyIdをパース
-    // 簡略化した実装：実際のASN.1パーサーを使用することを推奨
-    var offset = 0
-    // OCTET STRINGタグをスキップ
-    if (extensionValue[offset] == 0x04.toByte()) {
-        offset++
-        val length = extensionValue[offset].toInt() and 0xFF
-        offset++
-        if (length > 127) {
-            // 長い形式の長さ
-            val lengthOfLength = length and 0x7F
-            offset += lengthOfLength
+    val extBytes = child.getExtensionValue(Extension.authorityKeyIdentifier.id)
+    if (extBytes != null) {
+        try {
+            // 拡張があって keyIdentifier が取れればそれを返す
+            parseAuthorityKeyId(extBytes)?.let { return it }
+            // keyIdentifier が null（issuer+serial のみ等）の場合はフォールバックする
+        } catch (e: Exception) {
+            // 解析失敗時はログを出してフォールバック（壊れた拡張等を許容）
+            // Log.w("CertUtil", "Failed to parse AKI, fallback to parent", e)
         }
     }
-
-    // AuthorityKeyIdのSEQUENCEをスキップ
-    if (extensionValue[offset] == 0x30.toByte()) {
-        offset += 2 // タグと長さをスキップ
-    }
-
-    // keyIdentifier [0] IMPLICIT KeyIdentifierを探す
-    if (extensionValue[offset] == 0x80.toByte()) {
-        offset++
-        val keyIdLength = extensionValue[offset].toInt() and 0xFF
-        offset++
-        return extensionValue.sliceArray(offset until offset + keyIdLength)
-    }
-
-    throw IllegalArgumentException("Authority Key Identifierの解析に失敗しました")
+    // AKI 拡張が無い、あるいは keyIdentifier が取れなかった場合は parent から算出
+    return computeSubjectKeyId(parent)
 }
 
-fun computeSubjectKeyId(cert: X509Certificate): ByteArray {
-    val subjectKeyIdExtension = cert.getExtensionValue("2.5.29.14")
 
-    return if (subjectKeyIdExtension != null) {
-        println("=== === === found subject key id")
-        parseSubjectKeyId(subjectKeyIdExtension)
+private fun parseAuthorityKeyId(extensionValue: ByteArray): ByteArray? {
+    // getExtensionValue の出力は DER の OCTET STRING でラップされているため、確実にデコードする
+    val outer = ASN1OctetString.getInstance(ASN1Primitive.fromByteArray(extensionValue))
+    val akiAsn1 = AuthorityKeyIdentifier.getInstance(ASN1Primitive.fromByteArray(outer.octets))
+    // keyIdentifier があればそれを返す（無ければ null を返す）
+    return akiAsn1.keyIdentifier
+}
+
+
+
+fun computeSubjectKeyId(cert: X509Certificate): ByteArray {
+    val ext = cert.getExtensionValue(Extension.subjectKeyIdentifier.id)
+    return if (ext != null) {
+        parseSubjectKeyId(ext)
     } else {
-        // 拡張が存在しない場合、Subject Public Key InfoからSHA-1ハッシュを計算
         computeSubjectKeyIdFromPublicKey(cert)
     }
 }
 
 private fun parseSubjectKeyId(extensionValue: ByteArray): ByteArray {
-    // ASN.1 OCTET STRINGをスキップし、内部のSubjectKeyIdをパース
-    var offset = 0
-    // OCTET STRINGタグをスキップ
-    if (extensionValue[offset] == 0x04.toByte()) {
-        offset++
-        val length = extensionValue[offset].toInt() and 0xFF
-        offset++
-        if (length > 127) {
-            // 長い形式の長さ
-            val lengthOfLength = length and 0x7F
-            offset += lengthOfLength
-        }
-    }
-
-    // Subject Key Identifierは通常もう一層のOCTET STRINGでラップされている
-    if (extensionValue[offset] == 0x04.toByte()) {
-        offset++
-        val keyIdLength = extensionValue[offset].toInt() and 0xFF
-        offset++
-        return extensionValue.sliceArray(offset until offset + keyIdLength)
-    }
-
-    throw IllegalArgumentException("Subject Key Identifierの解析に失敗しました")
+    val outer = ASN1OctetString.getInstance(ASN1Primitive.fromByteArray(extensionValue))
+    val ski = SubjectKeyIdentifier.getInstance(ASN1Primitive.fromByteArray(outer.octets))
+    return ski.keyIdentifier
+        ?: throw IllegalArgumentException("Subject Key IdentifierのkeyIdentifierが存在しません")
 }
 
 private fun computeSubjectKeyIdFromPublicKey(cert: X509Certificate): ByteArray {
-    // RFC 5280に従ってSubject Key Identifierを算出
-    val publicKeyInfo = cert.publicKey.encoded
-    val digest = MessageDigest.getInstance("SHA-1")
-
-    // Subject Public Key Info全体ではなく、公開鍵部分のみをハッシュ化
-    // この実装は簡略化されており、実際にはBIT STRINGから公開鍵バイトを抽出する必要がある
-    return digest.digest(publicKeyInfo).sliceArray(0..19) // 20バイト
+    val spki = SubjectPublicKeyInfo.getInstance(ASN1Primitive.fromByteArray(cert.publicKey.encoded))
+    // publicKeyData の中身（BIT STRINGの中の生の公開鍵ビット列）を取り出して SHA-1
+    val keyBytes = spki.publicKeyData.bytes
+    return MessageDigest.getInstance("SHA-1").digest(keyBytes)
 }
 
 fun extractECPublicKeyCoordinates(cert: X509Certificate): Pair<ByteArray, ByteArray> {
