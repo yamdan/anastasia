@@ -1,0 +1,8 @@
+[package]
+name = "es256_ee"
+version = "0.1.0"
+type = "bin"
+authors = ["yamdan"]
+
+[dependencies]
+es256_core = { path = "../es256_core" }
