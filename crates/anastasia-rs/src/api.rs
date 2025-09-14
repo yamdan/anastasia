@@ -101,4 +101,63 @@ mod tests {
         assert_eq!(next_cmt.len(), 64); // 32 bytes in hex
         assert_eq!(next_cmt_r.len(), 64); // 32 bytes in hex        
     }
+
+    #[test]
+    fn test_prove_es256_ee() {
+        let meta = CircuitMeta::new(
+            "es256_ee".to_string(),
+            "data/es256_ee.json".to_string(),
+            "data/es256_ee.vk".to_string(),
+            "data/common.srs".to_string(),
+        )
+        .unwrap();
+        let cert = std::fs::read("test_data/es256_ee.der").unwrap();
+        println!(
+            "cert = [{}];",
+            cert.iter()
+                .map(|b| format!("0x{:02x}", b))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+        let now = Some(Utc::now());
+        let authority_key_id = vec![
+            0x83, 0x29, 0xbe, 0xbb, 0x68, 0xbc, 0x24, 0xed, 0x89, 0x38, 0x4d, 0xb4, 0xf1, 0x94,
+            0x6c, 0x20, 0xd7, 0x95, 0x9a, 0x05,
+        ];
+        let issuer_pk_x = vec![
+            0xa3, 0x30, 0xd2, 0x88, 0x45, 0xc2, 0xf4, 0xb1, 0x60, 0xa7, 0xa5, 0xa8, 0xec, 0x1e,
+            0x46, 0x21, 0x31, 0x18, 0x5e, 0x25, 0xba, 0x48, 0x7e, 0xba, 0x2f, 0xbb, 0x41, 0xd7,
+            0x18, 0xa7, 0xa6, 0xbf,
+        ];
+        let issuer_pk_y = vec![
+            0xd7, 0x87, 0x8d, 0xc6, 0x36, 0xe4, 0x1e, 0xa4, 0xe2, 0x51, 0x6a, 0xa9, 0xc4, 0xf7,
+            0x1f, 0xce, 0x15, 0xf5, 0xd2, 0x48, 0x34, 0x05, 0x82, 0x56, 0x99, 0x72, 0x5c, 0xb1,
+            0x3c, 0xeb, 0x47, 0xcd,
+        ];
+        let prev_cmt = "2a296b0c9a2c8b4c6c56357c632860849f42a4defa6b491b2421a962a3543f5c";
+        let prev_cmt_r = "feedface";
+        let ProofResult {
+            proof,
+            next_cmt,
+            next_cmt_r,
+        } = prove(
+            &meta,
+            cert,
+            now,
+            authority_key_id,
+            issuer_pk_x,
+            issuer_pk_y,
+            prev_cmt.to_string(),
+            prev_cmt_r.to_string(),
+        )
+        .unwrap();
+
+        println!("Next commitment: {}", next_cmt);
+        println!("Next commitment randomness: {}", next_cmt_r);
+        println!("Proof (hex): {}", hex::encode(&proof));
+        println!("Proof length: {}", proof.len());
+        assert!(!proof.is_empty());
+        assert_eq!(next_cmt.len(), 64); // 32 bytes in hex
+        assert_eq!(next_cmt_r.len(), 64); // 32 bytes in hex        
+    }
 }
