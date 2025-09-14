@@ -6,12 +6,18 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.security.cert.Certificate
+import java.security.cert.X509Certificate
+import javax.security.auth.x500.X500Principal
 
 data class Circuit(
-    val vk: ByteArray,
+    val vk: String,
     val circuit: String,
     val srs: String
-) {
+)
+/*
+{
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -32,6 +38,7 @@ data class Circuit(
         return result
     }
 }
+ */
 
 private val assetFileCache = mutableMapOf<String, String>()
 private val assetBinaryCache = mutableMapOf<String, ByteArray>()
@@ -93,18 +100,43 @@ fun loadAssetBinaryData(context: Context, assetFileName: String): ByteArray {
 }
 
 
-fun selectAppropriateCircuit(context: Context, certificate: X509ParseResult): Circuit {
-    val circuitDir = getCircuitDir(certificate)
+fun selectAppropriateCircuit(context: Context, certificate: Certificate): Circuit {
+    val prefix = getCircuitDir(certificate)
 
     return Circuit(
-        vk = loadAssetBinaryData(context, "$circuitDir/es256.vk"),
-        circuit = getFilePathFromAssets(context, "$circuitDir/es256.json"),
-        srs = getFilePathFromAssets(context, "$circuitDir/common.srs")
+        vk = getFilePathFromAssets(context, "$prefix/es256_${prefix}.vk"),
+        circuit = getFilePathFromAssets(context, "$prefix/es256_${prefix}.json"),
+        srs = getFilePathFromAssets(context, "$prefix/common.srs")
     )
 }
 
 
-fun getCircuitDir(certificate: X509ParseResult): String {
-    // todo: 証明書の構造を見て適切なサーキット名を返却する
-    return "ee"
+fun getCircuitDir(certificate: Certificate): String {
+    try {
+        val x509Cert = certificate as X509Certificate
+        val issuer = x509Cert.issuerX500Principal
+        val issuerName = issuer.name
+
+        // IssuerのDNからO（Organization）フィールドを抽出
+        val oValue = extractOrganizationFromDN(issuerName)
+
+        // Oの値を小文字に正規化してチェック
+        val normalizedO = oValue?.lowercase()
+
+        return if (normalizedO == "tee" || normalizedO == "strongbox") {
+            "ee"
+        } else {
+            "ca"
+        }
+    } catch (_: Exception) {
+        // 証明書の処理でエラーが発生した場合はデフォルトとして "ca" を返却
+        return "ca"
+    }
+}
+
+private fun extractOrganizationFromDN(dn: String): String? {
+    // DN（Distinguished Name）からO=の値を抽出
+    val regex = Regex("(?:^|,)\\s*O\\s*=\\s*([^,]+)", RegexOption.IGNORE_CASE)
+    val matchResult = regex.find(dn)
+    return matchResult?.groupValues?.get(1)?.trim()
 }
