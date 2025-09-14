@@ -17,8 +17,8 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
 
     private val keystoreHelper = ECKeystoreHelper()
 
-    private val _proofGenerationResult = MutableLiveData<Result<String>>()
-    val proofGenerationResult: LiveData<Result<String>> = _proofGenerationResult
+    private val _proofGenerationResult = MutableLiveData<Result<Array<String>>>()
+    val proofGenerationResult: LiveData<Result<Array<String>>> = _proofGenerationResult
 
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
@@ -28,6 +28,7 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             _isLoading.value = true
 
             try {
+                delay(2000)
                 // Generate mock proof
                 val proofString = generateProofCore()
                 println("=== === === === generated proof string : ${proofString}")
@@ -42,7 +43,7 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
         }
     }
 
-    private fun generateProofCore(): String {
+    private fun generateProofCore(): Array<String> {
         val chain = keystoreHelper.getAttestationCertificate(Constants.KEY_ALIAS)
 
         // 証明書チェーンから子証明書（1番目）と親証明書（2番目）を取得
@@ -61,6 +62,6 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
         )
 
         // ProofResultからproofを抽出して返却
-        return proofResult.proof
+        return arrayOf(proofResult.proof)
     }
 }

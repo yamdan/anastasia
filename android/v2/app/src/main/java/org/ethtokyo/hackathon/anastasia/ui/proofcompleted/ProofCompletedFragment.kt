@@ -27,7 +27,11 @@ class ProofCompletedFragment : Fragment() {
         viewModel = ViewModelProvider(this)[ProofCompletedViewModel::class.java]
         _binding = FragmentProofCompletedBinding.inflate(inflater, container, false)
 
-        binding.textViewProof.text = args.proof
+        // 複数のproofを改行区切りで表示
+        val proofsText = args.proofs.joinToString("\n\n") { proof ->
+            "Proof:\n$proof"
+        }
+        binding.textViewProof.text = proofsText
 
         setupListeners()
         setupObservers()
@@ -37,7 +41,7 @@ class ProofCompletedFragment : Fragment() {
 
     private fun setupListeners() {
         binding.buttonYes.setOnClickListener {
-            viewModel.recordProof(args.proof)
+            viewModel.recordProofs(args.proofs)
         }
         binding.buttonNo.setOnClickListener {
             findNavController().navigate(R.id.action_proofCompletedFragment_to_navigation_key_management)

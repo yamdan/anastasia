@@ -23,11 +23,11 @@ class ProofCompletedViewModel : ViewModel() {
 
     private val client = OkHttpClient()
 
-    fun recordProof(proof: String) {
+    fun recordProofs(proofs: Array<String>) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = postProofToServer(proof)
+                val response = postProofToServer(proofs)
                 _postResult.value = Result.success(response)
             } catch (e: Exception) {
                 _postResult.value = Result.failure(e)
@@ -37,8 +37,10 @@ class ProofCompletedViewModel : ViewModel() {
         }
     }
 
-    private suspend fun postProofToServer(proof: String): String = withContext(Dispatchers.IO) {
-        val requestBody = proof.toRequestBody("application/json; charset=utf-8".toMediaType())
+    private suspend fun postProofToServer(proofs: Array<String>): String = withContext(Dispatchers.IO) {
+        // 複数のproofをJSON配列形式で送信
+        val jsonArray = "[" + proofs.joinToString(",") { "\"$it\"" } + "]"
+        val requestBody = jsonArray.toRequestBody("application/json; charset=utf-8".toMediaType())
         val request = Request.Builder()
             .url(resolveInfuraPath())
             .post(requestBody)
