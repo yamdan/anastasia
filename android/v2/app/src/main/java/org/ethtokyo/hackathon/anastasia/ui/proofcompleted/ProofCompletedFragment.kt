@@ -94,10 +94,14 @@ class ProofCompletedFragment : Fragment() {
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.buttonYes.isEnabled = !isLoading
             binding.buttonNo.isEnabled = !isLoading
-            if (isLoading) {
-                binding.buttonYes.text = "Processing..."
-            } else {
+            if (!isLoading) {
                 binding.buttonYes.text = "YES"
+            }
+        }
+
+        viewModel.progressMessage.observe(viewLifecycleOwner) { message ->
+            if (message.isNotEmpty()) {
+                binding.buttonYes.text = message
             }
         }
     }

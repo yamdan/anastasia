@@ -57,11 +57,15 @@ class ProofCompletedViewModel : ViewModel() {
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
+    private val _progressMessage = MutableLiveData<String>()
+    val progressMessage: LiveData<String> = _progressMessage
+
     private val client = OkHttpClient()
 
     fun recordProofs(proofs: Array<ProofResult>) {
         viewModelScope.launch {
             _isLoading.value = true
+            _progressMessage.value = "Preparing proof submissions..."
             try {
                 val allResults = postProofToServer(proofs)
                 _postResult.value = Result.success(allResults)
@@ -70,6 +74,7 @@ class ProofCompletedViewModel : ViewModel() {
                 _postResult.value = Result.failure(e)
             } finally {
                 _isLoading.value = false
+                _progressMessage.value = ""
             }
         }
     }
@@ -79,6 +84,11 @@ class ProofCompletedViewModel : ViewModel() {
         val endpoint = resolveInfuraPath()
 
         proofs.forEachIndexed { index, proofResult ->
+            // プログレス更新（UIスレッドで実行）
+            withContext(Dispatchers.Main) {
+                _progressMessage.value = "Submitting proof ${index + 1} of ${proofs.size}..."
+            }
+
             try {
                 val smContractAddress = if (proofResult.proof.startsWith("ca")){
                     Constants.SMART_CONTRACT_ADDRESS_CA
