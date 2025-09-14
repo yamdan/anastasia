@@ -45,8 +45,8 @@ fun NoirComponent() {
     val srsFile = getFilePathFromAssets("common.srs")
     val caCircuitFile = getFilePathFromAssets("es256_ca.json")
     val caVkFile = getFilePathFromAssets("es256_ca.vk")
-    val eeCircuitFile = getFilePathFromAssets("es256_ee.json")
-    val eeVkFile = getFilePathFromAssets("es256_ee.vk")
+    val eeCircuitFile = getFilePathFromAssets("es256_ee_long_ext.json")
+    val eeVkFile = getFilePathFromAssets("es256_ee_long_ext.vk")
 
     Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
