@@ -34,6 +34,16 @@
             android:layout_marginBottom="32dp"
             android:gravity="center" />
 
+        <ImageView
+            android:id="@+id/proof_generation_image"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:layout_gravity="center"
+            android:layout_marginBottom="32dp"
+            android:src="@drawable/proof_generation_image"
+            android:contentDescription="Proof Generation Illustration"
+            android:scaleType="fitCenter" />
+
         <ProgressBar
             android:id="@+id/progress_bar"
             style="?android:attr/progressBarStyleLarge"
