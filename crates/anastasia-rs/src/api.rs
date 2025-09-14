@@ -292,6 +292,6 @@ mod tests {
         println!("Proof length: {}", proof.len());
         assert!(!proof.is_empty());
         assert_eq!(next_cmt.len(), 64); // 32 bytes in hex
-        assert_eq!(next_cmt_r.len(), 64); // 32 bytes in hex        
+        assert_eq!(next_cmt_r.len(), 64); // 32 bytes in hex
     }
 }
