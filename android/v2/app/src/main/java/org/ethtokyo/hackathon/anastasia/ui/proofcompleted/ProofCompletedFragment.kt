@@ -1,5 +1,8 @@
 package org.ethtokyo.hackathon.anastasia.ui.proofcompleted
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -43,19 +46,30 @@ class ProofCompletedFragment : Fragment() {
         }
         binding.textViewProof.text = proofsText
 
-        setupListeners(proofResults)
+        setupListeners(proofResults, proofsText)
         setupObservers()
 
         return binding.root
     }
 
-    private fun setupListeners(proofResults: Array<ProofResult>) {
+    private fun setupListeners(proofResults: Array<ProofResult>, proofsText: String) {
         binding.buttonYes.setOnClickListener {
             viewModel.recordProofs(proofResults)
         }
         binding.buttonNo.setOnClickListener {
             findNavController().navigate(R.id.action_proofCompletedFragment_to_navigation_key_management)
         }
+
+        binding.textViewProof.setOnClickListener {
+            copyToClipboard(proofsText)
+        }
+    }
+
+    private fun copyToClipboard(text: String) {
+        val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("Proof Data", text)
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(requireContext(), "Proof data copied to clipboard", Toast.LENGTH_SHORT).show()
     }
 
     private fun setupObservers() {
