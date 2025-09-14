@@ -2,6 +2,7 @@ package org.ethtokyo.hackathon.anastasia.ui.home
 
 import android.os.Bundle
 import android.view.*
+import android.widget.Toast
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
@@ -37,6 +38,12 @@ class HomeFragment : Fragment() {
         return binding.root
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Refresh certificates when returning to this screen
+        homeViewModel.refreshCertificates()
+    }
+
     private fun setupMenu() {
         val menuHost: MenuHost = requireActivity()
         menuHost.addMenuProvider(object : MenuProvider {
@@ -47,7 +54,11 @@ class HomeFragment : Fragment() {
             override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
                 return when (menuItem.itemId) {
                     R.id.action_proof_generation -> {
-                        findNavController().navigate(R.id.action_home_to_proof_generation)
+                        if (homeViewModel.hasGeneratedKey()) {
+                            findNavController().navigate(R.id.action_home_to_proof_generation)
+                        } else {
+                            Toast.makeText(context, "First, you need to generate a key.", Toast.LENGTH_SHORT).show()
+                        }
                         true
                     }
                     else -> false

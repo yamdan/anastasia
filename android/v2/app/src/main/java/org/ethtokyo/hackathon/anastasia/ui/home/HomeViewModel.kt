@@ -52,6 +52,10 @@ class HomeViewModel : ViewModel() {
         loadCertificates()
     }
 
+    fun hasGeneratedKey(): Boolean {
+        return keystoreHelper.keyExists(Constants.KEY_ALIAS)
+    }
+
     private fun parseCertificateSubject(cert: X509Certificate): String {
         return cert.subjectDN.name.split(",").firstOrNull()?.trim() ?: "Unknown Subject"
     }
