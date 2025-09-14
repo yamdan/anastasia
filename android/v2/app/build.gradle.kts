@@ -16,6 +16,13 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val apiKey = System.getenv("SEPOLIA_API_KEY")
+        if (apiKey != null) {
+            buildConfigField("String", "SEPOLIA_API_KEY", "\"$apiKey\"")
+        } else {
+            throw GradleException("Environment variable SEPOLIA_API_KEY is not set.")
+        }
     }
 
     buildTypes {
@@ -36,6 +43,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 }
 
