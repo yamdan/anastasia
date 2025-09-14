@@ -51,7 +51,12 @@
         android:id="@+id/certificateDetailFragment"
         android:name="org.ethtokyo.hackathon.anastasia.ui.certificatedetail.CertificateDetailFragment"
         android:label="Certificate Detail"
-        tools:layout="@layout/fragment_certificate_detail" />
+        tools:layout="@layout/fragment_certificate_detail">
+        <argument
+            android:name="certificateIndex"
+            app:argType="integer"
+            android:defaultValue="-1" />
+    </fragment>
 
     <fragment
         android:id="@+id/proofGenerationFragment"

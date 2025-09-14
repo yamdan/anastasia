@@ -81,8 +81,8 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        certificateAdapter = CertificateAdapter(emptyList()) { certificate ->
-            onCertificateClick(certificate)
+        certificateAdapter = CertificateAdapter(emptyList()) { certificate, index ->
+            onCertificateClick(certificate, index)
         }
 
         binding.recyclerCertificates.apply {
@@ -115,9 +115,13 @@ class HomeFragment : Fragment() {
         binding.recyclerCertificates.visibility = if (isEmpty) View.GONE else View.VISIBLE
     }
 
-    private fun onCertificateClick(certificate: CertificateInfo) {
-        // TODO: Pass certificate data to detail screen
-        findNavController().navigate(R.id.action_home_to_certificate_detail)
+    private fun onCertificateClick(certificate: CertificateInfo, index: Int) {
+        // Pass certificate index to detail screen
+        val action = R.id.action_home_to_certificate_detail
+        val bundle = Bundle().apply {
+            putInt("certificateIndex", index)
+        }
+        findNavController().navigate(action, bundle)
     }
 
     override fun onDestroyView() {

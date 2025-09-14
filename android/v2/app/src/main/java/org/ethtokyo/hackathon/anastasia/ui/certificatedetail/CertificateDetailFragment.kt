@@ -5,7 +5,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.navigation.fragment.navArgs
+import org.ethtokyo.hackathon.anastasia.Constants
+import org.ethtokyo.hackathon.anastasia.core.ECKeystoreHelper
 import org.ethtokyo.hackathon.anastasia.databinding.FragmentCertificateDetailBinding
 import java.security.cert.X509Certificate
 import java.text.SimpleDateFormat
@@ -15,9 +16,7 @@ class CertificateDetailFragment : Fragment() {
 
     private var _binding: FragmentCertificateDetailBinding? = null
     private val binding get() = _binding!!
-
-    // TODO: Add Safe Args for passing certificate data
-    // private val args: CertificateDetailFragmentArgs by navArgs()
+    private val keystoreHelper = ECKeystoreHelper()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -26,29 +25,42 @@ class CertificateDetailFragment : Fragment() {
     ): View {
         _binding = FragmentCertificateDetailBinding.inflate(inflater, container, false)
 
-        // TODO: Get certificate from arguments and display details
-        displayMockCertificateDetails()
+        val certificateIndex = arguments?.getInt("certificateIndex", -1) ?: -1
+        displayCertificateDetails(certificateIndex)
 
         return binding.root
     }
 
-    private fun displayMockCertificateDetails() {
-        // For now, display mock data
-        binding.tvSubjectValue.text = "CN=Android Keystore Key, O=Android, C=US"
-        binding.tvIssuerValue.text = "CN=Android Keystore, O=Google, C=US"
-        binding.tvSerialValue.text = "1234567890ABCDEF"
-        binding.tvValidityFrom.text = "Valid From: 2024-01-01"
-        binding.tvValidityTo.text = "Valid To: 2025-01-01"
+    private fun displayCertificateDetails(certificateIndex: Int) {
+        try {
+            val certificateChain = keystoreHelper.getAttestationCertificate(Constants.KEY_ALIAS)
+            if (certificateChain != null && certificateIndex >= 0 && certificateIndex < certificateChain.size) {
+                val certificate = certificateChain[certificateIndex] as? X509Certificate
+                if (certificate != null) {
+                    val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+
+                    binding.tvSubjectValue.text = certificate.subjectX500Principal.name
+                    binding.tvIssuerValue.text = certificate.issuerX500Principal.name
+                    binding.tvSerialValue.text = certificate.serialNumber.toString(16).uppercase()
+                    binding.tvValidityFrom.text = "Valid From: ${dateFormat.format(certificate.notBefore)}"
+                    binding.tvValidityTo.text = "Valid To: ${dateFormat.format(certificate.notAfter)}"
+                } else {
+                    displayErrorDetails()
+                }
+            } else {
+                displayErrorDetails()
+            }
+        } catch (e: Exception) {
+            displayErrorDetails()
+        }
     }
 
-    private fun displayCertificateDetails(certificate: X509Certificate) {
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-
-        binding.tvSubjectValue.text = certificate.subjectX500Principal.name
-        binding.tvIssuerValue.text = certificate.issuerX500Principal.name
-        binding.tvSerialValue.text = certificate.serialNumber.toString(16).uppercase()
-        binding.tvValidityFrom.text = "Valid From: ${dateFormat.format(certificate.notBefore)}"
-        binding.tvValidityTo.text = "Valid To: ${dateFormat.format(certificate.notAfter)}"
+    private fun displayErrorDetails() {
+        binding.tvSubjectValue.text = "Unable to load certificate details"
+        binding.tvIssuerValue.text = "Error occurred"
+        binding.tvSerialValue.text = "N/A"
+        binding.tvValidityFrom.text = "N/A"
+        binding.tvValidityTo.text = "N/A"
     }
 
     override fun onDestroyView() {

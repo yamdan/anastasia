@@ -10,7 +10,7 @@ import org.ethtokyo.hackathon.anastasia.data.CertificateInfo
 
 class CertificateAdapter(
     private var certificates: List<CertificateInfo>,
-    private val onCertificateClick: (CertificateInfo) -> Unit
+    private val onCertificateClick: (CertificateInfo, Int) -> Unit
 ) : RecyclerView.Adapter<CertificateAdapter.CertificateViewHolder>() {
 
     class CertificateViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -33,7 +33,7 @@ class CertificateAdapter(
         holder.typeText.text = if (certificate.isEndEntity) "End Entity Certificate" else "X.509 Certificate"
 
         holder.itemView.setOnClickListener {
-            onCertificateClick(certificate)
+            onCertificateClick(certificate, position)
         }
     }
 
