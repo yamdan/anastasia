@@ -21,10 +21,7 @@ class HomeViewModel : ViewModel() {
 
     private fun loadCertificates() {
         try {
-            // TODO: 実装 - 実際のKeyStoreから証明書チェーンを取得
-            // 現在はモック実装
-            val mockCertificates = loadAttestationCertificates()
-            _certificates.value = mockCertificates
+            _certificates.value = loadAttestationCertificates()
         } catch (e: Exception) {
             _certificates.value = emptyList()
         }
@@ -34,6 +31,7 @@ class HomeViewModel : ViewModel() {
         if (keystoreHelper.keyExists(Constants.KEY_ALIAS)){
             val certificates = keystoreHelper.getAttestationCertificate(Constants.KEY_ALIAS)
             if (certificates != null) {
+                println("=== === === loaded certificate size : ${certificates.size}")
                 return certificates.map { cert ->
                     val x509 = cert as? X509Certificate
                     CertificateInfo(
