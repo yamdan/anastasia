@@ -67,6 +67,7 @@ pub fn to_fixed_array<const N: usize>(src: &[u8]) -> Result<[u8; N], String> {
     Ok(buf)
 }
 
+// TODO: Use more appropriate Poseidon hash rather than the repeated hash_2
 pub fn commit_attrs(
     dn: [u8; 124],
     key_identifier: [u8; 20],
