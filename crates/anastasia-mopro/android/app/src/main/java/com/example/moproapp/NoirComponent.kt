@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import uniffi.mopro.CircuitMeta
+import uniffi.mopro.commitAttrs
 import uniffi.mopro.verifyNoirProof
 import uniffi.mopro.prove
 
@@ -94,8 +95,20 @@ fun NoirComponent() {
                                 val caIssuerPkY = bytes(
                                     0x9a, 0x9d, 0x6b, 0x56, 0x68, 0x29, 0xbf, 0x3a, 0xf8, 0xfe, 0xe0, 0x50, 0x94, 0x3f, 0xbb, 0x70, 0xab, 0xf5, 0xb1, 0xb3, 0x5a, 0xc1, 0xe3, 0xb8, 0x95, 0xee, 0x2e, 0xc0, 0xa8, 0x5a, 0xfb, 0xd2
                                 )
-                                val caPrevCmt = "0ede28f511104f08069e07986707873be5cbba917f02f02407ad1fdd6838679b"
-                                val caPrevCmtR = "deadbeef"
+                                val caIssuer = bytes(
+                                    0x30, 0x29, 0x31, 0x13, 0x30, 0x11, 0x06, 0x03, 0x55, 0x04, 0x0a, 0x13, 0x0a, 0x47, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x20, 0x4c, 0x4c, 0x43, 0x31, 0x12, 0x30, 0x10, 0x06, 0x03, 0x55, 0x04, 0x03, 0x13, 0x09, 0x44, 0x72, 0x6f, 0x69, 0x64, 0x20, 0x43, 0x41, 0x33
+                                )
+                                val caCommitResult = commitAttrs(
+                                    caIssuer,
+                                    caAuthorityKeyId,
+                                    caIssuerPkX,
+                                    caIssuerPkY,
+                                    null
+                                )
+                                val caPrevCmt = caCommitResult.cmt
+                                val caPrevCmtR = caCommitResult.r
+                                //val caPrevCmt = "0ede28f511104f08069e07986707873be5cbba917f02f02407ad1fdd6838679b"
+                                //val caPrevCmtR = "deadbeef"
 
                                 val startTime = System.currentTimeMillis()
                                 statusMessage = "(1) Generating proof of CA certificate..."
@@ -158,8 +171,10 @@ fun NoirComponent() {
                                 val endTime = System.currentTimeMillis()
                                 val duration = endTime - startTime
 
+                                val proofSizeHex = caProof.length + caNextCmt.length + caNextCmtR.length + eeProof.length + eeNextCmt.length + eeNextCmtR.length
+                                val proofSize = proofSizeHex / 2 // bytes
                                 provingTime = "Proving time: $duration ms"
-                                proofResult = "Proof generated: ${caProof.length} hexes"
+                                proofResult = "Proof generated: $proofSize bytes"
                                 statusMessage = "Proof generation completed"
                             } catch (e: Exception) {
                                 provingTime = "Proving failed"

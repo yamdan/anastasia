@@ -1,5 +1,3 @@
-use std::io::Write;
-
 use crate::{
     cert::ParsedCert,
     circuit::Circuit,
@@ -10,7 +8,6 @@ use ark_bn254::Fr;
 use ark_ff::UniformRand;
 use ark_std::rand::rngs::OsRng;
 use chrono::{DateTime, Datelike, Timelike, Utc};
-use flate2::{Compression, write::GzEncoder};
 use noir::{
     FieldElement,
     acir_field::GenericFieldElement,

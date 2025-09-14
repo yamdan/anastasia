@@ -744,15 +744,15 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 // when the library is loaded.
 internal interface IntegrityCheckingUniffiLib : Library {
     // Integrity check functions only
-    fun uniffi_anastasia_mopro_checksum_func_generate_circom_proof(
+    fun uniffi_anastasia_mopro_checksum_func_commit_attrs(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_generate_circom_proof(
 ): Short
 fun uniffi_anastasia_mopro_checksum_func_generate_halo2_proof(
 ): Short
 fun uniffi_anastasia_mopro_checksum_func_generate_noir_proof(
 ): Short
 fun uniffi_anastasia_mopro_checksum_func_get_noir_verification_key(
-): Short
-fun uniffi_anastasia_mopro_checksum_func_mopro_uniffi_hello_world(
 ): Short
 fun uniffi_anastasia_mopro_checksum_func_prove(
 ): Short
@@ -807,15 +807,15 @@ internal interface UniffiLib : Library {
     }
 
     // FFI functions
-    fun uniffi_anastasia_mopro_fn_func_generate_circom_proof(`zkeyPath`: RustBuffer.ByValue,`circuitInputs`: RustBuffer.ByValue,`proofLib`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_anastasia_mopro_fn_func_commit_attrs(`subject`: RustBuffer.ByValue,`subjectKeyIdentifier`: RustBuffer.ByValue,`subjectPkX`: RustBuffer.ByValue,`subjectPkY`: RustBuffer.ByValue,`r`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_generate_circom_proof(`zkeyPath`: RustBuffer.ByValue,`circuitInputs`: RustBuffer.ByValue,`proofLib`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 fun uniffi_anastasia_mopro_fn_func_generate_halo2_proof(`srsPath`: RustBuffer.ByValue,`pkPath`: RustBuffer.ByValue,`circuitInputs`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 fun uniffi_anastasia_mopro_fn_func_generate_noir_proof(`circuitPath`: RustBuffer.ByValue,`srsPath`: RustBuffer.ByValue,`inputs`: RustBuffer.ByValue,`onChain`: Byte,`vk`: RustBuffer.ByValue,`lowMemoryMode`: Byte,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 fun uniffi_anastasia_mopro_fn_func_get_noir_verification_key(`circuitPath`: RustBuffer.ByValue,`srsPath`: RustBuffer.ByValue,`onChain`: Byte,`lowMemoryMode`: Byte,uniffi_out_err: UniffiRustCallStatus, 
-): RustBuffer.ByValue
-fun uniffi_anastasia_mopro_fn_func_mopro_uniffi_hello_world(uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 fun uniffi_anastasia_mopro_fn_func_prove(`circuitMeta`: RustBuffer.ByValue,`cert`: RustBuffer.ByValue,`authorityKeyId`: RustBuffer.ByValue,`issuerPkX`: RustBuffer.ByValue,`issuerPkY`: RustBuffer.ByValue,`prevCmt`: RustBuffer.ByValue,`prevCmtR`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
@@ -951,6 +951,9 @@ private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
 }
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
+    if (lib.uniffi_anastasia_mopro_checksum_func_commit_attrs() != 16470.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_anastasia_mopro_checksum_func_generate_circom_proof() != 4748.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -961,9 +964,6 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_anastasia_mopro_checksum_func_get_noir_verification_key() != 7183.toShort()) {
-        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    }
-    if (lib.uniffi_anastasia_mopro_checksum_func_mopro_uniffi_hello_world() != 52256.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_anastasia_mopro_checksum_func_prove() != 47443.toShort()) {
@@ -1244,6 +1244,38 @@ public object FfiConverterTypeCircuitMeta: FfiConverterRustBuffer<CircuitMeta> {
             FfiConverterString.write(value.`circuitPath`, buf)
             FfiConverterString.write(value.`verificationKeyPath`, buf)
             FfiConverterString.write(value.`srsPath`, buf)
+    }
+}
+
+
+
+data class CommitResult (
+    var `cmt`: kotlin.String, 
+    var `r`: kotlin.String
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeCommitResult: FfiConverterRustBuffer<CommitResult> {
+    override fun read(buf: ByteBuffer): CommitResult {
+        return CommitResult(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: CommitResult) = (
+            FfiConverterString.allocationSize(value.`cmt`) +
+            FfiConverterString.allocationSize(value.`r`)
+    )
+
+    override fun write(value: CommitResult, buf: ByteBuffer) {
+            FfiConverterString.write(value.`cmt`, buf)
+            FfiConverterString.write(value.`r`, buf)
     }
 }
 
@@ -1616,6 +1648,16 @@ public object FfiConverterMapStringSequenceString: FfiConverterRustBuffer<Map<ko
         }
     }
 }
+    @Throws(MoproException::class) fun `commitAttrs`(`subject`: kotlin.ByteArray, `subjectKeyIdentifier`: kotlin.ByteArray, `subjectPkX`: kotlin.ByteArray, `subjectPkY`: kotlin.ByteArray, `r`: kotlin.String?): CommitResult {
+            return FfiConverterTypeCommitResult.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_commit_attrs(
+        FfiConverterByteArray.lower(`subject`),FfiConverterByteArray.lower(`subjectKeyIdentifier`),FfiConverterByteArray.lower(`subjectPkX`),FfiConverterByteArray.lower(`subjectPkY`),FfiConverterOptionalString.lower(`r`),_status)
+}
+    )
+    }
+    
+
     @Throws(MoproException::class) fun `generateCircomProof`(`zkeyPath`: kotlin.String, `circuitInputs`: kotlin.String, `proofLib`: ProofLib): CircomProofResult {
             return FfiConverterTypeCircomProofResult.lift(
     uniffiRustCallWithError(MoproException) { _status ->
@@ -1651,19 +1693,6 @@ public object FfiConverterMapStringSequenceString: FfiConverterRustBuffer<Map<ko
     uniffiRustCallWithError(MoproException) { _status ->
     UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_get_noir_verification_key(
         FfiConverterString.lower(`circuitPath`),FfiConverterOptionalString.lower(`srsPath`),FfiConverterBoolean.lower(`onChain`),FfiConverterBoolean.lower(`lowMemoryMode`),_status)
-}
-    )
-    }
-    
-
-        /**
-         * You can also customize the bindings by #[uniffi::export]
-         * Reference: https://mozilla.github.io/uniffi-rs/latest/proc_macro/index.html
-         */ fun `moproUniffiHelloWorld`(): kotlin.String {
-            return FfiConverterString.lift(
-    uniffiRustCall() { _status ->
-    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_mopro_uniffi_hello_world(
-        _status)
 }
     )
     }

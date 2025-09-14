@@ -31,6 +31,30 @@ impl From<CircuitMeta> for anastasia_rs::CircuitMeta {
 }
 
 #[derive(Clone, Debug, Record)]
+pub struct CommitResult {
+    pub cmt: String,
+    pub r: String,
+}
+
+impl From<anastasia_rs::CommitResult> for CommitResult {
+    fn from(result: anastasia_rs::CommitResult) -> Self {
+        CommitResult {
+            cmt: result.cmt,
+            r: result.r,
+        }
+    }
+}
+
+impl From<CommitResult> for anastasia_rs::CommitResult {
+    fn from(result: CommitResult) -> Self {
+        anastasia_rs::CommitResult {
+            cmt: result.cmt,
+            r: result.r,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Record)]
 pub struct ProofResult {
     pub proof: String,
     pub next_cmt: String,
