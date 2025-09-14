@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_proof_generation"
+        android:title="Proof Generation"
+        android:orderInCategory="100"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_delete_key"
+        android:title="Delete Key"
+        android:orderInCategory="200"
+        app:showAsAction="never" />
+
+</menu>

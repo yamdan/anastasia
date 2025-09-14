@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/navigation_key_management"
+        android:icon="@drawable/ic_key_black_24dp"
+        android:title="@string/title_key_management" />
+
+    <item
+        android:id="@+id/navigation_vc_management"
+        android:icon="@drawable/ic_badge_black_24dp"
+        android:title="@string/title_vc_management" />
+
+</menu>
