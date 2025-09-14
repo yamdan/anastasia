@@ -15,6 +15,11 @@ pub fn field_to_base64url(v: &Fr) -> String {
     URL_SAFE_NO_PAD.encode(bytes)
 }
 
+pub fn field_to_hex(v: &Fr) -> String {
+    let bytes = v.into_bigint().to_bytes_be();
+    hex::encode(bytes)
+}
+
 pub fn base64url_to_field(s: &str) -> Result<Fr, String> {
     let bytes = URL_SAFE_NO_PAD
         .decode(s)
@@ -22,6 +27,11 @@ pub fn base64url_to_field(s: &str) -> Result<Fr, String> {
     if bytes.len() != 32 {
         return Err("Decoded bytes must be 32 bytes".to_string());
     }
+    Ok(Fr::from_be_bytes_mod_order(&bytes))
+}
+
+pub fn hex_to_field(s: &str) -> Result<Fr, String> {
+    let bytes = hex::decode(s).map_err(|_| "Failed to decode hex string".to_string())?;
     Ok(Fr::from_be_bytes_mod_order(&bytes))
 }
 
