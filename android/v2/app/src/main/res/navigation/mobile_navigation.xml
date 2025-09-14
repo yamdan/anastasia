@@ -3,23 +3,80 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/mobile_navigation"
-    app:startDestination="@+id/navigation_home">
+    app:startDestination="@+id/navigation_key_management">
 
     <fragment
-        android:id="@+id/navigation_home"
+        android:id="@+id/navigation_key_management"
         android:name="org.ethtokyo.hackathon.anastasia.ui.home.HomeFragment"
-        android:label="@string/title_home"
-        tools:layout="@layout/fragment_home" />
+        android:label="@string/title_key_management"
+        tools:layout="@layout/fragment_home">
+        <action
+            android:id="@+id/action_home_to_key_generation"
+            app:destination="@id/keyGenerationFragment" />
+        <action
+            android:id="@+id/action_home_to_certificate_detail"
+            app:destination="@id/certificateDetailFragment" />
+        <action
+            android:id="@+id/action_home_to_proof_generation"
+            app:destination="@id/proofGenerationFragment" />
+    </fragment>
 
     <fragment
-        android:id="@+id/navigation_dashboard"
+        android:id="@+id/navigation_vc_management"
         android:name="org.ethtokyo.hackathon.anastasia.ui.dashboard.DashboardFragment"
-        android:label="@string/title_dashboard"
+        android:label="@string/title_vc_management"
         tools:layout="@layout/fragment_dashboard" />
 
     <fragment
-        android:id="@+id/navigation_notifications"
-        android:name="org.ethtokyo.hackathon.anastasia.ui.notifications.NotificationsFragment"
-        android:label="@string/title_notifications"
-        tools:layout="@layout/fragment_notifications" />
+        android:id="@+id/keyGenerationFragment"
+        android:name="org.ethtokyo.hackathon.anastasia.ui.keygeneration.KeyGenerationFragment"
+        android:label="Key Generation"
+        tools:layout="@layout/fragment_key_generation">
+        <action
+            android:id="@+id/action_key_generation_to_generated_key_info"
+            app:destination="@id/generatedKeyInfoFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/generatedKeyInfoFragment"
+        android:name="org.ethtokyo.hackathon.anastasia.ui.generatedkeyinfo.GeneratedKeyInfoFragment"
+        android:label="Generated Key Info"
+        tools:layout="@layout/fragment_generated_key_info">
+        <action
+            android:id="@+id/action_generated_key_info_to_home"
+            app:destination="@id/navigation_key_management" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/certificateDetailFragment"
+        android:name="org.ethtokyo.hackathon.anastasia.ui.certificatedetail.CertificateDetailFragment"
+        android:label="Certificate Detail"
+        tools:layout="@layout/fragment_certificate_detail" />
+
+    <fragment
+        android:id="@+id/proofGenerationFragment"
+        android:name="org.ethtokyo.hackathon.anastasia.ui.proofgeneration.ProofGenerationFragment"
+        android:label="Proof Generation"
+        tools:layout="@layout/fragment_proof_generation">
+        <action
+            android:id="@+id/action_proof_generation_to_proof_completed"
+            app:destination="@id/proofCompletedFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/proofCompletedFragment"
+        android:name="org.ethtokyo.hackathon.anastasia.ui.proofcompleted.ProofCompletedFragment"
+        android:label="Proof Generation Completed"
+        tools:layout="@layout/fragment_proof_completed">
+        <action
+            android:id="@+id/action_proof_completed_to_smart_contract"
+            app:destination="@id/smartContractCompletedFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/smartContractCompletedFragment"
+        android:name="org.ethtokyo.hackathon.anastasia.ui.smartcontract.SmartContractCompletedFragment"
+        android:label="Smart Contract Result"
+        tools:layout="@layout/fragment_smart_contract_completed" />
+
 </navigation>
