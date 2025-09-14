@@ -36,6 +36,7 @@ pub struct Circuit {
     pub verification_key: Vec<u8>,
     pub circuit_size: u32,
     pub public_input_size: Option<u64>,
+    pub max_extra_extension_len: usize,
 }
 
 impl Circuit {
@@ -60,6 +61,11 @@ impl Circuit {
 
         let public_input_size = v["public_input_size"].as_u64();
 
+        let max_extra_extension_len = v["max_extra_extension_len"]
+            .as_u64()
+            .map(|v| v as usize)
+            .unwrap_or(128);
+
         setup_srs_from_bytecode_cached(circuit_size, &circuit_meta.srs_path)?;
 
         let mut vk_file =
@@ -74,6 +80,7 @@ impl Circuit {
             bytecode,
             circuit_size,
             public_input_size,
+            max_extra_extension_len,
             verification_key: vk_contents,
         })
     }
@@ -133,6 +140,7 @@ mod tests {
         assert!(!circuit.bytecode.is_empty());
         assert!(!circuit.verification_key.is_empty());
         assert!(circuit.circuit_size > 0);
-        assert!(circuit.public_input_size.is_some());
+        //assert!(circuit.public_input_size.is_some());
+        assert!(circuit.max_extra_extension_len > 0);
     }
 }

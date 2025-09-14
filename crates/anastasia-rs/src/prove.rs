@@ -3,9 +3,7 @@ use std::io::Write;
 use crate::{
     cert::ParsedCert,
     circuit::Circuit,
-    utils::{
-        UtcTime, base64url_to_field, commit_attrs, field_to_base64url, from_u8_array_to_fr_vec,
-    },
+    utils::{UtcTime, commit_attrs, field_to_hex, from_u8_array_to_fr_vec, hex_to_field},
 };
 
 use ark_bn254::Fr;
@@ -29,7 +27,13 @@ pub fn prove(
     issuer_pk_y: Vec<u8>,
     prev_cmt: String,
     prev_cmt_r: String,
+    max_extra_extension_len: usize,
 ) -> Result<(Vec<u8>, String, String), String> {
+    println!(
+        "Debug: max_extra_extension_len = {}",
+        max_extra_extension_len
+    );
+
     let parsed_cert =
         ParsedCert::from_der(&cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
 
@@ -55,10 +59,11 @@ pub fn prove(
         issuer_pk_y
             .try_into()
             .map_err(|_| "issuer_pk_y must be 32 bytes")?,
-        base64url_to_field(&prev_cmt)?,
-        base64url_to_field(&prev_cmt_r)?,
+        hex_to_field(&prev_cmt)?,
+        hex_to_field(&prev_cmt_r)?,
         next_cmt,
         next_cmt_r,
+        max_extra_extension_len,
     )?;
 
     let proof_with_public_inputs = prove_ultra_honk_keccak(
@@ -82,8 +87,8 @@ pub fn prove(
 
     Ok((
         compressed_proof,
-        field_to_base64url(&next_cmt),
-        field_to_base64url(&next_cmt_r),
+        field_to_hex(&next_cmt),
+        field_to_hex(&next_cmt_r),
     ))
 }
 
@@ -97,6 +102,7 @@ pub fn generate_witness(
     prev_cmt_r: Fr,
     next_cmt: Fr,
     next_cmt_r: Fr,
+    max_extra_extension_len: usize,
 ) -> Result<WitnessMap<GenericFieldElement<Fr>>, String> {
     let mut witness: Vec<Fr> = Vec::new();
 
@@ -125,12 +131,18 @@ pub fn generate_witness(
     witness.extend(from_u8_array_to_fr_vec(
         &parsed_cert.authority_key_identifier,
     ));
+    witness.extend(from_u8_array_to_fr_vec(&authority_key_id));
     witness.push(parsed_cert.subject_key_identifier_index.into());
     witness.push(parsed_cert.authority_key_identifier_index.into());
     witness.push(parsed_cert.basic_constraints_ca_index.into());
     witness.push(parsed_cert.key_usage_key_cert_sign_index.into());
     witness.push(parsed_cert.key_usage_digital_signature_index.into());
-    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.extra_extension));
+
+    let mut extra_extension_array = vec![0u8; max_extra_extension_len];
+    let copy_len = std::cmp::min(parsed_cert.extra_extension.len(), max_extra_extension_len);
+    extra_extension_array[..copy_len].copy_from_slice(&parsed_cert.extra_extension[..copy_len]);
+
+    witness.extend(from_u8_array_to_fr_vec(&extra_extension_array));
     witness.push(parsed_cert.extra_extension_len.into());
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.not_before));
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.not_after));
