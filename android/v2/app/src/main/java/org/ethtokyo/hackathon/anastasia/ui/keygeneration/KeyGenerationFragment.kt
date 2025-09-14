@@ -36,9 +36,7 @@ class KeyGenerationFragment : Fragment() {
         viewModel.keyGenerationResult.observe(viewLifecycleOwner) { result ->
             if (result.isSuccess) {
                 // Navigate to generated key info screen
-                // TODO: Pass the generated key info to next screen
-                // findNavController().navigate(R.id.action_keyGeneration_to_generatedKeyInfo)
-                Toast.makeText(context, "Key generation completed successfully!", Toast.LENGTH_SHORT).show()
+                findNavController().navigate(R.id.action_key_generation_to_generated_key_info)
             } else {
                 val error = result.exceptionOrNull()?.message ?: "Key generation failed"
                 Toast.makeText(context, error, Toast.LENGTH_LONG).show()
