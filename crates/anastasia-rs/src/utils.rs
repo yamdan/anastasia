@@ -2,12 +2,51 @@ use std::sync::LazyLock;
 
 use ark_bn254::Fr;
 use ark_crypto_primitives::{crh::CRHScheme, sponge::poseidon::PoseidonConfig};
-use ark_ff::{AdditiveGroup, PrimeField};
+use ark_ff::{AdditiveGroup, BigInteger, PrimeField};
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 
 use crate::poseidon::{CRH, get_poseidon_parameters_2};
 
 pub static POSEIDON_CONFIG_2: LazyLock<PoseidonConfig<Fr>> =
     LazyLock::new(|| get_poseidon_parameters_2());
+
+pub fn field_to_base64url(v: &Fr) -> String {
+    let bytes = v.into_bigint().to_bytes_be();
+    URL_SAFE_NO_PAD.encode(bytes)
+}
+
+pub fn base64url_to_field(s: &str) -> Result<Fr, String> {
+    let bytes = URL_SAFE_NO_PAD
+        .decode(s)
+        .map_err(|_| "Failed to decode base64url string".to_string())?;
+    if bytes.len() != 32 {
+        return Err("Decoded bytes must be 32 bytes".to_string());
+    }
+    Ok(Fr::from_be_bytes_mod_order(&bytes))
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct UtcTime {
+    pub year: u16,
+    pub month: u8,
+    pub day: u8,
+    pub hour: u8,
+    pub minute: u8,
+    pub second: u8,
+}
+
+impl UtcTime {
+    pub fn to_bytes(&self) -> [u8; 7] {
+        let mut bytes = [0u8; 7];
+        bytes[0..2].copy_from_slice(&self.year.to_be_bytes());
+        bytes[2] = self.month;
+        bytes[3] = self.day;
+        bytes[4] = self.hour;
+        bytes[5] = self.minute;
+        bytes[6] = self.second;
+        bytes
+    }
+}
 
 pub fn to_fixed_array<const N: usize>(src: &[u8]) -> Result<[u8; N], String> {
     if src.len() > N {
@@ -82,6 +121,10 @@ pub fn commit_attrs(
         .map_err(|e| format!("Poseidon CRH error: {}", e))?;
 
     Ok(state)
+}
+
+pub fn from_u8_array_to_fr_vec(u8_array: &[u8]) -> Vec<Fr> {
+    u8_array.iter().map(|b| Fr::from(*b as u64)).collect()
 }
 
 #[cfg(test)]

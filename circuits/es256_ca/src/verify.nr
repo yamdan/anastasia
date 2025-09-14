@@ -26,6 +26,7 @@ pub fn verify<let MAX_TBS_LEN: u32, let MAX_EXT_LEN: u32>(
     subject_pk_y: [u8; 32],
     subject_key_identifier: [u8; 20],
     authority_key_identifier: [u8; 20],
+    given_authority_key_identifier: [u8; 20],
     subject_key_identifier_index: u32,
     authority_key_identifier_index: u32,
     basic_constraints_ca_index: u32,
@@ -35,8 +36,9 @@ pub fn verify<let MAX_TBS_LEN: u32, let MAX_EXT_LEN: u32>(
     extra_extension_len: u32,
     prev_cmt: Field,
     prev_cmt_r: Field,
+    next_cmt: Field,
     next_cmt_r: Field,
-) -> [Field; 1] {
+) {
     let mut buf: [u8; MAX_TBS_LEN] = [0; MAX_TBS_LEN];
 
     // RFC 5280, Section 4.1.2.2
@@ -101,22 +103,21 @@ pub fn verify<let MAX_TBS_LEN: u32, let MAX_EXT_LEN: u32>(
     }
 
     // generate chain commitment and check
-    let prev_cmt_generated = commit_attrs(
-        issuer,
-        authority_key_identifier,
-        issuer_pk_x,
-        issuer_pk_y,
-        prev_cmt_r,
-    );
+    let aki = if authority_key_identifier_index == 0 {
+        given_authority_key_identifier
+    } else {
+        authority_key_identifier
+    };
+    let prev_cmt_generated = commit_attrs(issuer, aki, issuer_pk_x, issuer_pk_y, prev_cmt_r);
     assert(prev_cmt_generated == prev_cmt);
-
-    let next_cmt = commit_attrs(
+    let next_cmt_generated = commit_attrs(
         subject,
         subject_key_identifier,
         subject_pk_x,
         subject_pk_y,
         next_cmt_r,
     );
+    assert(next_cmt_generated == next_cmt);
 
     let extensions_len = std_extensions_len + extra_extension_len;
     let (extensions_seq_encoded_len, extensions_seq_encoded_len_size) =
@@ -299,7 +300,4 @@ pub fn verify<let MAX_TBS_LEN: u32, let MAX_EXT_LEN: u32>(
     let hash = sha256_var(buf, total_len as u64);
     let result = verify_signature(issuer_pk_x, issuer_pk_y, sig, hash);
     assert(result, "Signature verification failed");
-
-    print(next_cmt);
-    [next_cmt]
 }

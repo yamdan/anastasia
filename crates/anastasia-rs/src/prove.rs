@@ -1,38 +1,64 @@
 use std::io::Write;
 
-use crate::{cert::ParsedCert, circuit::Circuit, utils::to_fixed_array};
+use crate::{
+    cert::ParsedCert,
+    circuit::Circuit,
+    utils::{
+        UtcTime, base64url_to_field, commit_attrs, field_to_base64url, from_u8_array_to_fr_vec,
+    },
+};
 
 use ark_bn254::Fr;
 use ark_ff::UniformRand;
 use ark_std::rand::rngs::OsRng;
-use chrono::{Datelike, Timelike, Utc};
+use chrono::{DateTime, Datelike, Timelike, Utc};
 use flate2::{Compression, write::GzEncoder};
 use noir::{
-    acir_field::GenericFieldElement, barretenberg::prove::prove_ultra_honk_keccak,
-    native_types::WitnessMap,
+    FieldElement,
+    acir_field::GenericFieldElement,
+    barretenberg::prove::prove_ultra_honk_keccak,
+    native_types::{Witness, WitnessMap},
 };
 
-#[derive(Debug, Clone, Copy)]
-pub struct UtcTime {
-    pub year: u16,
-    pub month: u8,
-    pub day: u8,
-    pub hour: u8,
-    pub minute: u8,
-    pub second: u8,
-}
+pub fn prove(
+    circuit: &Circuit,
+    cert: Vec<u8>,
+    now: Option<DateTime<Utc>>,
+    authority_key_id: Vec<u8>,
+    issuer_pk_x: Vec<u8>,
+    issuer_pk_y: Vec<u8>,
+    prev_cmt: String,
+    prev_cmt_r: String,
+) -> Result<(Vec<u8>, String, String), String> {
+    let parsed_cert =
+        ParsedCert::from_der(&cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
 
-pub fn prove(circuit: &Circuit, cert: Vec<u8>, now: Option<UtcTime>) -> Result<Vec<u8>, String> {
+    let mut rng = OsRng;
+    let next_cmt_r = Fr::rand(&mut rng);
+    let next_cmt = commit_attrs(
+        parsed_cert.subject,
+        parsed_cert.subject_key_identifier,
+        parsed_cert.subject_pk_x,
+        parsed_cert.subject_pk_y,
+        next_cmt_r,
+    )?;
+
     let initial_witness = generate_witness(
-        circuit,
-        cert,
+        parsed_cert,
         now,
-        vec![0u8; 124],
-        [0u8; 20],
-        [0u8; 32],
-        [0u8; 32],
-        Fr::from(0u64),
-        Fr::from(0u64),
+        authority_key_id
+            .try_into()
+            .map_err(|_| "authority_key_id must be 20 bytes")?,
+        issuer_pk_x
+            .try_into()
+            .map_err(|_| "issuer_pk_x must be 32 bytes")?,
+        issuer_pk_y
+            .try_into()
+            .map_err(|_| "issuer_pk_y must be 32 bytes")?,
+        base64url_to_field(&prev_cmt)?,
+        base64url_to_field(&prev_cmt_r)?,
+        next_cmt,
+        next_cmt_r,
     )?;
 
     let proof_with_public_inputs = prove_ultra_honk_keccak(
@@ -54,40 +80,70 @@ pub fn prove(circuit: &Circuit, cert: Vec<u8>, now: Option<UtcTime>) -> Result<V
         .finish()
         .map_err(|e| format!("Failed to finish compression of proof: {}", e))?;
 
-    Ok(compressed_proof)
+    Ok((
+        compressed_proof,
+        field_to_base64url(&next_cmt),
+        field_to_base64url(&next_cmt_r),
+    ))
 }
 
 pub fn generate_witness(
-    circuit: &Circuit,
-    cert: Vec<u8>,
-    now: Option<UtcTime>,
-    issuer: Vec<u8>,
+    parsed_cert: ParsedCert,
+    now: Option<DateTime<Utc>>,
     authority_key_id: [u8; 20],
     issuer_pk_x: [u8; 32],
     issuer_pk_y: [u8; 32],
     prev_cmt: Fr,
     prev_cmt_r: Fr,
+    next_cmt: Fr,
+    next_cmt_r: Fr,
 ) -> Result<WitnessMap<GenericFieldElement<Fr>>, String> {
-    let witness = WitnessMap::new(); // TODO
+    let mut witness: Vec<Fr> = Vec::new();
 
-    let parsed_cert =
-        ParsedCert::from_der(&cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
-    let now = now.unwrap_or_else(|| {
-        let datetime = Utc::now();
-        UtcTime {
-            year: datetime.year() as u16,
-            month: datetime.month() as u8,
-            day: datetime.day() as u8,
-            hour: datetime.hour() as u8,
-            minute: datetime.minute() as u8,
-            second: datetime.second() as u8,
-        }
-    });
+    let datetime = now.unwrap_or_else(|| Utc::now());
+    let now = UtcTime {
+        year: datetime.year() as u16,
+        month: datetime.month() as u8,
+        day: datetime.day() as u8,
+        hour: datetime.hour() as u8,
+        minute: datetime.minute() as u8,
+        second: datetime.second() as u8,
+    };
 
-    let issuer = to_fixed_array::<124>(&issuer)?;
+    witness.extend(from_u8_array_to_fr_vec(&issuer_pk_x));
+    witness.extend(from_u8_array_to_fr_vec(&issuer_pk_y));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.signature));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.serial_number));
+    witness.push(parsed_cert.serial_number_len.into());
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.issuer));
+    witness.push(parsed_cert.issuer_len.into());
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.subject));
+    witness.push(parsed_cert.subject_len.into());
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.subject_pk_x));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.subject_pk_y));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.subject_key_identifier));
+    witness.extend(from_u8_array_to_fr_vec(
+        &parsed_cert.authority_key_identifier,
+    ));
+    witness.push(parsed_cert.subject_key_identifier_index.into());
+    witness.push(parsed_cert.authority_key_identifier_index.into());
+    witness.push(parsed_cert.basic_constraints_ca_index.into());
+    witness.push(parsed_cert.key_usage_key_cert_sign_index.into());
+    witness.push(parsed_cert.key_usage_digital_signature_index.into());
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.extra_extension));
+    witness.push(parsed_cert.extra_extension_len.into());
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.not_before));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.not_after));
+    witness.extend(from_u8_array_to_fr_vec(&now.to_bytes()));
+    witness.push(prev_cmt);
+    witness.push(prev_cmt_r);
+    witness.push(next_cmt);
+    witness.push(next_cmt_r);
 
-    let mut rng = OsRng;
-    let next_cmt_r = Fr::rand(&mut rng);
+    let mut witness_map = WitnessMap::new();
+    for (i, witness) in witness.iter().enumerate() {
+        witness_map.insert(Witness(i as u32), FieldElement::from_repr(*witness));
+    }
 
-    Ok(witness)
+    Ok(witness_map)
 }

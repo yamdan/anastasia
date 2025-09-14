@@ -123,6 +123,7 @@ dependencies = [
  "ark-crypto-primitives",
  "ark-ff",
  "ark-std",
+ "base64",
  "chrono",
  "flate2",
  "hex",

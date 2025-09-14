@@ -21,6 +21,7 @@ fn main(
     subject_pk_y: [u8; 32],
     subject_key_identifier: [u8; 20],
     authority_key_identifier: [u8; 20],
+    given_authority_key_identifier: [u8; 20],
     subject_key_identifier_index: u32,
     authority_key_identifier_index: u32,
     basic_constraints_ca_index: u32,
@@ -33,8 +34,9 @@ fn main(
     now: pub [u8; 7],
     prev_cmt: pub Field,
     prev_cmt_r: Field,
+    next_cmt: pub Field,
     next_cmt_r: Field,
-) -> pub [Field; 1] {
+) {
     let not_before = UtcTime::from_bytes(not_before);
     let not_after = UtcTime::from_bytes(not_after);
     let now = UtcTime::from_bytes(now);
@@ -56,6 +58,7 @@ fn main(
         subject_pk_y,
         subject_key_identifier,
         authority_key_identifier,
+        given_authority_key_identifier,
         subject_key_identifier_index,
         authority_key_identifier_index,
         basic_constraints_ca_index,
@@ -65,6 +68,7 @@ fn main(
         extra_extension_len,
         prev_cmt,
         prev_cmt_r,
+        next_cmt,
         next_cmt_r,
     )
 }
