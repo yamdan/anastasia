@@ -111,7 +111,6 @@ impl ParsedCert {
         }
         let spk_x = &spki[1..33];
         let spk_y = &spki[33..65];
-        let spki_len = spki.len();
 
         // parse extensions
         let mut subject_key_identifier: Vec<u8> = Vec::with_capacity(20);
@@ -124,7 +123,6 @@ impl ParsedCert {
         let mut extra_extension: Vec<u8> = Vec::new();
         let mut extra_extension_len = 0;
         for (i, ext) in parsed_cert.extensions().iter().enumerate() {
-            let ext_oid = &ext.oid;
             match ext.parsed_extension() {
                 ParsedExtension::KeyUsage(ku) => {
                     if ku.key_cert_sign() {
