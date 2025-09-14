@@ -35,12 +35,18 @@ class ProofGenerationFragment : Fragment() {
     private fun setupObservers() {
         viewModel.proofGenerationResult.observe(viewLifecycleOwner) { result ->
             if (result.isSuccess) {
-                val proof = result.getOrNull()
-                if (proof != null) {
-                    val action = ProofGenerationFragmentDirections.actionProofGenerationFragmentToProofCompletedFragment(proof)
+                val proofResults = result.getOrNull()
+                if (proofResults != null && proofResults.isNotEmpty()) {
+                    val proofs = proofResults.map { it.proof }.toTypedArray()
+                    val nextCmts = proofResults.map { it.nextCmt }.toTypedArray()
+                    val nextCmtRs = proofResults.map { it.nextCmtR }.toTypedArray()
+
+                    val action = ProofGenerationFragmentDirections.actionProofGenerationFragmentToProofCompletedFragment(
+                        proofs, nextCmts, nextCmtRs
+                    )
                     findNavController().navigate(action)
                 } else {
-                    Toast.makeText(context, "Proof generation failed: Proof is null", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Proof generation failed: No proofs generated", Toast.LENGTH_LONG).show()
                     findNavController().navigate(R.id.action_proofGenerationFragment_to_navigation_key_management)
                 }
             } else {

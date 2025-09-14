@@ -48,7 +48,7 @@
         android:layout_marginEnd="16dp"
         android:layout_marginTop="10dp"
         android:layout_marginBottom="100dp"
-        android:text="Do you want to record this result on the blockchain?"
+        android:text="Do you want to verify the proof by smart contract?"
         android:textAppearance="@style/TextAppearance.AppCompat.Medium"
         app:layout_constraintTop_toBottomOf="@+id/scrollView_proof"
         app:layout_constraintBottom_toTopOf="@+id/button_yes"

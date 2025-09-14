@@ -11,6 +11,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import org.ethtokyo.hackathon.anastasia.R
 import org.ethtokyo.hackathon.anastasia.databinding.FragmentProofCompletedBinding
+import uniffi.mopro.ProofResult
 
 class ProofCompletedFragment : Fragment() {
 
@@ -27,17 +28,30 @@ class ProofCompletedFragment : Fragment() {
         viewModel = ViewModelProvider(this)[ProofCompletedViewModel::class.java]
         _binding = FragmentProofCompletedBinding.inflate(inflater, container, false)
 
-        binding.textViewProof.text = args.proof
+        // ProofResultオブジェクトを再構築
+        val proofResults = Array(args.proofs.size) { i ->
+            ProofResult(
+                proof = args.proofs[i],
+                nextCmt = args.nextCmts[i],
+                nextCmtR = args.nextCmtRs[i]
+            )
+        }
 
-        setupListeners()
+        // 複数のproofを改行区切りで表示
+        val proofsText = proofResults.joinToString("\n\n") { proofResult ->
+            "Proof:\n${proofResult.proof}\n\nNext Commitment:\n${proofResult.nextCmt}\n\nNext Commitment R:\n${proofResult.nextCmtR}"
+        }
+        binding.textViewProof.text = proofsText
+
+        setupListeners(proofResults)
         setupObservers()
 
         return binding.root
     }
 
-    private fun setupListeners() {
+    private fun setupListeners(proofResults: Array<ProofResult>) {
         binding.buttonYes.setOnClickListener {
-            viewModel.recordProof(args.proof)
+            viewModel.recordProofs(proofResults)
         }
         binding.buttonNo.setOnClickListener {
             findNavController().navigate(R.id.action_proofCompletedFragment_to_navigation_key_management)

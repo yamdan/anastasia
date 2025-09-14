@@ -49,7 +49,7 @@ open class RustBuffer : Structure() {
     class ByValue: RustBuffer(), Structure.ByValue
     class ByReference: RustBuffer(), Structure.ByReference
 
-    internal fun setValue(other: RustBuffer) {
+   internal fun setValue(other: RustBuffer) {
         capacity = other.capacity
         len = other.len
         data = other.data
@@ -58,11 +58,11 @@ open class RustBuffer : Structure() {
     companion object {
         internal fun alloc(size: ULong = 0UL) = uniffiRustCall() { status ->
             // Note: need to convert the size to a `Long` value to make this work with JVM.
-            UniffiLib.INSTANCE.ffi_mopro_example_app_20250912_rustbuffer_alloc(size.toLong(), status)
+            UniffiLib.INSTANCE.ffi_anastasia_mopro_rustbuffer_alloc(size.toLong(), status)
         }.also {
             if(it.data == null) {
-                throw RuntimeException("RustBuffer.alloc() returned null data pointer (size=${size})")
-            }
+               throw RuntimeException("RustBuffer.alloc() returned null data pointer (size=${size})")
+           }
         }
 
         internal fun create(capacity: ULong, len: ULong, data: Pointer?): RustBuffer.ByValue {
@@ -74,7 +74,7 @@ open class RustBuffer : Structure() {
         }
 
         internal fun free(buf: RustBuffer.ByValue) = uniffiRustCall() { status ->
-            UniffiLib.INSTANCE.ffi_mopro_example_app_20250912_rustbuffer_free(buf, status)
+            UniffiLib.INSTANCE.ffi_anastasia_mopro_rustbuffer_free(buf, status)
         }
     }
 
@@ -191,11 +191,11 @@ public interface FfiConverter<KotlinType, FfiType> {
     fun liftFromRustBuffer(rbuf: RustBuffer.ByValue): KotlinType {
         val byteBuf = rbuf.asByteBuffer()!!
         try {
-            val item = read(byteBuf)
-            if (byteBuf.hasRemaining()) {
-                throw RuntimeException("junk remaining in buffer after lifting, something is very wrong!!")
-            }
-            return item
+           val item = read(byteBuf)
+           if (byteBuf.hasRemaining()) {
+               throw RuntimeException("junk remaining in buffer after lifting, something is very wrong!!")
+           }
+           return item
         } finally {
             RustBuffer.free(rbuf)
         }
@@ -374,7 +374,7 @@ private fun findLibraryName(componentName: String): String {
     if (libOverride != null) {
         return libOverride
     }
-    return "mopro_example_app_20250912"
+    return "anastasia_mopro"
 }
 
 private inline fun <reified Lib : Library> loadIndirect(
@@ -403,7 +403,7 @@ internal open class UniffiForeignFuture(
         `free`: UniffiForeignFutureFree? = null,
     ): UniffiForeignFuture(`handle`,`free`,), Structure.ByValue
 
-    internal fun uniffiSetValue(other: UniffiForeignFuture) {
+   internal fun uniffiSetValue(other: UniffiForeignFuture) {
         `handle` = other.`handle`
         `free` = other.`free`
     }
@@ -419,7 +419,7 @@ internal open class UniffiForeignFutureStructU8(
         `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
     ): UniffiForeignFutureStructU8(`returnValue`,`callStatus`,), Structure.ByValue
 
-    internal fun uniffiSetValue(other: UniffiForeignFutureStructU8) {
+   internal fun uniffiSetValue(other: UniffiForeignFutureStructU8) {
         `returnValue` = other.`returnValue`
         `callStatus` = other.`callStatus`
     }
@@ -438,7 +438,7 @@ internal open class UniffiForeignFutureStructI8(
         `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
     ): UniffiForeignFutureStructI8(`returnValue`,`callStatus`,), Structure.ByValue
 
-    internal fun uniffiSetValue(other: UniffiForeignFutureStructI8) {
+   internal fun uniffiSetValue(other: UniffiForeignFutureStructI8) {
         `returnValue` = other.`returnValue`
         `callStatus` = other.`callStatus`
     }
@@ -457,7 +457,7 @@ internal open class UniffiForeignFutureStructU16(
         `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
     ): UniffiForeignFutureStructU16(`returnValue`,`callStatus`,), Structure.ByValue
 
-    internal fun uniffiSetValue(other: UniffiForeignFutureStructU16) {
+   internal fun uniffiSetValue(other: UniffiForeignFutureStructU16) {
         `returnValue` = other.`returnValue`
         `callStatus` = other.`callStatus`
     }
@@ -476,7 +476,7 @@ internal open class UniffiForeignFutureStructI16(
         `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
     ): UniffiForeignFutureStructI16(`returnValue`,`callStatus`,), Structure.ByValue
 
-    internal fun uniffiSetValue(other: UniffiForeignFutureStructI16) {
+   internal fun uniffiSetValue(other: UniffiForeignFutureStructI16) {
         `returnValue` = other.`returnValue`
         `callStatus` = other.`callStatus`
     }
@@ -495,7 +495,7 @@ internal open class UniffiForeignFutureStructU32(
         `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
     ): UniffiForeignFutureStructU32(`returnValue`,`callStatus`,), Structure.ByValue
 
-    internal fun uniffiSetValue(other: UniffiForeignFutureStructU32) {
+   internal fun uniffiSetValue(other: UniffiForeignFutureStructU32) {
         `returnValue` = other.`returnValue`
         `callStatus` = other.`callStatus`
     }
@@ -514,7 +514,7 @@ internal open class UniffiForeignFutureStructI32(
         `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
     ): UniffiForeignFutureStructI32(`returnValue`,`callStatus`,), Structure.ByValue
 
-    internal fun uniffiSetValue(other: UniffiForeignFutureStructI32) {
+   internal fun uniffiSetValue(other: UniffiForeignFutureStructI32) {
         `returnValue` = other.`returnValue`
         `callStatus` = other.`callStatus`
     }
@@ -533,7 +533,7 @@ internal open class UniffiForeignFutureStructU64(
         `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
     ): UniffiForeignFutureStructU64(`returnValue`,`callStatus`,), Structure.ByValue
 
-    internal fun uniffiSetValue(other: UniffiForeignFutureStructU64) {
+   internal fun uniffiSetValue(other: UniffiForeignFutureStructU64) {
         `returnValue` = other.`returnValue`
         `callStatus` = other.`callStatus`
     }
@@ -552,7 +552,7 @@ internal open class UniffiForeignFutureStructI64(
         `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
     ): UniffiForeignFutureStructI64(`returnValue`,`callStatus`,), Structure.ByValue
 
-    internal fun uniffiSetValue(other: UniffiForeignFutureStructI64) {
+   internal fun uniffiSetValue(other: UniffiForeignFutureStructI64) {
         `returnValue` = other.`returnValue`
         `callStatus` = other.`callStatus`
     }
@@ -571,7 +571,7 @@ internal open class UniffiForeignFutureStructF32(
         `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
     ): UniffiForeignFutureStructF32(`returnValue`,`callStatus`,), Structure.ByValue
 
-    internal fun uniffiSetValue(other: UniffiForeignFutureStructF32) {
+   internal fun uniffiSetValue(other: UniffiForeignFutureStructF32) {
         `returnValue` = other.`returnValue`
         `callStatus` = other.`callStatus`
     }
@@ -590,7 +590,7 @@ internal open class UniffiForeignFutureStructF64(
         `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
     ): UniffiForeignFutureStructF64(`returnValue`,`callStatus`,), Structure.ByValue
 
-    internal fun uniffiSetValue(other: UniffiForeignFutureStructF64) {
+   internal fun uniffiSetValue(other: UniffiForeignFutureStructF64) {
         `returnValue` = other.`returnValue`
         `callStatus` = other.`callStatus`
     }
@@ -609,7 +609,7 @@ internal open class UniffiForeignFutureStructPointer(
         `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
     ): UniffiForeignFutureStructPointer(`returnValue`,`callStatus`,), Structure.ByValue
 
-    internal fun uniffiSetValue(other: UniffiForeignFutureStructPointer) {
+   internal fun uniffiSetValue(other: UniffiForeignFutureStructPointer) {
         `returnValue` = other.`returnValue`
         `callStatus` = other.`callStatus`
     }
@@ -628,7 +628,7 @@ internal open class UniffiForeignFutureStructRustBuffer(
         `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
     ): UniffiForeignFutureStructRustBuffer(`returnValue`,`callStatus`,), Structure.ByValue
 
-    internal fun uniffiSetValue(other: UniffiForeignFutureStructRustBuffer) {
+   internal fun uniffiSetValue(other: UniffiForeignFutureStructRustBuffer) {
         `returnValue` = other.`returnValue`
         `callStatus` = other.`callStatus`
     }
@@ -645,7 +645,7 @@ internal open class UniffiForeignFutureStructVoid(
         `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
     ): UniffiForeignFutureStructVoid(`callStatus`,), Structure.ByValue
 
-    internal fun uniffiSetValue(other: UniffiForeignFutureStructVoid) {
+   internal fun uniffiSetValue(other: UniffiForeignFutureStructVoid) {
         `callStatus` = other.`callStatus`
     }
 
@@ -727,39 +727,43 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
 // For large crates we prevent `MethodTooLargeException` (see #2340)
-// N.B. the name of the extension is very misleading, since it is
-// rather `InterfaceTooLargeException`, caused by too many methods
+// N.B. the name of the extension is very misleading, since it is 
+// rather `InterfaceTooLargeException`, caused by too many methods 
 // in the interface for large crates.
 //
 // By splitting the otherwise huge interface into two parts
-// * UniffiLib
+// * UniffiLib 
 // * IntegrityCheckingUniffiLib (this)
 // we allow for ~2x as many methods in the UniffiLib interface.
-//
-// The `ffi_uniffi_contract_version` method and all checksum methods are put
+// 
+// The `ffi_uniffi_contract_version` method and all checksum methods are put 
 // into `IntegrityCheckingUniffiLib` and these methods are called only once,
 // when the library is loaded.
 internal interface IntegrityCheckingUniffiLib : Library {
     // Integrity check functions only
-    fun uniffi_mopro_example_app_20250912_checksum_func_generate_circom_proof(
-    ): Short
-    fun uniffi_mopro_example_app_20250912_checksum_func_generate_halo2_proof(
-    ): Short
-    fun uniffi_mopro_example_app_20250912_checksum_func_generate_noir_proof(
-    ): Short
-    fun uniffi_mopro_example_app_20250912_checksum_func_get_noir_verification_key(
-    ): Short
-    fun uniffi_mopro_example_app_20250912_checksum_func_mopro_uniffi_hello_world(
-    ): Short
-    fun uniffi_mopro_example_app_20250912_checksum_func_verify_circom_proof(
-    ): Short
-    fun uniffi_mopro_example_app_20250912_checksum_func_verify_halo2_proof(
-    ): Short
-    fun uniffi_mopro_example_app_20250912_checksum_func_verify_noir_proof(
-    ): Short
-    fun ffi_mopro_example_app_20250912_uniffi_contract_version(
-    ): Int
+    fun uniffi_anastasia_mopro_checksum_func_commit_attrs(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_generate_circom_proof(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_generate_halo2_proof(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_generate_noir_proof(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_get_noir_verification_key(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_prove(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_verify_circom_proof(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_verify_halo2_proof(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_verify_noir_proof(
+): Short
+fun ffi_anastasia_mopro_uniffi_contract_version(
+): Int
 
 }
 
@@ -768,10 +772,10 @@ internal interface IntegrityCheckingUniffiLib : Library {
 internal interface UniffiLib : Library {
     companion object {
         internal val INSTANCE: UniffiLib by lazy {
-            val componentName = "mopro_example_app_20250912"
+            val componentName = "anastasia_mopro"
             // For large crates we prevent `MethodTooLargeException` (see #2340)
-            // N.B. the name of the extension is very misleading, since it is
-            // rather `InterfaceTooLargeException`, caused by too many methods
+            // N.B. the name of the extension is very misleading, since it is 
+            // rather `InterfaceTooLargeException`, caused by too many methods 
             // in the interface for large crates.
             //
             // By splitting the otherwise huge interface into two parts
@@ -779,7 +783,7 @@ internal interface UniffiLib : Library {
             // * IntegrityCheckingUniffiLib
             // And all checksum methods are put into `IntegrityCheckingUniffiLib`
             // we allow for ~2x as many methods in the UniffiLib interface.
-            //
+            // 
             // Thus we first load the library with `loadIndirect` as `IntegrityCheckingUniffiLib`
             // so that we can (optionally!) call `uniffiCheckApiChecksums`...
             loadIndirect<IntegrityCheckingUniffiLib>(componentName)
@@ -794,143 +798,145 @@ internal interface UniffiLib : Library {
             // to trigger this issue, the performance impact is negligible, running on
             // a macOS M1 machine the `loadIndirect` call takes ~50ms.
             val lib = loadIndirect<UniffiLib>(componentName)
-            // No need to check the contract version and checksums, since
+            // No need to check the contract version and checksums, since 
             // we already did that with `IntegrityCheckingUniffiLib` above.
             // Loading of library with integrity check done.
             lib
         }
-
+        
     }
 
     // FFI functions
-    fun uniffi_mopro_example_app_20250912_fn_func_generate_circom_proof(`zkeyPath`: RustBuffer.ByValue,`circuitInputs`: RustBuffer.ByValue,`proofLib`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    fun uniffi_mopro_example_app_20250912_fn_func_generate_halo2_proof(`srsPath`: RustBuffer.ByValue,`pkPath`: RustBuffer.ByValue,`circuitInputs`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    fun uniffi_mopro_example_app_20250912_fn_func_generate_noir_proof(`circuitPath`: RustBuffer.ByValue,`srsPath`: RustBuffer.ByValue,`inputs`: RustBuffer.ByValue,`onChain`: Byte,`vk`: RustBuffer.ByValue,`lowMemoryMode`: Byte,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    fun uniffi_mopro_example_app_20250912_fn_func_get_noir_verification_key(`circuitPath`: RustBuffer.ByValue,`srsPath`: RustBuffer.ByValue,`onChain`: Byte,`lowMemoryMode`: Byte,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    fun uniffi_mopro_example_app_20250912_fn_func_mopro_uniffi_hello_world(uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    fun uniffi_mopro_example_app_20250912_fn_func_verify_circom_proof(`zkeyPath`: RustBuffer.ByValue,`proofResult`: RustBuffer.ByValue,`proofLib`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
-    ): Byte
-    fun uniffi_mopro_example_app_20250912_fn_func_verify_halo2_proof(`srsPath`: RustBuffer.ByValue,`vkPath`: RustBuffer.ByValue,`proof`: RustBuffer.ByValue,`publicInput`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
-    ): Byte
-    fun uniffi_mopro_example_app_20250912_fn_func_verify_noir_proof(`circuitPath`: RustBuffer.ByValue,`proof`: RustBuffer.ByValue,`onChain`: Byte,`vk`: RustBuffer.ByValue,`lowMemoryMode`: Byte,uniffi_out_err: UniffiRustCallStatus,
-    ): Byte
-    fun ffi_mopro_example_app_20250912_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    fun ffi_mopro_example_app_20250912_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    fun ffi_mopro_example_app_20250912_rustbuffer_free(`buf`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Long,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    fun ffi_mopro_example_app_20250912_rust_future_poll_u8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_cancel_u8(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_free_u8(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_complete_u8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
-    ): Byte
-    fun ffi_mopro_example_app_20250912_rust_future_poll_i8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_cancel_i8(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_free_i8(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_complete_i8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
-    ): Byte
-    fun ffi_mopro_example_app_20250912_rust_future_poll_u16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_cancel_u16(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_free_u16(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_complete_u16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
-    ): Short
-    fun ffi_mopro_example_app_20250912_rust_future_poll_i16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_cancel_i16(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_free_i16(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_complete_i16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
-    ): Short
-    fun ffi_mopro_example_app_20250912_rust_future_poll_u32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_cancel_u32(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_free_u32(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_complete_u32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
-    ): Int
-    fun ffi_mopro_example_app_20250912_rust_future_poll_i32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_cancel_i32(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_free_i32(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_complete_i32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
-    ): Int
-    fun ffi_mopro_example_app_20250912_rust_future_poll_u64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_cancel_u64(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_free_u64(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_complete_u64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
-    ): Long
-    fun ffi_mopro_example_app_20250912_rust_future_poll_i64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_cancel_i64(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_free_i64(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_complete_i64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
-    ): Long
-    fun ffi_mopro_example_app_20250912_rust_future_poll_f32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_cancel_f32(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_free_f32(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_complete_f32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
-    ): Float
-    fun ffi_mopro_example_app_20250912_rust_future_poll_f64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_cancel_f64(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_free_f64(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_complete_f64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
-    ): Double
-    fun ffi_mopro_example_app_20250912_rust_future_poll_pointer(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_cancel_pointer(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_free_pointer(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_complete_pointer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
-    ): Pointer
-    fun ffi_mopro_example_app_20250912_rust_future_poll_rust_buffer(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_cancel_rust_buffer(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_free_rust_buffer(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_complete_rust_buffer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    fun ffi_mopro_example_app_20250912_rust_future_poll_void(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_cancel_void(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_free_void(`handle`: Long,
-    ): Unit
-    fun ffi_mopro_example_app_20250912_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
-    ): Unit
+    fun uniffi_anastasia_mopro_fn_func_commit_attrs(`subject`: RustBuffer.ByValue,`subjectKeyIdentifier`: RustBuffer.ByValue,`subjectPkX`: RustBuffer.ByValue,`subjectPkY`: RustBuffer.ByValue,`r`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_generate_circom_proof(`zkeyPath`: RustBuffer.ByValue,`circuitInputs`: RustBuffer.ByValue,`proofLib`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_generate_halo2_proof(`srsPath`: RustBuffer.ByValue,`pkPath`: RustBuffer.ByValue,`circuitInputs`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_generate_noir_proof(`circuitPath`: RustBuffer.ByValue,`srsPath`: RustBuffer.ByValue,`inputs`: RustBuffer.ByValue,`onChain`: Byte,`vk`: RustBuffer.ByValue,`lowMemoryMode`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_get_noir_verification_key(`circuitPath`: RustBuffer.ByValue,`srsPath`: RustBuffer.ByValue,`onChain`: Byte,`lowMemoryMode`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_prove(`circuitMeta`: RustBuffer.ByValue,`cert`: RustBuffer.ByValue,`authorityKeyId`: RustBuffer.ByValue,`issuerPkX`: RustBuffer.ByValue,`issuerPkY`: RustBuffer.ByValue,`prevCmt`: RustBuffer.ByValue,`prevCmtR`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_verify_circom_proof(`zkeyPath`: RustBuffer.ByValue,`proofResult`: RustBuffer.ByValue,`proofLib`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): Byte
+fun uniffi_anastasia_mopro_fn_func_verify_halo2_proof(`srsPath`: RustBuffer.ByValue,`vkPath`: RustBuffer.ByValue,`proof`: RustBuffer.ByValue,`publicInput`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): Byte
+fun uniffi_anastasia_mopro_fn_func_verify_noir_proof(`circuitPath`: RustBuffer.ByValue,`proof`: RustBuffer.ByValue,`onChain`: Byte,`vk`: RustBuffer.ByValue,`lowMemoryMode`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+): Byte
+fun ffi_anastasia_mopro_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun ffi_anastasia_mopro_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun ffi_anastasia_mopro_rustbuffer_free(`buf`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+fun ffi_anastasia_mopro_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun ffi_anastasia_mopro_rust_future_poll_u8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_cancel_u8(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_free_u8(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_complete_u8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Byte
+fun ffi_anastasia_mopro_rust_future_poll_i8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_cancel_i8(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_free_i8(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_complete_i8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Byte
+fun ffi_anastasia_mopro_rust_future_poll_u16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_cancel_u16(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_free_u16(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_complete_u16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Short
+fun ffi_anastasia_mopro_rust_future_poll_i16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_cancel_i16(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_free_i16(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_complete_i16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Short
+fun ffi_anastasia_mopro_rust_future_poll_u32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_cancel_u32(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_free_u32(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_complete_u32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Int
+fun ffi_anastasia_mopro_rust_future_poll_i32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_cancel_i32(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_free_i32(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_complete_i32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Int
+fun ffi_anastasia_mopro_rust_future_poll_u64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_cancel_u64(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_free_u64(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_complete_u64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Long
+fun ffi_anastasia_mopro_rust_future_poll_i64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_cancel_i64(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_free_i64(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_complete_i64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Long
+fun ffi_anastasia_mopro_rust_future_poll_f32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_cancel_f32(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_free_f32(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_complete_f32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Float
+fun ffi_anastasia_mopro_rust_future_poll_f64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_cancel_f64(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_free_f64(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_complete_f64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Double
+fun ffi_anastasia_mopro_rust_future_poll_pointer(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_cancel_pointer(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_free_pointer(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_complete_pointer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Pointer
+fun ffi_anastasia_mopro_rust_future_poll_rust_buffer(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_cancel_rust_buffer(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_free_rust_buffer(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_complete_rust_buffer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun ffi_anastasia_mopro_rust_future_poll_void(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_cancel_void(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_free_void(`handle`: Long,
+): Unit
+fun ffi_anastasia_mopro_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
 
 }
 
@@ -938,35 +944,38 @@ private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
     // Get the bindings contract version from our ComponentInterface
     val bindings_contract_version = 29
     // Get the scaffolding contract version by calling the into the dylib
-    val scaffolding_contract_version = lib.ffi_mopro_example_app_20250912_uniffi_contract_version()
+    val scaffolding_contract_version = lib.ffi_anastasia_mopro_uniffi_contract_version()
     if (bindings_contract_version != scaffolding_contract_version) {
         throw RuntimeException("UniFFI contract version mismatch: try cleaning and rebuilding your project")
     }
 }
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
-    if (lib.uniffi_mopro_example_app_20250912_checksum_func_generate_circom_proof() != 19396.toShort()) {
+    if (lib.uniffi_anastasia_mopro_checksum_func_commit_attrs() != 16470.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_mopro_example_app_20250912_checksum_func_generate_halo2_proof() != 11169.toShort()) {
+    if (lib.uniffi_anastasia_mopro_checksum_func_generate_circom_proof() != 4748.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_mopro_example_app_20250912_checksum_func_generate_noir_proof() != 21564.toShort()) {
+    if (lib.uniffi_anastasia_mopro_checksum_func_generate_halo2_proof() != 7675.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_mopro_example_app_20250912_checksum_func_get_noir_verification_key() != 21561.toShort()) {
+    if (lib.uniffi_anastasia_mopro_checksum_func_generate_noir_proof() != 5696.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_mopro_example_app_20250912_checksum_func_mopro_uniffi_hello_world() != 37367.toShort()) {
+    if (lib.uniffi_anastasia_mopro_checksum_func_get_noir_verification_key() != 7183.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_mopro_example_app_20250912_checksum_func_verify_circom_proof() != 59072.toShort()) {
+    if (lib.uniffi_anastasia_mopro_checksum_func_prove() != 47443.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_mopro_example_app_20250912_checksum_func_verify_halo2_proof() != 8071.toShort()) {
+    if (lib.uniffi_anastasia_mopro_checksum_func_verify_circom_proof() != 13928.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_mopro_example_app_20250912_checksum_func_verify_noir_proof() != 22582.toShort()) {
+    if (lib.uniffi_anastasia_mopro_checksum_func_verify_halo2_proof() != 17241.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_anastasia_mopro_checksum_func_verify_noir_proof() != 54909.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -1016,7 +1025,7 @@ inline fun <T : Disposable?, R> T.use(block: (T) -> R) =
         }
     }
 
-/**
+/** 
  * Used to instantiate an interface without an actual pointer, for fakes in tests, mostly.
  *
  * @suppress
@@ -1125,13 +1134,13 @@ public object FfiConverterByteArray: FfiConverterRustBuffer<ByteArray> {
 
 
 data class CircomProof (
-    var `a`: G1,
-    var `b`: G2,
-    var `c`: G1,
-    var `protocol`: kotlin.String,
+    var `a`: G1, 
+    var `b`: G2, 
+    var `c`: G1, 
+    var `protocol`: kotlin.String, 
     var `curve`: kotlin.String
 ) {
-
+    
     companion object
 }
 
@@ -1151,28 +1160,28 @@ public object FfiConverterTypeCircomProof: FfiConverterRustBuffer<CircomProof> {
 
     override fun allocationSize(value: CircomProof) = (
             FfiConverterTypeG1.allocationSize(value.`a`) +
-                    FfiConverterTypeG2.allocationSize(value.`b`) +
-                    FfiConverterTypeG1.allocationSize(value.`c`) +
-                    FfiConverterString.allocationSize(value.`protocol`) +
-                    FfiConverterString.allocationSize(value.`curve`)
-            )
+            FfiConverterTypeG2.allocationSize(value.`b`) +
+            FfiConverterTypeG1.allocationSize(value.`c`) +
+            FfiConverterString.allocationSize(value.`protocol`) +
+            FfiConverterString.allocationSize(value.`curve`)
+    )
 
     override fun write(value: CircomProof, buf: ByteBuffer) {
-        FfiConverterTypeG1.write(value.`a`, buf)
-        FfiConverterTypeG2.write(value.`b`, buf)
-        FfiConverterTypeG1.write(value.`c`, buf)
-        FfiConverterString.write(value.`protocol`, buf)
-        FfiConverterString.write(value.`curve`, buf)
+            FfiConverterTypeG1.write(value.`a`, buf)
+            FfiConverterTypeG2.write(value.`b`, buf)
+            FfiConverterTypeG1.write(value.`c`, buf)
+            FfiConverterString.write(value.`protocol`, buf)
+            FfiConverterString.write(value.`curve`, buf)
     }
 }
 
 
 
 data class CircomProofResult (
-    var `proof`: CircomProof,
+    var `proof`: CircomProof, 
     var `inputs`: List<kotlin.String>
 ) {
-
+    
     companion object
 }
 
@@ -1189,23 +1198,95 @@ public object FfiConverterTypeCircomProofResult: FfiConverterRustBuffer<CircomPr
 
     override fun allocationSize(value: CircomProofResult) = (
             FfiConverterTypeCircomProof.allocationSize(value.`proof`) +
-                    FfiConverterSequenceString.allocationSize(value.`inputs`)
-            )
+            FfiConverterSequenceString.allocationSize(value.`inputs`)
+    )
 
     override fun write(value: CircomProofResult, buf: ByteBuffer) {
-        FfiConverterTypeCircomProof.write(value.`proof`, buf)
-        FfiConverterSequenceString.write(value.`inputs`, buf)
+            FfiConverterTypeCircomProof.write(value.`proof`, buf)
+            FfiConverterSequenceString.write(value.`inputs`, buf)
+    }
+}
+
+
+
+data class CircuitMeta (
+    var `id`: kotlin.String, 
+    var `circuitPath`: kotlin.String, 
+    var `verificationKeyPath`: kotlin.String, 
+    var `srsPath`: kotlin.String
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeCircuitMeta: FfiConverterRustBuffer<CircuitMeta> {
+    override fun read(buf: ByteBuffer): CircuitMeta {
+        return CircuitMeta(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: CircuitMeta) = (
+            FfiConverterString.allocationSize(value.`id`) +
+            FfiConverterString.allocationSize(value.`circuitPath`) +
+            FfiConverterString.allocationSize(value.`verificationKeyPath`) +
+            FfiConverterString.allocationSize(value.`srsPath`)
+    )
+
+    override fun write(value: CircuitMeta, buf: ByteBuffer) {
+            FfiConverterString.write(value.`id`, buf)
+            FfiConverterString.write(value.`circuitPath`, buf)
+            FfiConverterString.write(value.`verificationKeyPath`, buf)
+            FfiConverterString.write(value.`srsPath`, buf)
+    }
+}
+
+
+
+data class CommitResult (
+    var `cmt`: kotlin.String, 
+    var `r`: kotlin.String
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeCommitResult: FfiConverterRustBuffer<CommitResult> {
+    override fun read(buf: ByteBuffer): CommitResult {
+        return CommitResult(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: CommitResult) = (
+            FfiConverterString.allocationSize(value.`cmt`) +
+            FfiConverterString.allocationSize(value.`r`)
+    )
+
+    override fun write(value: CommitResult, buf: ByteBuffer) {
+            FfiConverterString.write(value.`cmt`, buf)
+            FfiConverterString.write(value.`r`, buf)
     }
 }
 
 
 
 data class G1 (
-    var `x`: kotlin.String,
-    var `y`: kotlin.String,
+    var `x`: kotlin.String, 
+    var `y`: kotlin.String, 
     var `z`: kotlin.String
 ) {
-
+    
     companion object
 }
 
@@ -1223,25 +1304,25 @@ public object FfiConverterTypeG1: FfiConverterRustBuffer<G1> {
 
     override fun allocationSize(value: G1) = (
             FfiConverterString.allocationSize(value.`x`) +
-                    FfiConverterString.allocationSize(value.`y`) +
-                    FfiConverterString.allocationSize(value.`z`)
-            )
+            FfiConverterString.allocationSize(value.`y`) +
+            FfiConverterString.allocationSize(value.`z`)
+    )
 
     override fun write(value: G1, buf: ByteBuffer) {
-        FfiConverterString.write(value.`x`, buf)
-        FfiConverterString.write(value.`y`, buf)
-        FfiConverterString.write(value.`z`, buf)
+            FfiConverterString.write(value.`x`, buf)
+            FfiConverterString.write(value.`y`, buf)
+            FfiConverterString.write(value.`z`, buf)
     }
 }
 
 
 
 data class G2 (
-    var `x`: List<kotlin.String>,
-    var `y`: List<kotlin.String>,
+    var `x`: List<kotlin.String>, 
+    var `y`: List<kotlin.String>, 
     var `z`: List<kotlin.String>
 ) {
-
+    
     companion object
 }
 
@@ -1259,24 +1340,24 @@ public object FfiConverterTypeG2: FfiConverterRustBuffer<G2> {
 
     override fun allocationSize(value: G2) = (
             FfiConverterSequenceString.allocationSize(value.`x`) +
-                    FfiConverterSequenceString.allocationSize(value.`y`) +
-                    FfiConverterSequenceString.allocationSize(value.`z`)
-            )
+            FfiConverterSequenceString.allocationSize(value.`y`) +
+            FfiConverterSequenceString.allocationSize(value.`z`)
+    )
 
     override fun write(value: G2, buf: ByteBuffer) {
-        FfiConverterSequenceString.write(value.`x`, buf)
-        FfiConverterSequenceString.write(value.`y`, buf)
-        FfiConverterSequenceString.write(value.`z`, buf)
+            FfiConverterSequenceString.write(value.`x`, buf)
+            FfiConverterSequenceString.write(value.`y`, buf)
+            FfiConverterSequenceString.write(value.`z`, buf)
     }
 }
 
 
 
 data class Halo2ProofResult (
-    var `proof`: kotlin.ByteArray,
+    var `proof`: kotlin.ByteArray, 
     var `inputs`: kotlin.ByteArray
 ) {
-
+    
     companion object
 }
 
@@ -1293,12 +1374,48 @@ public object FfiConverterTypeHalo2ProofResult: FfiConverterRustBuffer<Halo2Proo
 
     override fun allocationSize(value: Halo2ProofResult) = (
             FfiConverterByteArray.allocationSize(value.`proof`) +
-                    FfiConverterByteArray.allocationSize(value.`inputs`)
-            )
+            FfiConverterByteArray.allocationSize(value.`inputs`)
+    )
 
     override fun write(value: Halo2ProofResult, buf: ByteBuffer) {
-        FfiConverterByteArray.write(value.`proof`, buf)
-        FfiConverterByteArray.write(value.`inputs`, buf)
+            FfiConverterByteArray.write(value.`proof`, buf)
+            FfiConverterByteArray.write(value.`inputs`, buf)
+    }
+}
+
+
+
+data class ProofResult (
+    var `proof`: kotlin.String, 
+    var `nextCmt`: kotlin.String, 
+    var `nextCmtR`: kotlin.String
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeProofResult: FfiConverterRustBuffer<ProofResult> {
+    override fun read(buf: ByteBuffer): ProofResult {
+        return ProofResult(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ProofResult) = (
+            FfiConverterString.allocationSize(value.`proof`) +
+            FfiConverterString.allocationSize(value.`nextCmt`) +
+            FfiConverterString.allocationSize(value.`nextCmtR`)
+    )
+
+    override fun write(value: ProofResult, buf: ByteBuffer) {
+            FfiConverterString.write(value.`proof`, buf)
+            FfiConverterString.write(value.`nextCmt`, buf)
+            FfiConverterString.write(value.`nextCmtR`, buf)
     }
 }
 
@@ -1307,37 +1424,37 @@ public object FfiConverterTypeHalo2ProofResult: FfiConverterRustBuffer<Halo2Proo
 
 
 sealed class MoproException: kotlin.Exception() {
-
+    
     class CircomException(
-
+        
         val v1: kotlin.String
-    ) : MoproException() {
+        ) : MoproException() {
         override val message
             get() = "v1=${ v1 }"
     }
-
+    
     class Halo2Exception(
-
+        
         val v1: kotlin.String
-    ) : MoproException() {
+        ) : MoproException() {
         override val message
             get() = "v1=${ v1 }"
     }
-
+    
     class NoirException(
-
+        
         val v1: kotlin.String
-    ) : MoproException() {
+        ) : MoproException() {
         override val message
             get() = "v1=${ v1 }"
     }
-
+    
 
     companion object ErrorHandler : UniffiRustCallStatusErrorHandler<MoproException> {
         override fun lift(error_buf: RustBuffer.ByValue): MoproException = FfiConverterTypeMoproError.lift(error_buf)
     }
 
-
+    
 }
 
 /**
@@ -1345,18 +1462,18 @@ sealed class MoproException: kotlin.Exception() {
  */
 public object FfiConverterTypeMoproError : FfiConverterRustBuffer<MoproException> {
     override fun read(buf: ByteBuffer): MoproException {
-
+        
 
         return when(buf.getInt()) {
             1 -> MoproException.CircomException(
                 FfiConverterString.read(buf),
-            )
+                )
             2 -> MoproException.Halo2Exception(
                 FfiConverterString.read(buf),
-            )
+                )
             3 -> MoproException.NoirException(
                 FfiConverterString.read(buf),
-            )
+                )
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
     }
@@ -1364,20 +1481,20 @@ public object FfiConverterTypeMoproError : FfiConverterRustBuffer<MoproException
     override fun allocationSize(value: MoproException): ULong {
         return when(value) {
             is MoproException.CircomException -> (
-                    // Add the size for the Int that specifies the variant plus the size needed for all fields
-                    4UL
-                            + FfiConverterString.allocationSize(value.v1)
-                    )
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+                + FfiConverterString.allocationSize(value.v1)
+            )
             is MoproException.Halo2Exception -> (
-                    // Add the size for the Int that specifies the variant plus the size needed for all fields
-                    4UL
-                            + FfiConverterString.allocationSize(value.v1)
-                    )
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+                + FfiConverterString.allocationSize(value.v1)
+            )
             is MoproException.NoirException -> (
-                    // Add the size for the Int that specifies the variant plus the size needed for all fields
-                    4UL
-                            + FfiConverterString.allocationSize(value.v1)
-                    )
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+                + FfiConverterString.allocationSize(value.v1)
+            )
         }
     }
 
@@ -1407,7 +1524,7 @@ public object FfiConverterTypeMoproError : FfiConverterRustBuffer<MoproException
 
 
 enum class ProofLib {
-
+    
     ARKWORKS,
     RAPIDSNARK;
     companion object
@@ -1515,7 +1632,7 @@ public object FfiConverterMapStringSequenceString: FfiConverterRustBuffer<Map<ko
         val spaceForMapSize = 4UL
         val spaceForChildren = value.map { (k, v) ->
             FfiConverterString.allocationSize(k) +
-                    FfiConverterSequenceString.allocationSize(v)
+            FfiConverterSequenceString.allocationSize(v)
         }.sum()
         return spaceForMapSize + spaceForChildren
     }
@@ -1531,87 +1648,94 @@ public object FfiConverterMapStringSequenceString: FfiConverterRustBuffer<Map<ko
         }
     }
 }
-@Throws(MoproException::class) fun `generateCircomProof`(`zkeyPath`: kotlin.String, `circuitInputs`: kotlin.String, `proofLib`: ProofLib): CircomProofResult {
-    return FfiConverterTypeCircomProofResult.lift(
-        uniffiRustCallWithError(MoproException) { _status ->
-            UniffiLib.INSTANCE.uniffi_mopro_example_app_20250912_fn_func_generate_circom_proof(
-                FfiConverterString.lower(`zkeyPath`),FfiConverterString.lower(`circuitInputs`),FfiConverterTypeProofLib.lower(`proofLib`),_status)
-        }
-    )
+    @Throws(MoproException::class) fun `commitAttrs`(`subject`: kotlin.ByteArray, `subjectKeyIdentifier`: kotlin.ByteArray, `subjectPkX`: kotlin.ByteArray, `subjectPkY`: kotlin.ByteArray, `r`: kotlin.String?): CommitResult {
+            return FfiConverterTypeCommitResult.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_commit_attrs(
+        FfiConverterByteArray.lower(`subject`),FfiConverterByteArray.lower(`subjectKeyIdentifier`),FfiConverterByteArray.lower(`subjectPkX`),FfiConverterByteArray.lower(`subjectPkY`),FfiConverterOptionalString.lower(`r`),_status)
 }
-
-
-@Throws(MoproException::class) fun `generateHalo2Proof`(`srsPath`: kotlin.String, `pkPath`: kotlin.String, `circuitInputs`: Map<kotlin.String, List<kotlin.String>>): Halo2ProofResult {
-    return FfiConverterTypeHalo2ProofResult.lift(
-        uniffiRustCallWithError(MoproException) { _status ->
-            UniffiLib.INSTANCE.uniffi_mopro_example_app_20250912_fn_func_generate_halo2_proof(
-                FfiConverterString.lower(`srsPath`),FfiConverterString.lower(`pkPath`),FfiConverterMapStringSequenceString.lower(`circuitInputs`),_status)
-        }
     )
+    }
+    
+
+    @Throws(MoproException::class) fun `generateCircomProof`(`zkeyPath`: kotlin.String, `circuitInputs`: kotlin.String, `proofLib`: ProofLib): CircomProofResult {
+            return FfiConverterTypeCircomProofResult.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_generate_circom_proof(
+        FfiConverterString.lower(`zkeyPath`),FfiConverterString.lower(`circuitInputs`),FfiConverterTypeProofLib.lower(`proofLib`),_status)
 }
-
-
-@Throws(MoproException::class) fun `generateNoirProof`(`circuitPath`: kotlin.String, `srsPath`: kotlin.String?, `inputs`: List<kotlin.String>, `onChain`: kotlin.Boolean, `vk`: kotlin.ByteArray, `lowMemoryMode`: kotlin.Boolean): kotlin.ByteArray {
-    return FfiConverterByteArray.lift(
-        uniffiRustCallWithError(MoproException) { _status ->
-            UniffiLib.INSTANCE.uniffi_mopro_example_app_20250912_fn_func_generate_noir_proof(
-                FfiConverterString.lower(`circuitPath`),FfiConverterOptionalString.lower(`srsPath`),FfiConverterSequenceString.lower(`inputs`),FfiConverterBoolean.lower(`onChain`),FfiConverterByteArray.lower(`vk`),FfiConverterBoolean.lower(`lowMemoryMode`),_status)
-        }
     )
+    }
+    
+
+    @Throws(MoproException::class) fun `generateHalo2Proof`(`srsPath`: kotlin.String, `pkPath`: kotlin.String, `circuitInputs`: Map<kotlin.String, List<kotlin.String>>): Halo2ProofResult {
+            return FfiConverterTypeHalo2ProofResult.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_generate_halo2_proof(
+        FfiConverterString.lower(`srsPath`),FfiConverterString.lower(`pkPath`),FfiConverterMapStringSequenceString.lower(`circuitInputs`),_status)
 }
-
-
-@Throws(MoproException::class) fun `getNoirVerificationKey`(`circuitPath`: kotlin.String, `srsPath`: kotlin.String?, `onChain`: kotlin.Boolean, `lowMemoryMode`: kotlin.Boolean): kotlin.ByteArray {
-    return FfiConverterByteArray.lift(
-        uniffiRustCallWithError(MoproException) { _status ->
-            UniffiLib.INSTANCE.uniffi_mopro_example_app_20250912_fn_func_get_noir_verification_key(
-                FfiConverterString.lower(`circuitPath`),FfiConverterOptionalString.lower(`srsPath`),FfiConverterBoolean.lower(`onChain`),FfiConverterBoolean.lower(`lowMemoryMode`),_status)
-        }
     )
+    }
+    
+
+    @Throws(MoproException::class) fun `generateNoirProof`(`circuitPath`: kotlin.String, `srsPath`: kotlin.String?, `inputs`: List<kotlin.String>, `onChain`: kotlin.Boolean, `vk`: kotlin.ByteArray, `lowMemoryMode`: kotlin.Boolean): kotlin.ByteArray {
+            return FfiConverterByteArray.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_generate_noir_proof(
+        FfiConverterString.lower(`circuitPath`),FfiConverterOptionalString.lower(`srsPath`),FfiConverterSequenceString.lower(`inputs`),FfiConverterBoolean.lower(`onChain`),FfiConverterByteArray.lower(`vk`),FfiConverterBoolean.lower(`lowMemoryMode`),_status)
 }
-
-
-/**
- * You can also customize the bindings by #[uniffi::export]
- * Reference: https://mozilla.github.io/uniffi-rs/latest/proc_macro/index.html
- */ fun `moproUniffiHelloWorld`(): kotlin.String {
-    return FfiConverterString.lift(
-        uniffiRustCall() { _status ->
-            UniffiLib.INSTANCE.uniffi_mopro_example_app_20250912_fn_func_mopro_uniffi_hello_world(
-                _status)
-        }
     )
+    }
+    
+
+    @Throws(MoproException::class) fun `getNoirVerificationKey`(`circuitPath`: kotlin.String, `srsPath`: kotlin.String?, `onChain`: kotlin.Boolean, `lowMemoryMode`: kotlin.Boolean): kotlin.ByteArray {
+            return FfiConverterByteArray.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_get_noir_verification_key(
+        FfiConverterString.lower(`circuitPath`),FfiConverterOptionalString.lower(`srsPath`),FfiConverterBoolean.lower(`onChain`),FfiConverterBoolean.lower(`lowMemoryMode`),_status)
 }
-
-
-@Throws(MoproException::class) fun `verifyCircomProof`(`zkeyPath`: kotlin.String, `proofResult`: CircomProofResult, `proofLib`: ProofLib): kotlin.Boolean {
-    return FfiConverterBoolean.lift(
-        uniffiRustCallWithError(MoproException) { _status ->
-            UniffiLib.INSTANCE.uniffi_mopro_example_app_20250912_fn_func_verify_circom_proof(
-                FfiConverterString.lower(`zkeyPath`),FfiConverterTypeCircomProofResult.lower(`proofResult`),FfiConverterTypeProofLib.lower(`proofLib`),_status)
-        }
     )
+    }
+    
+
+    @Throws(MoproException::class) fun `prove`(`circuitMeta`: CircuitMeta, `cert`: kotlin.ByteArray, `authorityKeyId`: kotlin.ByteArray, `issuerPkX`: kotlin.ByteArray, `issuerPkY`: kotlin.ByteArray, `prevCmt`: kotlin.String, `prevCmtR`: kotlin.String): ProofResult {
+            return FfiConverterTypeProofResult.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_prove(
+        FfiConverterTypeCircuitMeta.lower(`circuitMeta`),FfiConverterByteArray.lower(`cert`),FfiConverterByteArray.lower(`authorityKeyId`),FfiConverterByteArray.lower(`issuerPkX`),FfiConverterByteArray.lower(`issuerPkY`),FfiConverterString.lower(`prevCmt`),FfiConverterString.lower(`prevCmtR`),_status)
 }
-
-
-@Throws(MoproException::class) fun `verifyHalo2Proof`(`srsPath`: kotlin.String, `vkPath`: kotlin.String, `proof`: kotlin.ByteArray, `publicInput`: kotlin.ByteArray): kotlin.Boolean {
-    return FfiConverterBoolean.lift(
-        uniffiRustCallWithError(MoproException) { _status ->
-            UniffiLib.INSTANCE.uniffi_mopro_example_app_20250912_fn_func_verify_halo2_proof(
-                FfiConverterString.lower(`srsPath`),FfiConverterString.lower(`vkPath`),FfiConverterByteArray.lower(`proof`),FfiConverterByteArray.lower(`publicInput`),_status)
-        }
     )
+    }
+    
+
+    @Throws(MoproException::class) fun `verifyCircomProof`(`zkeyPath`: kotlin.String, `proofResult`: CircomProofResult, `proofLib`: ProofLib): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_verify_circom_proof(
+        FfiConverterString.lower(`zkeyPath`),FfiConverterTypeCircomProofResult.lower(`proofResult`),FfiConverterTypeProofLib.lower(`proofLib`),_status)
 }
-
-
-@Throws(MoproException::class) fun `verifyNoirProof`(`circuitPath`: kotlin.String, `proof`: kotlin.ByteArray, `onChain`: kotlin.Boolean, `vk`: kotlin.ByteArray, `lowMemoryMode`: kotlin.Boolean): kotlin.Boolean {
-    return FfiConverterBoolean.lift(
-        uniffiRustCallWithError(MoproException) { _status ->
-            UniffiLib.INSTANCE.uniffi_mopro_example_app_20250912_fn_func_verify_noir_proof(
-                FfiConverterString.lower(`circuitPath`),FfiConverterByteArray.lower(`proof`),FfiConverterBoolean.lower(`onChain`),FfiConverterByteArray.lower(`vk`),FfiConverterBoolean.lower(`lowMemoryMode`),_status)
-        }
     )
-}
+    }
+    
 
+    @Throws(MoproException::class) fun `verifyHalo2Proof`(`srsPath`: kotlin.String, `vkPath`: kotlin.String, `proof`: kotlin.ByteArray, `publicInput`: kotlin.ByteArray): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_verify_halo2_proof(
+        FfiConverterString.lower(`srsPath`),FfiConverterString.lower(`vkPath`),FfiConverterByteArray.lower(`proof`),FfiConverterByteArray.lower(`publicInput`),_status)
+}
+    )
+    }
+    
+
+    @Throws(MoproException::class) fun `verifyNoirProof`(`circuitPath`: kotlin.String, `proof`: kotlin.ByteArray, `onChain`: kotlin.Boolean, `vk`: kotlin.ByteArray, `lowMemoryMode`: kotlin.Boolean): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_verify_noir_proof(
+        FfiConverterString.lower(`circuitPath`),FfiConverterByteArray.lower(`proof`),FfiConverterBoolean.lower(`onChain`),FfiConverterByteArray.lower(`vk`),FfiConverterBoolean.lower(`lowMemoryMode`),_status)
+}
+    )
+    }
+    
 
 

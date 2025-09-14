@@ -1,5 +1,8 @@
 package org.ethtokyo.hackathon.anastasia.ui.home
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.os.Bundle
 import android.view.*
 import android.widget.Toast
@@ -59,6 +62,10 @@ class HomeFragment : Fragment() {
                         } else {
                             Toast.makeText(context, "First, you need to generate a key.", Toast.LENGTH_SHORT).show()
                         }
+                        true
+                    }
+                    R.id.action_copy_certificates_chain -> {
+                        copyCertificateChain()
                         true
                     }
                     R.id.action_delete_key -> {
@@ -122,6 +129,30 @@ class HomeFragment : Fragment() {
             putInt("certificateIndex", index)
         }
         findNavController().navigate(action, bundle)
+    }
+
+    private fun copyCertificateChain() {
+        if (!homeViewModel.hasGeneratedKey()) {
+            Toast.makeText(context, "First, you need to generate a key.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val pemChain = homeViewModel.getCertificateChainAsPem()
+        if (pemChain != null) {
+            // クリップボードにコピー
+            val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("Certificate Chain", pemChain)
+            clipboard.setPrimaryClip(clip)
+
+            // デバッグログとして出力
+            println("=== === === Certificate Chain PEM ===")
+            println(pemChain)
+            println("=== === === End Certificate Chain ===")
+
+            Toast.makeText(context, "Certificate chain copied to clipboard", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "No certificate chain available", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onDestroyView() {
