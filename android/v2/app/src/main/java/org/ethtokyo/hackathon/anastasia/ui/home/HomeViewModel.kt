@@ -6,7 +6,9 @@ import androidx.lifecycle.ViewModel
 import org.ethtokyo.hackathon.anastasia.Constants
 import org.ethtokyo.hackathon.anastasia.core.ECKeystoreHelper
 import org.ethtokyo.hackathon.anastasia.data.CertificateInfo
+import java.security.cert.Certificate
 import java.security.cert.X509Certificate
+import java.util.Base64
 
 class HomeViewModel : ViewModel() {
 
@@ -63,6 +65,38 @@ class HomeViewModel : ViewModel() {
             loadCertificates()
         }
         return result
+    }
+
+    fun getCertificateChainAsPem(): String? {
+        if (!keystoreHelper.keyExists(Constants.KEY_ALIAS)) {
+            return null
+        }
+
+        val certificates = keystoreHelper.getAttestationCertificate(Constants.KEY_ALIAS)
+        return if (certificates != null && certificates.isNotEmpty()) {
+            certificates.joinToString("\n") { cert ->
+                convertCertificateToPem(cert)
+            }
+        } else {
+            null
+        }
+    }
+
+    private fun convertCertificateToPem(certificate: Certificate): String {
+        val encoded = Base64.getEncoder().encode(certificate.encoded)
+        val base64String = String(encoded)
+
+        val pemBuilder = StringBuilder()
+        pemBuilder.append("-----BEGIN CERTIFICATE-----\n")
+
+        // 64文字ごとに改行を入れる
+        for (i in base64String.indices step 64) {
+            val end = minOf(i + 64, base64String.length)
+            pemBuilder.append(base64String.substring(i, end)).append("\n")
+        }
+
+        pemBuilder.append("-----END CERTIFICATE-----")
+        return pemBuilder.toString()
     }
 
     private fun parseCertificateSubject(cert: X509Certificate): String {

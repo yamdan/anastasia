@@ -9,6 +9,12 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_copy_certificates_chain"
+        android:title="Copy certificates chain"
+        android:orderInCategory="150"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_delete_key"
         android:title="Delete Key"
         android:orderInCategory="200"
