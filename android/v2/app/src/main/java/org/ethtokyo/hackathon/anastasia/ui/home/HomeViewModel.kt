@@ -3,6 +3,7 @@ package org.ethtokyo.hackathon.anastasia.ui.home
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import org.ethtokyo.hackathon.anastasia.Constants
 import org.ethtokyo.hackathon.anastasia.core.ECKeystoreHelper
 import org.ethtokyo.hackathon.anastasia.data.CertificateInfo
 import java.security.cert.X509Certificate
@@ -22,16 +23,30 @@ class HomeViewModel : ViewModel() {
         try {
             // TODO: 実装 - 実際のKeyStoreから証明書チェーンを取得
             // 現在はモック実装
-            val mockCertificates = loadMockCertificates()
+            val mockCertificates = loadAttestationCertificates()
             _certificates.value = mockCertificates
         } catch (e: Exception) {
             _certificates.value = emptyList()
         }
     }
 
-    private fun loadMockCertificates(): List<CertificateInfo> {
-        // TODO: Replace with actual implementation
-        // For now return empty list to show the FAB
+    private fun loadAttestationCertificates(): List<CertificateInfo> {
+        if (keystoreHelper.keyExists(Constants.KEY_ALIAS)){
+            val certificates = keystoreHelper.getAttestationCertificate(Constants.KEY_ALIAS)
+            if (certificates != null) {
+                return certificates.map { cert ->
+                    val x509 = cert as? X509Certificate
+                    CertificateInfo(
+                        certificate = cert,
+                        subject = x509?.subjectX500Principal?.name ?: "",
+                        issuer = x509?.issuerX500Principal?.name ?: "",
+                        keyAlias = Constants.KEY_ALIAS,
+                        // 末端証明書かどうかの判定: 中間証明書を持たない or BasicConstraints=-1
+                        isEndEntity = x509?.basicConstraints == -1
+                    )
+                }
+            }
+        }
         return emptyList()
     }
 

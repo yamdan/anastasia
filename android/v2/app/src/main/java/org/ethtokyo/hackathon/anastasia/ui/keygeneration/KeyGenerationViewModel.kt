@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import org.ethtokyo.hackathon.anastasia.Constants
 import org.ethtokyo.hackathon.anastasia.core.ECKeystoreHelper
 import java.security.KeyPair
 import java.util.*
@@ -25,11 +26,10 @@ class KeyGenerationViewModel : ViewModel() {
 
             try {
                 val challengeBytes = challenge?.toByteArray()
-                val alias = "key_${System.currentTimeMillis()}_${UUID.randomUUID()}"
 
                 // TODO: 実装詳細 - 実際のTEE/StrongBox鍵生成処理
                 val keyPair = keystoreHelper.generateKeyPair(
-                    alias = alias,
+                    alias = Constants.KEY_ALIAS,
                     useStrongBox = true,
                     attestationChallenge = challengeBytes
                 )
