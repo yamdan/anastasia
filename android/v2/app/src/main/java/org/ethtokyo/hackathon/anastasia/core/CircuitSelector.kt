@@ -97,14 +97,14 @@ fun selectAppropriateCircuit(context: Context, certificate: X509ParseResult): Ci
     val circuitDir = getCircuitDir(certificate)
 
     return Circuit(
-        vk = loadAssetBinaryData(context, "$circuitDir/verify_ecdsa.vk"),
-        circuit = getFilePathFromAssets(context, "$circuitDir/verify_ecdsa.json"),
-        srs = getFilePathFromAssets(context, "$circuitDir/verify_ecdsa.srs")
+        vk = loadAssetBinaryData(context, "$circuitDir/es256.vk"),
+        circuit = getFilePathFromAssets(context, "$circuitDir/es256.json"),
+        srs = getFilePathFromAssets(context, "$circuitDir/common.srs")
     )
 }
 
 
 fun getCircuitDir(certificate: X509ParseResult): String {
     // todo: 証明書の構造を見て適切なサーキット名を返却する
-    return "circuit1"
+    return "ee"
 }
