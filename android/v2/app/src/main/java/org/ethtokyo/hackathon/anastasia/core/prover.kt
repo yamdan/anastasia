@@ -22,7 +22,62 @@ fun bytes(vararg ints: Int): ByteArray =
 fun ProofResult.convertProofForInfura(): String {
     val originalProof = this.proof
 
-    return originalProof
+    // ワークアラウンド: 先頭の "ca_" / "ee_" を削除
+    val cleaned = when {
+        originalProof.startsWith("ca_") -> originalProof.substring(3)
+        originalProof.startsWith("ee_") -> originalProof.substring(3)
+        else -> originalProof
+    }
+
+    // 先頭の "0x" を削除
+    val proofHex = if (cleaned.startsWith("0x")) {
+        cleaned.substring(2)
+    } else {
+        cleaned
+    }
+
+    // --- publicInputs と proofData を分離 ---
+    // public inputs: 32バイト × 9個 = 288バイト = 576 hex文字
+    val publicInputsHex = proofHex.substring(0, 576)
+    val proofDataHex = proofHex.substring(576)
+    val proofLength = proofDataHex.length / 2 // バイト数
+
+    // --- ABI 構造を構築 ---
+    val methodId = "ea50d0e4" // 固定 MethodID
+
+    // proofOffset: arguments 領域(2ワード=64バイト)の後
+    val proofOffset = "0000000000000000000000000000000000000000000000000000000000000040"
+
+    // proof のパディング処理（32バイト境界）
+    val remainder = proofDataHex.length % 64
+    val proofDataPadded = if (remainder != 0) {
+        proofDataHex + "0".repeat(64 - remainder)
+    } else {
+        proofDataHex
+    }
+
+    // publicInputsOffset = arguments領域(64) + proofLength(32) + proofData領域
+    val proofDataPaddedLength = proofDataPadded.length / 2 // バイト数
+    val publicInputsOffsetValue = 64 + 32 + proofDataPaddedLength
+    val publicInputsOffset = publicInputsOffsetValue.toString(16).padStart(64, '0')
+
+    // proof length (1ワード)
+    val proofLengthPadded = proofLength.toString(16).padStart(64, '0')
+
+    // publicInputs count (固定で9)
+    val publicInputsCount = "0000000000000000000000000000000000000000000000000000000000000009"
+
+    // --- dataフィールド組み立て ---
+    val dataForInfura =
+        "0x" + methodId +
+                proofOffset +
+                publicInputsOffset +
+                proofLengthPadded +
+                proofDataPadded +
+                publicInputsCount +
+                publicInputsHex
+
+    return dataForInfura
 }
 
 private fun bytesToHexString(bytes: ByteArray): String {

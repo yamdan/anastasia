@@ -33,9 +33,9 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             try {
                 delay(2000)
                 // Generate mock proof
-                val proofString = generateProofCore()
-                println("=== === === === generated proof string : ${proofString}")
-                _proofGenerationResult.value = Result.success(proofString)
+                val proofs = generateProofCore()
+                println("=== === === === generated proof string : ${proofs}")
+                _proofGenerationResult.value = Result.success(proofs)
 
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -97,6 +97,18 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
 
         println("=== === === === proofResult2 : ${proofResult2.proof}")
 
-        return arrayOf(proofResult1, proofResult2)
+        // workaround
+        val manipulatedProof1 = ProofResult(
+            proof = "ca_" + proofResult1.proof,
+            nextCmt = proofResult1.nextCmt,
+            nextCmtR = proofResult1.nextCmtR
+        )
+        val manipulatedProof2 = ProofResult(
+            proof = "ee_" + proofResult2.proof,
+            nextCmt = proofResult2.nextCmt,
+            nextCmtR = proofResult2.nextCmtR
+        )
+
+        return arrayOf(manipulatedProof1, manipulatedProof2)
     }
 }

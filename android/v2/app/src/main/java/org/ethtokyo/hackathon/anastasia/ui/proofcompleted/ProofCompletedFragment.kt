@@ -1,5 +1,8 @@
 package org.ethtokyo.hackathon.anastasia.ui.proofcompleted
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -43,28 +46,45 @@ class ProofCompletedFragment : Fragment() {
         }
         binding.textViewProof.text = proofsText
 
-        setupListeners(proofResults)
+        setupListeners(proofResults, proofsText)
         setupObservers()
 
         return binding.root
     }
 
-    private fun setupListeners(proofResults: Array<ProofResult>) {
+    private fun setupListeners(proofResults: Array<ProofResult>, proofsText: String) {
         binding.buttonYes.setOnClickListener {
             viewModel.recordProofs(proofResults)
         }
         binding.buttonNo.setOnClickListener {
             findNavController().navigate(R.id.action_proofCompletedFragment_to_navigation_key_management)
         }
+
+        binding.textViewProof.setOnClickListener {
+            copyToClipboard(proofsText)
+        }
+    }
+
+    private fun copyToClipboard(text: String) {
+        val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("Proof Data", text)
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(requireContext(), "Proof data copied to clipboard", Toast.LENGTH_SHORT).show()
     }
 
     private fun setupObservers() {
         viewModel.postResult.observe(viewLifecycleOwner) { result ->
             if (result.isSuccess) {
-                val response = result.getOrNull()
-                // Navigate to smart contract completed screen
-                val action = ProofCompletedFragmentDirections.actionProofCompletedFragmentToSmartContractCompletedFragment(response ?: "")
-                findNavController().navigate(action)
+                val allProofsResult = result.getOrNull()
+                if (allProofsResult != null) {
+                    // 常に次の画面に遷移し、結果の詳細を表示
+                    val jsonData = allProofsResult.toJsonString()
+                    val action = ProofCompletedFragmentDirections.actionProofCompletedFragmentToSmartContractCompletedFragment(jsonData)
+                    findNavController().navigate(action)
+                } else {
+                    Toast.makeText(context, "No results received", Toast.LENGTH_LONG).show()
+                    findNavController().navigate(R.id.action_proofCompletedFragment_to_navigation_key_management)
+                }
             } else {
                 Toast.makeText(context, "Failed to record proof: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
                 findNavController().navigate(R.id.action_proofCompletedFragment_to_navigation_key_management)
@@ -74,10 +94,14 @@ class ProofCompletedFragment : Fragment() {
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             binding.buttonYes.isEnabled = !isLoading
             binding.buttonNo.isEnabled = !isLoading
-            if (isLoading) {
-                binding.buttonYes.text = "Processing..."
-            } else {
+            if (!isLoading) {
                 binding.buttonYes.text = "YES"
+            }
+        }
+
+        viewModel.progressMessage.observe(viewLifecycleOwner) { message ->
+            if (message.isNotEmpty()) {
+                binding.buttonYes.text = message
             }
         }
     }
