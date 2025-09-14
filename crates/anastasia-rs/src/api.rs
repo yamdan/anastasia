@@ -53,6 +53,13 @@ mod tests {
         )
         .unwrap();
         let cert = std::fs::read("test_data/es256_ca.der").unwrap();
+        println!(
+            "cert = [{}];",
+            cert.iter()
+                .map(|b| format!("0x{:02x}", b))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
         let now = Some(Utc::now());
         let authority_key_id = vec![
             0xfe, 0x62, 0x6c, 0xdc, 0x2a, 0xe5, 0x80, 0xe7, 0x19, 0x6a, 0xca, 0x23, 0xdd, 0x23,
@@ -88,7 +95,8 @@ mod tests {
 
         println!("Next commitment: {}", next_cmt);
         println!("Next commitment randomness: {}", next_cmt_r);
-        println!("Proof: {:?}", proof);
+        println!("Proof (hex): {}", hex::encode(&proof));
+        println!("Proof length: {}", proof.len());
         assert!(!proof.is_empty());
         assert_eq!(next_cmt.len(), 64); // 32 bytes in hex
         assert_eq!(next_cmt_r.len(), 64); // 32 bytes in hex        

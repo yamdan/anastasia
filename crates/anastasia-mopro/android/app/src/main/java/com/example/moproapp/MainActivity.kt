@@ -50,29 +50,12 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen() {
-    var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Circom", "Halo2", "Noir")
-
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Column(modifier = Modifier
             .fillMaxSize()
             .padding(innerPadding)
         ) {
-            TabRow(selectedTabIndex = selectedTab) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        text = { Text(title) },
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index }
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            when (selectedTab) {
-                0 -> MultiplierComponent()
-                1 -> FibonacciComponent()
-                2 -> NoirComponent()
-            }
+            NoirComponent()
         }
     }
 }
