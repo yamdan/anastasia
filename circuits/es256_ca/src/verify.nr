@@ -17,8 +17,8 @@ pub fn verify<let MAX_TBS_LEN: u32, let MAX_EXT_LEN: u32>(
     serial_number_len: u32,
     issuer: [u8; 124],
     issuer_len: u32,
-    notBefore: UtcTime,
-    notAfter: UtcTime,
+    not_before: UtcTime,
+    not_after: UtcTime,
     now: UtcTime,
     subject: [u8; 124],
     subject_len: u32,
@@ -48,10 +48,10 @@ pub fn verify<let MAX_TBS_LEN: u32, let MAX_EXT_LEN: u32>(
     let serial_number_len_bytes: [u8; 1] = (serial_number_len as Field).to_be_bytes();
 
     // Time validity checks
-    assert(notBefore.isBefore(now));
-    assert(now.isBefore(notAfter));
+    assert(not_before.isBefore(now));
+    assert(now.isBefore(not_after));
     let validity_header = [0x30, 0x1e];
-    let validity = validity_header.concat(notBefore.to_bytes()).concat(notAfter.to_bytes());
+    let validity = validity_header.concat(not_before.to_bytes()).concat(not_after.to_bytes());
     let validity_len = validity.len();
 
     // subject public key
@@ -300,5 +300,6 @@ pub fn verify<let MAX_TBS_LEN: u32, let MAX_EXT_LEN: u32>(
     let result = verify_signature(issuer_pk_x, issuer_pk_y, sig, hash);
     assert(result, "Signature verification failed");
 
+    print(next_cmt);
     [next_cmt]
 }

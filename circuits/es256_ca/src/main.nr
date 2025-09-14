@@ -28,15 +28,15 @@ fn main(
     key_usage_digital_signature_index: u32,
     extra_extension: [u8; MAX_EXTRA_EXT_LEN],
     extra_extension_len: u32,
-    notBefore: [u8; 7],
-    notAfter: [u8; 7],
+    not_before: [u8; 7],
+    not_after: [u8; 7],
     now: pub [u8; 7],
     prev_cmt: pub Field,
     prev_cmt_r: Field,
     next_cmt_r: Field,
 ) -> pub [Field; 1] {
-    let notBefore = UtcTime::from_bytes(notBefore);
-    let notAfter = UtcTime::from_bytes(notAfter);
+    let not_before = UtcTime::from_bytes(not_before);
+    let not_after = UtcTime::from_bytes(not_after);
     let now = UtcTime::from_bytes(now);
 
     verify::verify::<MAX_TBS_LEN, _>(
@@ -47,8 +47,8 @@ fn main(
         serial_number_len,
         issuer,
         issuer_len,
-        notBefore,
-        notAfter,
+        not_before,
+        not_after,
         now,
         subject,
         subject_len,
