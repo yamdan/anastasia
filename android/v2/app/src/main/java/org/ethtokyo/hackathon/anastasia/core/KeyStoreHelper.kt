@@ -118,6 +118,15 @@ class ECKeystoreHelper {
         }
     }
 
+    fun deleteEntry(alias: String): Boolean {
+        return try {
+            keyStore.deleteEntry(alias)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     fun keyExists(alias: String): Boolean {
         return try {
             keyStore.containsAlias(alias)
