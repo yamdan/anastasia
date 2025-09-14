@@ -61,6 +61,19 @@ class HomeFragment : Fragment() {
                         }
                         true
                     }
+                    R.id.action_delete_key -> {
+                        if (homeViewModel.hasGeneratedKey()) {
+                            val success = homeViewModel.deleteKey()
+                            if (success) {
+                                Toast.makeText(context, "Key deleted successfully.", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "Failed to delete key.", Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            Toast.makeText(context, "No key to delete.", Toast.LENGTH_SHORT).show()
+                        }
+                        true
+                    }
                     else -> false
                 }
             }

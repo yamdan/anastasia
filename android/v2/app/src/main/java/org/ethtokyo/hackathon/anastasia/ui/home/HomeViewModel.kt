@@ -56,6 +56,15 @@ class HomeViewModel : ViewModel() {
         return keystoreHelper.keyExists(Constants.KEY_ALIAS)
     }
 
+    fun deleteKey(): Boolean {
+        val result = keystoreHelper.deleteEntry(Constants.KEY_ALIAS)
+        if (result) {
+            // Refresh certificates after successful deletion
+            loadCertificates()
+        }
+        return result
+    }
+
     private fun parseCertificateSubject(cert: X509Certificate): String {
         return cert.subjectDN.name.split(",").firstOrNull()?.trim() ?: "Unknown Subject"
     }
