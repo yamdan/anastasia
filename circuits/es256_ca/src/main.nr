@@ -1,8 +1,4 @@
-mod commit;
-mod models;
-mod verify;
-
-use models::UtcTime;
+use es256_core::{verify, models};
 
 global MAX_TBS_LEN: u32 = 500;
 global MAX_EXTRA_EXT_LEN: u32 = 30;
@@ -37,9 +33,9 @@ fn main(
     next_cmt: pub Field,
     next_cmt_r: Field,
 ) {
-    let not_before = UtcTime::from_bytes(not_before);
-    let not_after = UtcTime::from_bytes(not_after);
-    let now = UtcTime::from_bytes(now);
+    let not_before = models::UtcTime::from_bytes(not_before);
+    let not_after = models::UtcTime::from_bytes(not_after);
+    let now = models::UtcTime::from_bytes(now);
 
     verify::verify::<MAX_TBS_LEN, _>(
         issuer_pk_x,
