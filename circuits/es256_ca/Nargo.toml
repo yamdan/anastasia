@@ -5,5 +5,4 @@ type = "bin"
 authors = ["yamdan"]
 
 [dependencies]
-sha256 = { tag = "v0.2.1-tweaked", git = "https://github.com/yamdan/sha256" } # Use tweaked v0.2.1 to work with old Noir v1.0.0-beta.8 (required to be used with Mopro)
-poseidon = { tag = "v0.1.1", git = "https://github.com/noir-lang/poseidon" }
+es256_core = { path = "../es256_core" }
