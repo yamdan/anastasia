@@ -2,6 +2,8 @@ use num_bigint::BigUint;
 use x509_parser::der_parser::der::{DerObjectContent, parse_der_sequence};
 use x509_parser::prelude::*;
 
+use crate::utils::to_fixed_array;
+
 fn extract_ecdsa_der(signature_value: &[u8]) -> Result<Vec<u8>, String> {
     let (_, seq) =
         parse_der_sequence(signature_value).map_err(|e| format!("parse error: {e:?}"))?;
@@ -54,10 +56,10 @@ pub struct ParsedCert {
     pub serial_number_len: u32,
     pub issuer: [u8; 124],
     pub issuer_len: u32,
-    pub subject: [u8; 124],
-    pub subject_len: u32,
     pub not_before: [u8; 7],
     pub not_after: [u8; 7],
+    pub subject: [u8; 124],
+    pub subject_len: u32,
     pub subject_pk_x: [u8; 32],
     pub subject_pk_y: [u8; 32],
     pub subject_key_identifier: [u8; 20],
@@ -203,26 +205,12 @@ impl ParsedCert {
                 buf
             },
             serial_number_len: serial_number_len as u32,
-            issuer: {
-                let mut buf = [0u8; 124];
-                if issuer_len > 124 {
-                    return Err("Issuer length exceeds 124 bytes".to_string());
-                }
-                buf[0..issuer_len].copy_from_slice(issuer);
-                buf
-            },
+            issuer: { to_fixed_array::<124>(issuer)? },
             issuer_len: issuer_len as u32,
-            subject: {
-                let mut buf = [0u8; 124];
-                if subject_len > 124 {
-                    return Err("Subject length exceeds 124 bytes".to_string());
-                }
-                buf[0..subject_len].copy_from_slice(subject);
-                buf
-            },
-            subject_len: subject_len as u32,
             not_before,
             not_after,
+            subject: { to_fixed_array::<124>(subject)? },
+            subject_len: subject_len as u32,
             subject_pk_x: {
                 let mut buf = [0u8; 32];
                 if spk_x.len() != 32 {
