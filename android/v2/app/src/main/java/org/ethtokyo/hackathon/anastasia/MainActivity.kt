@@ -31,5 +31,23 @@ class MainActivity : AppCompatActivity() {
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
+
+        // Hide/show bottom navigation based on destination
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            when (destination.id) {
+                R.id.navigation_key_management,
+                R.id.navigation_vc_management -> {
+                    navView.visibility = android.view.View.VISIBLE
+                }
+                else -> {
+                    navView.visibility = android.view.View.GONE
+                }
+            }
+        }
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        val navController = findNavController(R.id.nav_host_fragment_activity_main)
+        return navController.navigateUp() || super.onSupportNavigateUp()
     }
 }
