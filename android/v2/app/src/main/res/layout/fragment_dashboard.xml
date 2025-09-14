@@ -10,8 +10,7 @@
         android:id="@+id/recycler_vc_items"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="8dp"
-        android:paddingTop="30dp"
+        android:padding="30dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
