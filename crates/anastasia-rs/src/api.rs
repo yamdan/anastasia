@@ -2,6 +2,12 @@ use chrono::{DateTime, Utc};
 
 use crate::circuit::{Circuit, CircuitMeta};
 
+pub struct ProofResult {
+    pub proof: Vec<u8>,
+    pub next_cmt: String,
+    pub next_cmt_r: String,
+}
+
 pub fn prove(
     circuit_meta: &CircuitMeta,
     cert: Vec<u8>,
@@ -11,7 +17,7 @@ pub fn prove(
     issuer_pk_y: Vec<u8>,
     prev_cmt: String,
     prev_cmt_r: String,
-) -> Result<(Vec<u8>, String, String), String> {
+) -> Result<ProofResult, String> {
     let circuit = Circuit::new(circuit_meta)?;
 
     let (proof, next_cmt, next_cmt_r) = crate::prove::prove(
@@ -26,7 +32,11 @@ pub fn prove(
         circuit.max_extra_extension_len,
     )?;
 
-    Ok((proof, next_cmt, next_cmt_r))
+    Ok(ProofResult {
+        proof,
+        next_cmt,
+        next_cmt_r,
+    })
 }
 
 #[cfg(test)]
@@ -60,7 +70,11 @@ mod tests {
         ];
         let prev_cmt = "0ede28f511104f08069e07986707873be5cbba917f02f02407ad1fdd6838679b";
         let prev_cmt_r = "deadbeef";
-        let (proof, next_cmt, next_cmt_r) = prove(
+        let ProofResult {
+            proof,
+            next_cmt,
+            next_cmt_r,
+        } = prove(
             &meta,
             cert,
             now,

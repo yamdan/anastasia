@@ -14,7 +14,12 @@ chrono = "0.4.42"
 flate2 = "1.1.2"
 hex = "0.4.3"
 itertools = "0.14.0"
-noir = { git = "https://github.com/zkmopro/noir-rs", features = ["barretenberg"] }
+#noir = { git = "https://github.com/zkmopro/noir-rs", features = ["barretenberg"] }
+noir = { package = "noir", git = "https://github.com/zkmopro/noir-rs", features = [
+    "barretenberg",
+    "android-compat",
+], branch = "v1.0.0-beta.8-3" }
+
 num-bigint = "0.4.6"
 num-traits = "0.2.19"
 serde_json = "1.0.143"
