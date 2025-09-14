@@ -11,6 +11,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.ethtokyo.hackathon.anastasia.smart_contract.resolveInfuraPath
 
 class ProofCompletedViewModel : ViewModel() {
 
@@ -37,11 +38,9 @@ class ProofCompletedViewModel : ViewModel() {
     }
 
     private suspend fun postProofToServer(proof: String): String = withContext(Dispatchers.IO) {
-        // TODO: Replace with actual server URL
-        val url = "https://example.com/api/record_proof"
         val requestBody = proof.toRequestBody("application/json; charset=utf-8".toMediaType())
         val request = Request.Builder()
-            .url(url)
+            .url(resolveInfuraPath())
             .post(requestBody)
             .build()
 
