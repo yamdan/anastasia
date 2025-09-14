@@ -158,8 +158,10 @@ fun NoirComponent() {
                                 val endTime = System.currentTimeMillis()
                                 val duration = endTime - startTime
 
+                                val proofSizeHex = caProof.length + caNextCmt.length + caNextCmtR.length + eeProof.length + eeNextCmt.length + eeNextCmtR.length
+                                val proofSize = proofSizeHex / 2 // bytes
                                 provingTime = "Proving time: $duration ms"
-                                proofResult = "Proof generated: ${caProof.length} hexes"
+                                proofResult = "Proof generated: $proofSize bytes"
                                 statusMessage = "Proof generation completed"
                             } catch (e: Exception) {
                                 provingTime = "Proving failed"
