@@ -75,10 +75,16 @@ class ProofCompletedFragment : Fragment() {
     private fun setupObservers() {
         viewModel.postResult.observe(viewLifecycleOwner) { result ->
             if (result.isSuccess) {
-                val response = result.getOrNull()
-                // Navigate to smart contract completed screen
-                val action = ProofCompletedFragmentDirections.actionProofCompletedFragmentToSmartContractCompletedFragment(response ?: "")
-                findNavController().navigate(action)
+                val allProofsResult = result.getOrNull()
+                if (allProofsResult != null) {
+                    // 常に次の画面に遷移し、結果の詳細を表示
+                    val jsonData = allProofsResult.toJsonString()
+                    val action = ProofCompletedFragmentDirections.actionProofCompletedFragmentToSmartContractCompletedFragment(jsonData)
+                    findNavController().navigate(action)
+                } else {
+                    Toast.makeText(context, "No results received", Toast.LENGTH_LONG).show()
+                    findNavController().navigate(R.id.action_proofCompletedFragment_to_navigation_key_management)
+                }
             } else {
                 Toast.makeText(context, "Failed to record proof: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
                 findNavController().navigate(R.id.action_proofCompletedFragment_to_navigation_key_management)

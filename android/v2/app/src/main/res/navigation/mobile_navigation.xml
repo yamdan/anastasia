@@ -96,7 +96,7 @@
     <fragment
         android:id="@+id/smartContractCompletedFragment"
         android:name="org.ethtokyo.hackathon.anastasia.ui.smartcontractcompleted.SmartContractCompletedFragment"
-        android:label="Finished"
+        android:label="Verification Finished"
         tools:layout="@layout/fragment_smart_contract_completed">
         <argument
             android:name="responseData"
