@@ -1,0 +1,62 @@
+{
+  "name": "HonkVerifier",
+  "address": "0x67477571a91a19c4b5ac3836132dc3a8812e944b",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "ConsistencyCheckFailed",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "GeminiChallengeInSubgroup",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ProofLengthWrong",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "PublicInputsLengthWrong",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ShpleminiFailed",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "SumcheckFailed",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "proof",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes32[]",
+          "name": "publicInputs",
+          "type": "bytes32[]"
+        }
+      ],
+      "name": "verify",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "verified",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "filePath": "electron/src/Verifier.sol",
+  "pinnedAt": 1757851839200
+}

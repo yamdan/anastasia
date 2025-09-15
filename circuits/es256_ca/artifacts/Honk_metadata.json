@@ -1,0 +1,45 @@
+{
+	"compiler": {
+		"version": "0.8.30+commit.73712a01"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"new_sol/Verifier.sol": "Honk"
+		},
+		"evmVersion": "prague",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": true,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"new_sol/Verifier.sol": {
+			"keccak256": "0xf5198d43a3f0fe0b82116c895d0a7861a49b5ef8ab8e00b8e59659e6e68d47e0",
+			"license": "Apache-2.0",
+			"urls": [
+				"bzz-raw://828025a370d7771fb7d2fddd28aaa52d543c59e6c2b51045aaeebab53fe919e9",
+				"dweb:/ipfs/QmWt4hRz93c4MQPR8HbPoDFefPnnJn1f54GPYhexafUA67"
+			]
+		}
+	},
+	"version": 1
+}

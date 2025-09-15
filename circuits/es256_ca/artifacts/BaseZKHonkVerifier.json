@@ -1,0 +1,111 @@
+{
+	"deploy": {
+		"VM:-": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"main:1": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"ropsten:3": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"rinkeby:4": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"kovan:42": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"goerli:5": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"Custom": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		}
+	},
+	"data": {
+		"bytecode": {
+			"functionDebugData": {},
+			"generatedSources": [],
+			"linkReferences": {},
+			"object": "",
+			"opcodes": "",
+			"sourceMap": ""
+		},
+		"deployedBytecode": {
+			"functionDebugData": {},
+			"generatedSources": [],
+			"immutableReferences": {},
+			"linkReferences": {},
+			"object": "",
+			"opcodes": "",
+			"sourceMap": ""
+		},
+		"gasEstimates": null,
+		"methodIdentifiers": {
+			"verify(bytes,bytes32[])": "ea50d0e4"
+		}
+	},
+	"abi": [
+		{
+			"inputs": [],
+			"name": "ConsistencyCheckFailed",
+			"type": "error"
+		},
+		{
+			"inputs": [],
+			"name": "GeminiChallengeInSubgroup",
+			"type": "error"
+		},
+		{
+			"inputs": [],
+			"name": "ProofLengthWrong",
+			"type": "error"
+		},
+		{
+			"inputs": [],
+			"name": "PublicInputsLengthWrong",
+			"type": "error"
+		},
+		{
+			"inputs": [],
+			"name": "ShpleminiFailed",
+			"type": "error"
+		},
+		{
+			"inputs": [],
+			"name": "SumcheckFailed",
+			"type": "error"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes",
+					"name": "proof",
+					"type": "bytes"
+				},
+				{
+					"internalType": "bytes32[]",
+					"name": "publicInputs",
+					"type": "bytes32[]"
+				}
+			],
+			"name": "verify",
+			"outputs": [
+				{
+					"internalType": "bool",
+					"name": "verified",
+					"type": "bool"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		}
+	]
+}
