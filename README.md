@@ -37,8 +37,6 @@ With Anastasia, we demonstrate that a smartphone can produce a zero-knowledge pr
 - Solidity contract (generated via Noir standard toolchain)  
 - Verifies ZK proof of certificate validity  
 
-*(Diagram: phone → ZK proof → blockchain)*
-
 ## Deployment
 
 - Android demo app (APK to be published on GitHub Repo)
