@@ -39,5 +39,38 @@ With Anastasia, we demonstrate that a smartphone can produce a zero-knowledge pr
 
 ## Deployment
 
-- Android demo app (APK to be published on GitHub Repo)
 - Solidity verifier contract deployed on testnet
+
+### Android
+
+Follow these steps to build and run this Android app locally:
+
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository_url>
+    cd <cloned_directory>/android/v2
+    ```
+
+2.  **Open the project in Android Studio:**
+    *   Launch Android Studio.
+    *   Select "Open an existing Android Studio project" and specify the `android/v2` folder within the cloned directory.
+
+3.  **Set up the API Key (Environment Variable):**
+    *   This project requires an Infura API key to communicate with the Sepolia testnet. The API key is read from an environment variable named `SEPOLIA_API_KEY` during the build.
+    *   **Set the `SEPOLIA_API_KEY` environment variable beforehand, according to your operating system and terminal environment.**
+        *   Example (for bash/zsh on Linux/macOS):
+          ```bash
+          export SEPOLIA_API_KEY="<your_infura_sepolia_api_key>"
+          ```
+        *   If building directly from Android Studio, you can also set the environment variable in the IDE's run configuration:
+            1.  From the menu bar, select `Run` > `Edit Configurations...`.
+            2.  In the left pane, select the `app` configuration.
+            3.  Add `SEPOLIA_API_KEY=<your_infura_sepolia_api_key>` to the "Environment variables" field.
+    *   **Note:** Manage your API key securely. Be careful not to commit it directly to the repository.
+
+4.  **Build and Run:**
+    *   Wait for Android Studio to complete the project sync. (After setting the environment variable, a Gradle sync may be required. Press the elephant icon button in the toolbar.)
+    *   Select a connected physical device or an Android Emulator.
+    *   From the menu bar, select `Run` > `Run 'app'` or click the green play button in the toolbar.
+
+This will build the app and run it on the selected device/emulator.
