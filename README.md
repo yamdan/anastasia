@@ -29,6 +29,7 @@ With Anastasia, we demonstrate that a smartphone can produce a zero-knowledge pr
 - **UltraHonk / Plonk-style proving**
 - **Rust** (ZK library, bindings)
     - rustc 1.87.0 (17067e9ac 2025-05-09)
+    - arkworks 0.5.0
 - **Mopro** (bridging Noir/Rust to Kotlin)
     - mopro-cli 0.1.0 (d18eb3004 2025-09-14)
 - **Kotlin** (Android SDK + demo app)
