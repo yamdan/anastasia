@@ -7,6 +7,10 @@ Built during [ETHTokyo 2025 Hackathon](https://taikai.network/en/ethtokyo/hackat
 Anastasia is a zero-knowledge system that proves the validity of X.509 certificate chains while revealing only the minimum information required.  
 Inspired by the prior work *Cinderella* (IEEE S&P 2016), which transformed X.509 certificates into anonymous credentials with zk-SNARKs, Anastasia extends the idea to make it practical on mobile devices, specifically Android **Key Attestation**.
 
+> ⚠️ **Work in progress!**  
+> No formal security review or performance tuning has been done.  
+> Please don’t run this in production yet 🙂
+
 **Key contributions:**
 - Replaces Pinocchio (Linear PCP) with **UltraHonk** (Plonk-style proving system), enabling efficient prover on smartphones.
 - Circuits written in **Noir DSL**, making them maintainable and extensible.
@@ -19,9 +23,14 @@ With Anastasia, we demonstrate that a smartphone can produce a zero-knowledge pr
 ## Technologies used
 
 - **Noir** (circuit DSL)
+    - nargo 1.0.0-beta.8
+    - noirc 1.0.0-beta.8+b33131574388d836341cea9b6380f3b1a8493eb8
+    - bb 1.0.0-nightly.20250723
 - **UltraHonk / Plonk-style proving**
 - **Rust** (ZK library, bindings)
+    - rustc 1.87.0 (17067e9ac 2025-05-09)
 - **Mopro** (bridging Noir/Rust to Kotlin)
+    - mopro-cli 0.1.0 (d18eb3004 2025-09-14)
 - **Kotlin** (Android SDK + demo app)
 - **Solidity** (Verifier smart contract)
 - **ASN.1 DER / X.509** (certificate)
