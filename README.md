@@ -25,8 +25,7 @@ With Anastasia, we demonstrate that a smartphone can produce a zero-knowledge pr
 - **Noir** (circuit DSL)
     - nargo 1.0.0-beta.8
     - noirc 1.0.0-beta.8+b33131574388d836341cea9b6380f3b1a8493eb8
-    - bb 1.0.0-nightly.20250723
-- **UltraHonk / Plonk-style proving**
+    - bb 1.0.0-nightly.20250723 (for UltraHonk / Plonk-style proving)
 - **Rust** (ZK library, bindings)
     - rustc 1.87.0 (17067e9ac 2025-05-09)
     - arkworks 0.5.0
