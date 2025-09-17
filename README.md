@@ -1,7 +1,5 @@
 # Anastasia: Cinderella's Stepsister Turning Shabby X.509 Certificates into Elegant Anonymous Device Attestations with the Magic of Noir
 
-Built during [ETHTokyo 2025 Hackathon](https://taikai.network/en/ethtokyo/hackathons/hackathon-2025)
-
 ## Project description
 
 Anastasia is a zero-knowledge system that proves the validity of X.509 certificate chains while revealing only the minimum information required.  
@@ -19,6 +17,10 @@ Inspired by the prior work *Cinderella* (IEEE S&P 2016), which transformed X.509
 - Leverages Cinderella’s insight: *parse outside the circuit, re-serialize inside*. Thanks to the bijective property of ASN.1 DER encoding, we can prove correctness without costly parsing inside the circuit.
 
 With Anastasia, we demonstrate that a smartphone can produce a zero-knowledge proof that its attested key truly originates from a Secure Element, without leaking identifiers that would enable tracking.
+
+Originally built during [ETHTokyo 2025 Hackathon](https://taikai.network/en/ethtokyo/hackathons/hackathon-2025) ([Presentation](./docs/Anastasia_ETHTokyo2025.pdf))
+
+[![Demo Video](https://youtu.be/Gi0UMndTCz4)]
 
 ## Technologies used
 
