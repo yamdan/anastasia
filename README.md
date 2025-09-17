@@ -18,9 +18,7 @@ Inspired by the prior work *Cinderella* (IEEE S&P 2016), which transformed X.509
 
 With Anastasia, we demonstrate that a smartphone can produce a zero-knowledge proof that its attested key truly originates from a Secure Element, without leaking identifiers that would enable tracking.
 
-Originally built during [ETHTokyo 2025 Hackathon](https://taikai.network/en/ethtokyo/hackathons/hackathon-2025) ([Presentation](./docs/Anastasia_ETHTokyo2025.pdf))
-
-[![Demo Video](https://youtu.be/Gi0UMndTCz4)]
+Originally built during [ETHTokyo 2025 Hackathon](https://taikai.network/en/ethtokyo/hackathons/hackathon-2025) ([Presentation](./docs/Anastasia_ETHTokyo2025.pdf) / [Demo Video](https://youtu.be/Gi0UMndTCz4))
 
 ## Technologies used
 
