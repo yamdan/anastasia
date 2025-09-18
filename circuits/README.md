@@ -77,7 +77,7 @@ In particular, the verifier checks that the pseudonym `nym` corresponds to the s
 This ensures that `nym` can be safely used as a context-specific pseudonym of a device-attested public key.
 
 ## Current Limitations
-- Only 2 certs supported (full chain = 5 certs)  
+- Only 2 certs supported (full chain = 4 certs)  
 - Proof generation: >20s on Google Pixel 9a  
 - Solidity verifier gas-heavy  
 - No revocation (CRL/OCSP)  
