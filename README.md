@@ -29,6 +29,7 @@ Originally built during [ETHTokyo 2025 Hackathon](https://taikai.network/en/etht
 - **Rust** (ZK library, bindings)
     - rustc 1.87.0 (17067e9ac 2025-05-09)
     - arkworks 0.5.0
+    - noir-rs 1.0.0-beta.8-3
 - **Mopro** (bridging Noir/Rust to Kotlin)
     - mopro-cli 0.1.0 (d18eb3004 2025-09-14)
 - **Kotlin** (Android SDK + demo app)
@@ -45,6 +46,10 @@ Originally built during [ETHTokyo 2025 Hackathon](https://taikai.network/en/etht
 **Verifier (Smart Contract)**
 - Solidity contract (generated via Noir standard toolchain)  
 - Verifies ZK proof of certificate validity  
+
+## Circuits
+
+If you want to know how our circuits are constructed, check [this](./circuits/README.md). 
 
 ## Deployment
 
