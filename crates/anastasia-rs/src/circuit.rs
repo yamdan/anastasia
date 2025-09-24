@@ -20,13 +20,13 @@ impl CircuitMeta {
         circuit_path: String,
         verification_key_path: String,
         srs_path: String,
-    ) -> Result<Self, String> {
-        Ok(CircuitMeta {
+    ) -> Self {
+        Self {
             id,
             circuit_path,
             verification_key_path,
             srs_path,
-        })
+        }
     }
 }
 

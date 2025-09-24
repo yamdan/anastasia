@@ -7,3 +7,4 @@ mod utils;
 
 pub use api::{CommitResult, ProofResult, commit_attrs, prove};
 pub use circuit::{Circuit, CircuitMeta};
+pub use noir::utils::ProofWithPublicInputs;
