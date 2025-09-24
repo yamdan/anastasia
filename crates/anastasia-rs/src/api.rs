@@ -100,6 +100,8 @@ pub fn prove(
 mod tests {
     use super::*;
 
+    use chrono::TimeZone;
+
     #[test]
     fn test_commit_attrs() {
         let subject = vec![
@@ -194,7 +196,7 @@ mod tests {
                 .collect::<Vec<_>>()
                 .join(", ")
         );
-        let now = Some(Utc::now());
+        let now = Some(Utc.with_ymd_and_hms(2025, 9, 15, 0, 0, 0).unwrap());
         let authority_key_id = vec![
             0xfe, 0x62, 0x6c, 0xdc, 0x2a, 0xe5, 0x80, 0xe7, 0x19, 0x6a, 0xca, 0x23, 0xdd, 0x23,
             0xf1, 0x39, 0x02, 0x46, 0xa8, 0xa5,
@@ -253,7 +255,7 @@ mod tests {
                 .collect::<Vec<_>>()
                 .join(", ")
         );
-        let now = Some(Utc::now());
+        let now = Some(Utc.with_ymd_and_hms(2025, 9, 15, 0, 0, 0).unwrap());
         let authority_key_id = vec![
             0x83, 0x29, 0xbe, 0xbb, 0x68, 0xbc, 0x24, 0xed, 0x89, 0x38, 0x4d, 0xb4, 0xf1, 0x94,
             0x6c, 0x20, 0xd7, 0x95, 0x9a, 0x05,
