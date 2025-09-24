@@ -22,11 +22,11 @@ fn commit_attrs(
     r: Option<String>,
 ) -> Result<CommitResult, MoproError> {
     let result = anastasia_rs::commit_attrs(
-        subject,
-        subject_key_identifier,
-        subject_pk_x,
-        subject_pk_y,
-        r,
+        &subject,
+        &subject_key_identifier,
+        &subject_pk_x,
+        &subject_pk_y,
+        r.as_deref(),
     )
     .map_err(|e| MoproError::NoirError(e.to_string()))?;
     Ok(result.into())
