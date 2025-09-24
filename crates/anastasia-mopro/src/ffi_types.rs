@@ -2,8 +2,6 @@ use std::convert::TryFrom;
 
 use uniffi::Record;
 
-use crate::MoproError;
-
 #[derive(Clone, Debug, Record)]
 pub struct CircuitMeta {
     pub id: String,
