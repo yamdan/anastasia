@@ -70,7 +70,7 @@ pub fn to_fixed_array<const N: usize>(src: &[u8]) -> Result<[u8; N], String> {
 // TODO: Use more appropriate Poseidon hash rather than the repeated hash_2
 pub fn commit_attrs(
     dn: [u8; 124],
-    key_identifier: [u8; 20],
+    key_id: [u8; 20],
     pk_x: [u8; 32],
     pk_y: [u8; 32],
     r: Fr,
@@ -95,7 +95,7 @@ pub fn commit_attrs(
     }
 
     for j in 0..20 {
-        slice[j] = key_identifier[j];
+        slice[j] = key_id[j];
     }
     for j in 20..31 {
         slice[j] = pk_x[j - 20];
