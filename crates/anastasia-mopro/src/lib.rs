@@ -92,8 +92,6 @@ mod tests {
             None,
         )
         .unwrap();
-        println!("Commitment: {}", cmt);
-        println!("Randomness: {}", r);
         assert_eq!(cmt.len(), 64); // 32 bytes in hex
         assert_eq!(r.len(), 64); // 32 bytes in hex
     }
