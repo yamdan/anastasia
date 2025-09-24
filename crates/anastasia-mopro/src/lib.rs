@@ -149,12 +149,12 @@ mod tests {
     fn test_prove_es256_ca() {
         let meta = CircuitMeta::new(
             "es256_ca".to_string(),
-            "test-vectors/noir/es256_ca.json".to_string(),
-            "test-vectors/noir/es256_ca.vk".to_string(),
-            "test-vectors/noir/common.srs".to_string(),
+            "../anastasia-rs/data/es256_ca.json".to_string(),
+            "../anastasia-rs/data/es256_ca.vk".to_string(),
+            "../anastasia-rs/data/common.srs".to_string(),
         );
 
-        let cert = std::fs::read("test-vectors/noir/es256_ca.der").unwrap();
+        let cert = std::fs::read("../anastasia-rs/test_data/es256_ca.der").unwrap();
 
         // Generate previous commitment
         let issuer = vec![
