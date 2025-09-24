@@ -2,6 +2,9 @@ use ark_bn254::Fr;
 use ark_ff::{PrimeField, UniformRand};
 use ark_std::rand::rngs::OsRng;
 use chrono::{DateTime, Utc};
+use noir::utils::{
+    ProofWithPublicInputs, get_num_public_inputs_from_circuit, parse_proof_with_public_inputs,
+};
 
 use crate::{
     circuit::{Circuit, CircuitMeta},
@@ -61,8 +64,11 @@ pub fn commit_attrs(
 }
 
 pub struct ProofResult {
-    pub proof: Vec<u8>,
+    /// The proof with public inputs
+    pub proof_with_public_inputs: ProofWithPublicInputs,
+    /// The next commitment
     pub next_cmt: String,
+    /// The random value used for the next commitment
     pub next_cmt_r: String,
 }
 
@@ -90,8 +96,18 @@ pub fn prove(
         circuit.max_extra_extension_len,
     )?;
 
+    let num_public_inputs = get_num_public_inputs_from_circuit(&circuit.bytecode).map_err(|e| {
+        format!(
+            "Failed to get number of public inputs from circuit bytecode: {}",
+            e
+        )
+    })?;
+
+    let parsed_proof = parse_proof_with_public_inputs(&proof, num_public_inputs)
+        .map_err(|e| format!("Failed to parse proof with public inputs: {}", e))?;
+
     Ok(ProofResult {
-        proof,
+        proof_with_public_inputs: parsed_proof,
         next_cmt,
         next_cmt_r,
     })
@@ -227,7 +243,7 @@ mod tests {
 
         // Generate proof
         let ProofResult {
-            proof,
+            proof_with_public_inputs,
             next_cmt,
             next_cmt_r,
         } = prove(
@@ -336,7 +352,7 @@ mod tests {
 
         // Generate proof
         let ProofResult {
-            proof,
+            proof_with_public_inputs,
             next_cmt,
             next_cmt_r,
         } = prove(
