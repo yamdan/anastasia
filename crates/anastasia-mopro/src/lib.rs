@@ -41,11 +41,20 @@ fn prove(
     issuer_pk_y: Vec<u8>,
     prev_cmt: String,
     prev_cmt_r: String,
+    now: Option<String>,
 ) -> Result<ProofResult, MoproError> {
+    let now = now
+        .map(|s| {
+            chrono::DateTime::parse_from_rfc3339(&s)
+                .map_err(|e| MoproError::NoirError(e.to_string()))
+        })
+        .transpose()?
+        .map(|dt| dt.with_timezone(&chrono::Utc));
+
     let proof = anastasia_rs::prove(
         &circuit_meta.into(),
         cert,
-        None,
+        now,
         authority_key_id,
         issuer_pk_x,
         issuer_pk_y,
