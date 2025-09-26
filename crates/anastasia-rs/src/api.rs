@@ -201,8 +201,7 @@ mod tests {
             "data/es256_ca.json".to_string(),
             "data/es256_ca.vk".to_string(),
             "data/common.srs".to_string(),
-        )
-        .unwrap();
+        );
         let cert = std::fs::read("test_data/es256_ca.der").unwrap();
 
         let now = Some(Utc.with_ymd_and_hms(2025, 9, 15, 0, 0, 0).unwrap());
@@ -309,8 +308,7 @@ mod tests {
             "data/es256_ee.json".to_string(),
             "data/es256_ee.vk".to_string(),
             "data/common.srs".to_string(),
-        )
-        .unwrap();
+        );
         let cert = std::fs::read("test_data/es256_ee.der").unwrap();
 
         let now = Some(Utc.with_ymd_and_hms(2025, 9, 15, 0, 0, 0).unwrap());
