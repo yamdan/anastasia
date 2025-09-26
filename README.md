@@ -2,8 +2,9 @@
 
 ## Project description
 
-Anastasia is a zero-knowledge system that proves the validity of X.509 certificate chains while revealing only the minimum information required.  
-Inspired by the prior work *Cinderella* (IEEE S&P 2016), which transformed X.509 certificates into anonymous credentials with zk-SNARKs, Anastasia extends the idea to make it practical on mobile devices, specifically Android **Key Attestation**.
+Anastasia is a zero-knowledge system that proves the validity of X.509 certificate chains while revealing only the minimum information required.
+
+Inspired by the prior work [Cinderella](https://ieeexplore.ieee.org/document/7546505) [^cinderella], which transformed X.509 certificates into anonymous credentials with zk-SNARKs, Anastasia extends the idea to make it practical on mobile devices, specifically Android **Key Attestation**.
 
 > ⚠️ **Work in progress!**  
 > No formal security review or performance tuning has been done.  
@@ -53,6 +54,8 @@ If you want to know how our circuits are constructed, check [this](./circuits/RE
 
 ## Deployment
 
+### Smart Contract
+
 - Solidity verifier contract deployed on testnet
 
 ### Android
@@ -88,3 +91,5 @@ Follow these steps to build and run this Android app locally:
     *   From the menu bar, select `Run` > `Run 'app'` or click the green play button in the toolbar.
 
 This will build the app and run it on the selected device/emulator.
+
+[^cinderella]: A. Delignat-Lavaud, C. Fournet, M. Kohlweiss and B. Parno, "Cinderella: Turning Shabby X.509 Certificates into Elegant Anonymous Credentials with the Magic of Verifiable Computation," 2016 IEEE Symposium on Security and Privacy (SP), San Jose, CA, USA, 2016, pp. 235-254, doi: 10.1109/SP.2016.22. keywords: {Protocols;Privacy;Authentication;Servers;Public key;PKI;Verifiable computation;TLS;Helios}
