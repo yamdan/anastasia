@@ -5,14 +5,18 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.ethtokyo.hackathon.anastasia.Constants
 import org.ethtokyo.hackathon.anastasia.core.ECKeystoreHelper
 import org.ethtokyo.hackathon.anastasia.core.proveParentChildRel
 import org.ethtokyo.hackathon.anastasia.core.computeSubjectKeyId
 import org.ethtokyo.hackathon.anastasia.core.extractECPublicKeyCoordinates
-import uniffi.mopro.ProofResult
+import org.ethtokyo.hackathon.anastasia.data.ProofGenerationTime
+import org.ethtokyo.hackathon.anastasia.data.ProofResult
+import org.ethtokyo.hackathon.anastasia.data.ProofsGenerationResult
 import uniffi.mopro.commitAttrs
 import java.security.cert.X509Certificate
 
@@ -20,37 +24,50 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
 
     private val keystoreHelper = ECKeystoreHelper()
 
-    private val _proofGenerationResult = MutableLiveData<Result<Array<ProofResult>>>()
-    val proofGenerationResult: LiveData<Result<Array<ProofResult>>> = _proofGenerationResult
+    private val _proofsGenerationResult = MutableLiveData<Result<ProofsGenerationResult>>()
+    val proofsGenerationResult: LiveData<Result<ProofsGenerationResult>> = _proofsGenerationResult
 
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
+    private val _progressMessage = MutableLiveData<String>()
+    val progressMessage: LiveData<String> = _progressMessage
+
     fun generateProof() {
         viewModelScope.launch {
             _isLoading.value = true
+            _progressMessage.value = "Proof generation started..."
 
             try {
                 delay(2000)
-                // Generate mock proof
-                val proofs = generateProofCore()
-                println("=== === === === generated proof string : ${proofs}")
-                _proofGenerationResult.value = Result.success(proofs)
+                val result = generateProofCore()
+
+                _progressMessage.value = "Proof generation completed!"
+                _proofsGenerationResult.value = Result.success(result)
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                _proofGenerationResult.value = Result.failure(e)
-            } finally {
+                _progressMessage.value = "Proof generation failed: ${e.message}"
+                _proofsGenerationResult.value = Result.failure(e)
                 _isLoading.value = false
             }
         }
+    }
+
+    fun onNavigationCompleted() {
+        _isLoading.value = false
+    }
+
+    fun resetState() {
+        _isLoading.value = false
+        _progressMessage.value = ""
     }
 
     private fun bytesToHexString(bytes: ByteArray): String {
         return bytes.joinToString(" ") { String.format("%02x", it.toUByte().toInt()) }
     }
 
-    private fun generateProofCore(): Array<ProofResult> {
+    private suspend fun generateProofCore(): ProofsGenerationResult = withContext(Dispatchers.IO) {
         val chain = keystoreHelper.getAttestationCertificate(Constants.KEY_ALIAS)
 
         // 証明書チェーンから子証明書（1番目）と親証明書（2番目）を取得
@@ -76,7 +93,10 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             null
         )
 
-        // prover.ktで定義されたグローバル定数を使用してproveParentChildRelを呼び出し
+        val individualTimes = mutableListOf<ProofGenerationTime>()
+
+        // 第1の証明生成
+        val proof1StartTime = System.currentTimeMillis()
         val proofResult1 = proveParentChildRel(
             context = application.applicationContext,
             child = parentCert,
@@ -84,9 +104,22 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             caPrevCmt = caCommitResult.cmt,
             caPrevCmtR = caCommitResult.r
         )
+        val proof1EndTime = System.currentTimeMillis()
 
-        println("=== === === === proofResult1 : ${proofResult1.proof}")
+        individualTimes.add(ProofGenerationTime(
+            proofIndex = 1,
+            startTime = proof1StartTime,
+            endTime = proof1EndTime,
+            durationMs = proof1EndTime - proof1StartTime
+        ))
 
+        // UIスレッドでプログレスメッセージを更新
+        withContext(Dispatchers.Main) {
+            _progressMessage.value = "Proof 1 of 2 completed (${(proof1EndTime - proof1StartTime) / 1000.0}s)"
+        }
+
+        // 第2の証明生成
+        val proof2StartTime = System.currentTimeMillis()
         val proofResult2 = proveParentChildRel(
             context = application.applicationContext,
             child = childCert,
@@ -94,21 +127,23 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             caPrevCmt = proofResult1.nextCmt,
             caPrevCmtR = proofResult1.nextCmtR
         )
+        val proof2EndTime = System.currentTimeMillis()
 
-        println("=== === === === proofResult2 : ${proofResult2.proof}")
+        individualTimes.add(ProofGenerationTime(
+            proofIndex = 2,
+            startTime = proof2StartTime,
+            endTime = proof2EndTime,
+            durationMs = proof2EndTime - proof2StartTime
+        ))
 
-        // workaround
-        val manipulatedProof1 = ProofResult(
-            proof = "ca_" + proofResult1.proof,
-            nextCmt = proofResult1.nextCmt,
-            nextCmtR = proofResult1.nextCmtR
+        // UIスレッドでプログレスメッセージを更新
+        withContext(Dispatchers.Main) {
+            _progressMessage.value = "Proof 2 of 2 completed (${(proof2EndTime - proof2StartTime) / 1000.0}s)"
+        }
+
+        return@withContext ProofsGenerationResult(
+            proofs = arrayOf(proofResult1, proofResult2),
+            performances = individualTimes.toTypedArray()
         )
-        val manipulatedProof2 = ProofResult(
-            proof = "ee_" + proofResult2.proof,
-            nextCmt = proofResult2.nextCmt,
-            nextCmtR = proofResult2.nextCmtR
-        )
-
-        return arrayOf(manipulatedProof1, manipulatedProof2)
     }
 }

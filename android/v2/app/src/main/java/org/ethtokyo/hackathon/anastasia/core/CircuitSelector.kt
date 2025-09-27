@@ -8,37 +8,12 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.security.cert.Certificate
 import java.security.cert.X509Certificate
-import javax.security.auth.x500.X500Principal
 
 data class Circuit(
     val vk: String,
     val circuit: String,
     val srs: String
 )
-/*
-{
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as Circuit
-
-        if (!vk.contentEquals(other.vk)) return false
-        if (circuit != other.circuit) return false
-        if (srs != other.srs) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = vk.contentHashCode()
-        result = 31 * result + circuit.hashCode()
-        result = 31 * result + srs.hashCode()
-        return result
-    }
-}
- */
 
 private val assetFileCache = mutableMapOf<String, String>()
 private val assetBinaryCache = mutableMapOf<String, ByteArray>()
@@ -84,24 +59,9 @@ fun getFilePathFromAssets(context: Context, assetFileName: String): String {
     return absolutePath
 }
 
-fun loadAssetBinaryData(context: Context, assetFileName: String): ByteArray {
-    // キャッシュに存在する場合は既存のデータを返却
-    if (assetBinaryCache.containsKey(assetFileName)) {
-        val cached = assetBinaryCache[assetFileName]
-        if (cached != null) {
-            return cached
-        }
-    }
-
-    val data = context.assets.open(assetFileName).readBytes()
-
-    assetBinaryCache[assetFileName] = data
-    return data
-}
-
 
 fun selectAppropriateCircuit(context: Context, certificate: Certificate): Circuit {
-    val prefix = getCircuitDir(certificate)
+    val prefix = certificate.getCircuitDir()
 
     return Circuit(
         vk = getFilePathFromAssets(context, "$prefix/es256_${prefix}.vk"),
@@ -110,10 +70,9 @@ fun selectAppropriateCircuit(context: Context, certificate: Certificate): Circui
     )
 }
 
-
-fun getCircuitDir(certificate: Certificate): String {
+fun Certificate.isEndEntity(): Boolean {
     try {
-        val x509Cert = certificate as X509Certificate
+        val x509Cert = this as X509Certificate
         val issuer = x509Cert.issuerX500Principal
         val issuerName = issuer.name
 
@@ -122,16 +81,17 @@ fun getCircuitDir(certificate: Certificate): String {
 
         // Oの値を小文字に正規化してチェック
         val normalizedO = oValue?.lowercase()
-
-        return if (normalizedO == "tee" || normalizedO == "strongbox") {
-            "ee"
-        } else {
-            "ca"
-        }
-    } catch (_: Exception) {
-        // 証明書の処理でエラーが発生した場合はデフォルトとして "ca" を返却
-        return "ca"
+        return (normalizedO == "tee" || normalizedO == "strongbox")
+    }catch(_: Exception){
+        return false
     }
+}
+
+fun Certificate.getCircuitDir(): String {
+    if (this.isEndEntity()){
+        return "ee"
+    }
+    return "ca"
 }
 
 private fun extractOrganizationFromDN(dn: String): String? {
