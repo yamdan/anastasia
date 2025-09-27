@@ -1,6 +1,6 @@
 package org.ethtokyo.hackathon.anastasia.core
 
-import uniffi.mopro.ProofResult
+import org.ethtokyo.hackathon.anastasia.data.ProofResult as InternalProofResult
 import uniffi.mopro.prove
 import java.security.cert.Certificate
 import java.security.cert.X509Certificate
@@ -19,7 +19,8 @@ import org.bouncycastle.asn1.x509.Extension
 fun bytes(vararg ints: Int): ByteArray =
     ints.map { it.toByte() }.toByteArray()
 
-fun ProofResult.convertProofForInfura(): String {
+// 内部ProofResult型用の拡張関数
+fun InternalProofResult.convertProofForInfura(): String {
     val originalProof = this.proof
 
     // ワークアラウンド: 先頭の "ca_" / "ee_" を削除
@@ -84,7 +85,7 @@ private fun bytesToHexString(bytes: ByteArray): String {
     return bytes.joinToString(" ") { String.format("%02x", it.toUByte().toInt()) }
 }
 
-fun proveParentChildRel(context: Context, child: Certificate, parent: Certificate, caPrevCmt: String, caPrevCmtR: String): ProofResult {
+fun proveParentChildRel(context: Context, child: Certificate, parent: Certificate, caPrevCmt: String, caPrevCmtR: String): InternalProofResult {
     val circuitForChild = selectAppropriateCircuit(context, child)
     val circuitMetaForLibrary = CircuitMeta(
         "${circuitForChild.circuit}-${circuitForChild.vk}-${circuitForChild.srs}",
@@ -108,7 +109,7 @@ fun proveParentChildRel(context: Context, child: Certificate, parent: Certificat
     val (pubKeyX, pubKeyY) = extractECPublicKeyCoordinates(parentX509)
 
     // prove関数を呼び出し
-    return prove(
+    val moproProved = prove(
         circuitMetaForLibrary,
         certDerBytes,
         authorityKeyId,
@@ -116,6 +117,12 @@ fun proveParentChildRel(context: Context, child: Certificate, parent: Certificat
         pubKeyY,
         caPrevCmt,
         caPrevCmtR
+    )
+
+    return InternalProofResult(
+        proof = moproProved.proof,
+        nextCmt = moproProved.nextCmt,
+        nextCmtR = moproProved.nextCmtR
     )
 }
 

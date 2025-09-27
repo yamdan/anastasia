@@ -13,9 +13,9 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.ethtokyo.hackathon.anastasia.Constants
 import org.ethtokyo.hackathon.anastasia.core.convertProofForInfura
+import org.ethtokyo.hackathon.anastasia.data.ProofResult
 import org.ethtokyo.hackathon.anastasia.smart_contract.create_eth_call_json
 import org.ethtokyo.hackathon.anastasia.smart_contract.resolveInfuraPath
-import uniffi.mopro.ProofResult
 import org.json.JSONArray
 import org.json.JSONObject
 

@@ -13,8 +13,8 @@ import org.ethtokyo.hackathon.anastasia.core.proveParentChildRel
 import org.ethtokyo.hackathon.anastasia.core.computeSubjectKeyId
 import org.ethtokyo.hackathon.anastasia.core.extractECPublicKeyCoordinates
 import org.ethtokyo.hackathon.anastasia.data.ProofGenerationTime
+import org.ethtokyo.hackathon.anastasia.data.ProofResult
 import org.ethtokyo.hackathon.anastasia.data.ProofsGenerationResult
-import uniffi.mopro.ProofResult
 import uniffi.mopro.commitAttrs
 import java.security.cert.X509Certificate
 
@@ -119,7 +119,7 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
 
         println("=== === === === proofResult2 : ${proofResult2.proof}")
 
-        // workaround
+        // moproのProofResultを内部のProofResultに変換
         val manipulatedProof1 = ProofResult(
             proof = "ca_" + proofResult1.proof,
             nextCmt = proofResult1.nextCmt,

@@ -1,11 +1,13 @@
 package org.ethtokyo.hackathon.anastasia.data
 
-import uniffi.mopro.ProofResult
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
 
+@Parcelize
 data class ProofsGenerationResult(
     val proofs: Array<ProofResult>,
     val performances: Array<ProofGenerationTime>
-) {
+) : Parcelable {
     val totalTime: Long
         get() = performances.sumOf { it.durationMs }
 
