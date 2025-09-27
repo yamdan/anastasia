@@ -136,6 +136,7 @@ class ProverTest {
 
         // ProofResultオブジェクトを作成
         val proofResult = ProofResult(
+            proofForEE = true, // End Entity証明書として設定
             proof = dummyProof,
             nextCmt = dummyNextCmt,
             nextCmtR = dummyNextCmtR
