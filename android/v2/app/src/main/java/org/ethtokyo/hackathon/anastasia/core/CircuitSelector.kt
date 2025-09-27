@@ -15,30 +15,6 @@ data class Circuit(
     val circuit: String,
     val srs: String
 )
-/*
-{
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as Circuit
-
-        if (!vk.contentEquals(other.vk)) return false
-        if (circuit != other.circuit) return false
-        if (srs != other.srs) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = vk.contentHashCode()
-        result = 31 * result + circuit.hashCode()
-        result = 31 * result + srs.hashCode()
-        return result
-    }
-}
- */
 
 private val assetFileCache = mutableMapOf<String, String>()
 private val assetBinaryCache = mutableMapOf<String, ByteArray>()
