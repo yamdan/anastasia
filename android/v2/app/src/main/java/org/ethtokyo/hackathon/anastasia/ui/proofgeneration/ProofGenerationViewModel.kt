@@ -12,8 +12,8 @@ import org.ethtokyo.hackathon.anastasia.core.ECKeystoreHelper
 import org.ethtokyo.hackathon.anastasia.core.proveParentChildRel
 import org.ethtokyo.hackathon.anastasia.core.computeSubjectKeyId
 import org.ethtokyo.hackathon.anastasia.core.extractECPublicKeyCoordinates
-import org.ethtokyo.hackathon.anastasia.data.ProofGenerationPerformance
 import org.ethtokyo.hackathon.anastasia.data.ProofGenerationTime
+import org.ethtokyo.hackathon.anastasia.data.ProofsGenerationResult
 import uniffi.mopro.ProofResult
 import uniffi.mopro.commitAttrs
 import java.security.cert.X509Certificate
@@ -22,11 +22,8 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
 
     private val keystoreHelper = ECKeystoreHelper()
 
-    private val _proofGenerationResult = MutableLiveData<Result<Array<ProofResult>>>()
-    val proofGenerationResult: LiveData<Result<Array<ProofResult>>> = _proofGenerationResult
-
-    private val _proofGenerationPerformance = MutableLiveData<ProofGenerationPerformance>()
-    val proofGenerationPerformance: LiveData<ProofGenerationPerformance> = _proofGenerationPerformance
+    private val _proofsGenerationResult = MutableLiveData<Result<ProofsGenerationResult>>()
+    val proofsGenerationResult: LiveData<Result<ProofsGenerationResult>> = _proofsGenerationResult
 
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
@@ -37,15 +34,13 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
 
             try {
                 delay(2000)
-                val (proofs, performance) = generateProofCore()
+                val result = generateProofCore()
 
-                println("=== === === === generated proof string : $proofs")
-                _proofGenerationResult.value = Result.success(proofs)
-                _proofGenerationPerformance.value = performance
+                _proofsGenerationResult.value = Result.success(result)
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                _proofGenerationResult.value = Result.failure(e)
+                _proofsGenerationResult.value = Result.failure(e)
             } finally {
                 _isLoading.value = false
             }
@@ -56,7 +51,7 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
         return bytes.joinToString(" ") { String.format("%02x", it.toUByte().toInt()) }
     }
 
-    private fun generateProofCore(): Pair<Array<ProofResult>, ProofGenerationPerformance> {
+    private fun generateProofCore(): ProofsGenerationResult {
         val chain = keystoreHelper.getAttestationCertificate(Constants.KEY_ALIAS)
 
         // 証明書チェーンから子証明書（1番目）と親証明書（2番目）を取得
@@ -136,12 +131,9 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             nextCmtR = proofResult2.nextCmtR
         )
 
-        val totalTime = individualTimes.sumOf { it.durationMs }
-        val performance = ProofGenerationPerformance(
-            individualTimes = individualTimes,
-            totalTime = totalTime
+        return ProofsGenerationResult(
+            proofs = arrayOf(manipulatedProof1, manipulatedProof2),
+            performances = individualTimes.toTypedArray()
         )
-
-        return Pair(arrayOf(manipulatedProof1, manipulatedProof2), performance)
     }
 }

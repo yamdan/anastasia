@@ -11,6 +11,7 @@ import androidx.navigation.fragment.findNavController
 import org.ethtokyo.hackathon.anastasia.R
 import org.ethtokyo.hackathon.anastasia.databinding.FragmentProofGenerationBinding
 import org.ethtokyo.hackathon.anastasia.data.ProofGenerationPerformance
+import org.ethtokyo.hackathon.anastasia.data.ProofsGenerationResult
 
 class ProofGenerationFragment : Fragment() {
 
@@ -18,8 +19,7 @@ class ProofGenerationFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var viewModel: ProofGenerationViewModel
-    private var currentPerformance: ProofGenerationPerformance? = null
-    private var currentProofResults: Array<uniffi.mopro.ProofResult>? = null
+    private var currentResult: ProofsGenerationResult? = null
     private var hasNavigated = false
 
     override fun onCreateView(
@@ -37,11 +37,11 @@ class ProofGenerationFragment : Fragment() {
     }
 
     private fun setupObservers() {
-        viewModel.proofGenerationResult.observe(viewLifecycleOwner) { result ->
+        viewModel.proofsGenerationResult.observe(viewLifecycleOwner) { result ->
             if (result.isSuccess) {
-                val proofResults = result.getOrNull()
-                if (proofResults != null && proofResults.isNotEmpty()) {
-                    currentProofResults = proofResults
+                val proofsResult = result.getOrNull()
+                if (proofsResult != null && proofsResult.proofs.isNotEmpty()) {
+                    currentResult = proofsResult
                     navigateIfReady()
                 } else {
                     Toast.makeText(context, "Proof generation failed: No proofs generated", Toast.LENGTH_LONG).show()
@@ -53,11 +53,6 @@ class ProofGenerationFragment : Fragment() {
                 // Navigate back to home on error
                 findNavController().navigate(R.id.action_proofGenerationFragment_to_navigation_key_management)
             }
-        }
-
-        viewModel.proofGenerationPerformance.observe(viewLifecycleOwner) { performance ->
-            currentPerformance = performance
-            navigateIfReady()
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
@@ -73,14 +68,19 @@ class ProofGenerationFragment : Fragment() {
     }
 
     private fun navigateIfReady() {
-        val proofResults = currentProofResults
-        val performance = currentPerformance
+        val result = currentResult
 
-        if (proofResults != null && performance != null && !hasNavigated) {
+        if (result != null && !hasNavigated) {
             hasNavigated = true
-            val proofs = proofResults.map { it.proof }.toTypedArray()
-            val nextCmts = proofResults.map { it.nextCmt }.toTypedArray()
-            val nextCmtRs = proofResults.map { it.nextCmtR }.toTypedArray()
+            val proofs = result.proofs.map { it.proof }.toTypedArray()
+            val nextCmts = result.proofs.map { it.nextCmt }.toTypedArray()
+            val nextCmtRs = result.proofs.map { it.nextCmtR }.toTypedArray()
+
+            // ProofGenerationPerformanceオブジェクトを作成
+            val performance = ProofGenerationPerformance(
+                individualTimes = result.performances.toList(),
+                totalTime = result.totalTime
+            )
 
             val action = ProofGenerationFragmentDirections.actionProofGenerationFragmentToProofCompletedFragment(
                 proofs, nextCmts, nextCmtRs, performance
@@ -92,8 +92,7 @@ class ProofGenerationFragment : Fragment() {
     private fun setupListeners() {
         binding.btnStart.setOnClickListener {
             hasNavigated = false
-            currentProofResults = null
-            currentPerformance = null
+            currentResult = null
             viewModel.generateProof()
         }
     }
