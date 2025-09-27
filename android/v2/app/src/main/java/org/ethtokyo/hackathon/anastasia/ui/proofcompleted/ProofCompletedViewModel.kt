@@ -90,10 +90,10 @@ class ProofCompletedViewModel : ViewModel() {
             }
 
             try {
-                val smContractAddress = if (proofResult.proof.startsWith("ca")){
-                    Constants.SMART_CONTRACT_ADDRESS_CA
-                } else {
+                val smContractAddress = if (proofResult.proofForEE){
                     Constants.SMART_CONTRACT_ADDRESS_EE
+                } else {
+                    Constants.SMART_CONTRACT_ADDRESS_CA
                 }
                 val converted = proofResult.convertProofForInfura()
                 val jsonPayload = create_eth_call_json(smContractAddress, converted)

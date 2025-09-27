@@ -5,6 +5,7 @@ import kotlinx.parcelize.Parcelize
 
 @Parcelize
 data class ProofResult(
+    val proofForEE: Boolean,
     val proof: String,
     val nextCmt: String,
     val nextCmtR: String

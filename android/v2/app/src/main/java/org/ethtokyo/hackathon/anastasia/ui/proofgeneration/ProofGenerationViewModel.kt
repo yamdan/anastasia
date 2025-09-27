@@ -141,19 +141,8 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             _progressMessage.value = "Proof 2 of 2 completed (${(proof2EndTime - proof2StartTime) / 1000.0}s)"
         }
 
-        val manipulatedProof1 = ProofResult(
-            proof = "ca_" + proofResult1.proof,
-            nextCmt = proofResult1.nextCmt,
-            nextCmtR = proofResult1.nextCmtR
-        )
-        val manipulatedProof2 = ProofResult(
-            proof = "ee_" + proofResult2.proof,
-            nextCmt = proofResult2.nextCmt,
-            nextCmtR = proofResult2.nextCmtR
-        )
-
         return@withContext ProofsGenerationResult(
-            proofs = arrayOf(manipulatedProof1, manipulatedProof2),
+            proofs = arrayOf(proofResult1, proofResult2),
             performances = individualTimes.toTypedArray()
         )
     }

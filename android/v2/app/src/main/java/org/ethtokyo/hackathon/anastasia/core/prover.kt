@@ -23,18 +23,11 @@ fun bytes(vararg ints: Int): ByteArray =
 fun InternalProofResult.convertProofForInfura(): String {
     val originalProof = this.proof
 
-    // ワークアラウンド: 先頭の "ca_" / "ee_" を削除
-    val cleaned = when {
-        originalProof.startsWith("ca_") -> originalProof.substring(3)
-        originalProof.startsWith("ee_") -> originalProof.substring(3)
-        else -> originalProof
-    }
-
     // 先頭の "0x" を削除
-    val proofHex = if (cleaned.startsWith("0x")) {
-        cleaned.substring(2)
+    val proofHex = if (originalProof.startsWith("0x")) {
+        originalProof.substring(2)
     } else {
-        cleaned
+        originalProof
     }
 
     // --- publicInputs と proofData を分離 ---
@@ -93,9 +86,6 @@ fun proveParentChildRel(context: Context, child: Certificate, parent: Certificat
         circuitForChild.vk,
         circuitForChild.srs,
     )
-    println("=== === === circuit : ${circuitForChild.circuit}")
-    println("=== === === vk : ${circuitForChild.vk}")
-    println("=== === === srs : ${circuitForChild.srs}")
 
     val parentX509 = parent as X509Certificate
     val childX509 = child as X509Certificate
@@ -103,7 +93,6 @@ fun proveParentChildRel(context: Context, child: Certificate, parent: Certificat
 
     // child証明書からAuthority Key Identifierを取得、なければparentのSubjectから算出
     val authorityKeyId = extractOrComputeAuthorityKeyId(childX509, parentX509)
-    println("authorityKeyId: ${bytesToHexString(authorityKeyId)}")
 
     // parent証明書から公開鍵のx、y座標を抽出
     val (pubKeyX, pubKeyY) = extractECPublicKeyCoordinates(parentX509)
@@ -120,6 +109,7 @@ fun proveParentChildRel(context: Context, child: Certificate, parent: Certificat
     )
 
     return InternalProofResult(
+        proofForEE = child.isEndEntity(),
         proof = moproProved.proof,
         nextCmt = moproProved.nextCmt,
         nextCmtR = moproProved.nextCmtR
