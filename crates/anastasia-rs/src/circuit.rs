@@ -20,13 +20,13 @@ impl CircuitMeta {
         circuit_path: String,
         verification_key_path: String,
         srs_path: String,
-    ) -> Result<Self, String> {
-        Ok(CircuitMeta {
+    ) -> Self {
+        Self {
             id,
             circuit_path,
             verification_key_path,
             srs_path,
-        })
+        }
     }
 }
 
@@ -118,8 +118,7 @@ mod tests {
             "data/es256_ca.json".to_string(),
             "data/es256_ca.vk".to_string(),
             "data/common.srs".to_string(),
-        )
-        .unwrap();
+        );
         assert_eq!(meta.id, "es256_ca");
         assert_eq!(meta.circuit_path, "data/es256_ca.json");
         assert_eq!(meta.verification_key_path, "data/es256_ca.vk");
@@ -133,8 +132,7 @@ mod tests {
             "data/es256_ca.json".to_string(),
             "data/es256_ca.vk".to_string(),
             "data/common.srs".to_string(),
-        )
-        .unwrap();
+        );
         let circuit = Circuit::new(&meta).unwrap();
         assert_eq!(circuit.id, "es256_ca");
         assert!(!circuit.bytecode.is_empty());

@@ -120,6 +120,7 @@ name = "anastasia-mopro"
 version = "0.1.0"
 dependencies = [
  "anastasia-rs",
+ "chrono",
  "hex",
  "mopro-ffi",
  "mopro-wasm",

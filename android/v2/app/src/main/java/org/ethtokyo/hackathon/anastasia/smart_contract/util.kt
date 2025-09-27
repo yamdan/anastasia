@@ -26,7 +26,7 @@ fun resolveInfuraPath(): String {
 }
 
 fun joinPathToInfura(path: String): String {
-    val baseUrl = Constants.INFURA_ENDPOINT_URL.removeSuffix("/")
+    val baseUrl = Constants.SmartContract.INFURA_ENDPOINT_URL.removeSuffix("/")
     val pathSegment = path.removePrefix("/")
     return "$baseUrl/$pathSegment"
 }

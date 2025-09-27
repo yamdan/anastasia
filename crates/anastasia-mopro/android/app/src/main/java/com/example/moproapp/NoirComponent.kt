@@ -125,11 +125,14 @@ fun NoirComponent() {
                                     caIssuerPkY,
                                     caPrevCmt,
                                     caPrevCmtR,
+                                    "2025-09-14T00:00:00Z",
                                 )
                                 val caProof = caResult.proof
+                                val caPublicInputs = caResult.publicInputs
                                 val caNextCmt = caResult.nextCmt
                                 val caNextCmtR = caResult.nextCmtR
                                 Log.w(null, caProof)
+                                Log.w(null, caPublicInputs.toString())
                                 Log.w(null, caNextCmt)
                                 Log.w(null, caNextCmtR)
 
@@ -200,11 +203,14 @@ fun NoirComponent() {
                                     eeIssuerPkY,
                                     caNextCmt,
                                     caNextCmtR,
+                                    "2025-09-14T00:00:00Z",
                                 )
                                 val eeProof = eeResult.proof
+                                val eePublicInputs = eeResult.publicInputs
                                 val eeNextCmt = eeResult.nextCmt
                                 val eeNextCmtR = eeResult.nextCmtR
                                 Log.w(null, eeProof)
+                                Log.w(null, eePublicInputs.toString())
                                 Log.w(null, eeNextCmt)
                                 Log.w(null, eeNextCmtR)
 

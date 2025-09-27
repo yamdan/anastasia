@@ -18,6 +18,7 @@ import org.ethtokyo.hackathon.anastasia.smart_contract.create_eth_call_json
 import org.ethtokyo.hackathon.anastasia.smart_contract.resolveInfuraPath
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.concurrent.TimeUnit
 
 data class ProofSubmissionResult(
     val proofIndex: Int,
@@ -60,7 +61,12 @@ class ProofCompletedViewModel : ViewModel() {
     private val _progressMessage = MutableLiveData<String>()
     val progressMessage: LiveData<String> = _progressMessage
 
-    private val client = OkHttpClient()
+    private val client = OkHttpClient().newBuilder()
+        .connectTimeout(Constants.SmartContract.CONNECT_TIMEOUT, TimeUnit.SECONDS)
+        .writeTimeout(Constants.SmartContract.WRITE_TIMEOUT, TimeUnit.SECONDS)
+        .readTimeout(Constants.SmartContract.READ_TIMEOUT, TimeUnit.SECONDS)
+        .build()
+
 
     fun recordProofs(proofs: Array<ProofResult>) {
         viewModelScope.launch {
@@ -91,9 +97,9 @@ class ProofCompletedViewModel : ViewModel() {
 
             try {
                 val smContractAddress = if (proofResult.proofForEE){
-                    Constants.SMART_CONTRACT_ADDRESS_EE
+                    Constants.SmartContract.SC_ADDRESS_EE
                 } else {
-                    Constants.SMART_CONTRACT_ADDRESS_CA
+                    Constants.SmartContract.SC_ADDRESS_CA
                 }
                 val converted = proofResult.convertProofForInfura()
                 val jsonPayload = create_eth_call_json(smContractAddress, converted)

@@ -2,7 +2,7 @@ use std::sync::LazyLock;
 
 use ark_bn254::Fr;
 use ark_crypto_primitives::{crh::CRHScheme, sponge::poseidon::PoseidonConfig};
-use ark_ff::{AdditiveGroup, BigInteger, PrimeField};
+use ark_ff::{BigInteger, PrimeField};
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 
 use crate::poseidon::{CRH, get_poseidon_parameters_2};
@@ -10,7 +10,7 @@ use crate::poseidon::{CRH, get_poseidon_parameters_2};
 pub static POSEIDON_CONFIG_2: LazyLock<PoseidonConfig<Fr>> =
     LazyLock::new(|| get_poseidon_parameters_2());
 
-pub fn field_to_base64url(v: &Fr) -> String {
+pub fn _field_to_base64url(v: &Fr) -> String {
     let bytes = v.into_bigint().to_bytes_be();
     URL_SAFE_NO_PAD.encode(bytes)
 }
@@ -20,7 +20,7 @@ pub fn field_to_hex(v: &Fr) -> String {
     hex::encode(bytes)
 }
 
-pub fn base64url_to_field(s: &str) -> Result<Fr, String> {
+pub fn _base64url_to_field(s: &str) -> Result<Fr, String> {
     let bytes = URL_SAFE_NO_PAD
         .decode(s)
         .map_err(|_| "Failed to decode base64url string".to_string())?;
@@ -70,12 +70,12 @@ pub fn to_fixed_array<const N: usize>(src: &[u8]) -> Result<[u8; N], String> {
 // TODO: Use more appropriate Poseidon hash rather than the repeated hash_2
 pub fn commit_attrs(
     dn: [u8; 124],
-    key_identifier: [u8; 20],
+    key_id: [u8; 20],
     pk_x: [u8; 32],
     pk_y: [u8; 32],
     r: Fr,
 ) -> Result<Fr, String> {
-    let mut state = Fr::ZERO;
+    let mut state;
     let mut slice = [0u8; 31];
 
     for j in 0..31 {
@@ -95,7 +95,7 @@ pub fn commit_attrs(
     }
 
     for j in 0..20 {
-        slice[j] = key_identifier[j];
+        slice[j] = key_id[j];
     }
     for j in 20..31 {
         slice[j] = pk_x[j - 20];
