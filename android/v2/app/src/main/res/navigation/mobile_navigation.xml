@@ -85,6 +85,10 @@
         <argument
             android:name="nextCmtRs"
             app:argType="string[]" />
+        <argument
+            android:name="performance"
+            app:argType="org.ethtokyo.hackathon.anastasia.data.ProofGenerationPerformance"
+            app:nullable="true" />
         <action
             android:id="@+id/action_proofCompletedFragment_to_smartContractCompletedFragment"
             app:destination="@id/smartContractCompletedFragment" />

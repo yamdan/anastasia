@@ -46,6 +46,13 @@ class ProofCompletedFragment : Fragment() {
         }
         binding.textViewProof.text = proofsText
 
+        // パフォーマンスデータの表示
+        args.performance?.let { performance ->
+            binding.textViewPerformance.text = performance.toFormattedString()
+        } ?: run {
+            binding.textViewPerformance.text = "Performance data not available"
+        }
+
         setupListeners(proofResults, proofsText)
         setupObservers()
 

@@ -12,6 +12,8 @@ import org.ethtokyo.hackathon.anastasia.core.ECKeystoreHelper
 import org.ethtokyo.hackathon.anastasia.core.proveParentChildRel
 import org.ethtokyo.hackathon.anastasia.core.computeSubjectKeyId
 import org.ethtokyo.hackathon.anastasia.core.extractECPublicKeyCoordinates
+import org.ethtokyo.hackathon.anastasia.data.ProofGenerationPerformance
+import org.ethtokyo.hackathon.anastasia.data.ProofGenerationTime
 import uniffi.mopro.ProofResult
 import uniffi.mopro.commitAttrs
 import java.security.cert.X509Certificate
@@ -23,6 +25,9 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
     private val _proofGenerationResult = MutableLiveData<Result<Array<ProofResult>>>()
     val proofGenerationResult: LiveData<Result<Array<ProofResult>>> = _proofGenerationResult
 
+    private val _proofGenerationPerformance = MutableLiveData<ProofGenerationPerformance>()
+    val proofGenerationPerformance: LiveData<ProofGenerationPerformance> = _proofGenerationPerformance
+
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
@@ -32,10 +37,11 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
 
             try {
                 delay(2000)
-                // Generate mock proof
-                val proofs = generateProofCore()
-                println("=== === === === generated proof string : ${proofs}")
+                val (proofs, performance) = generateProofCore()
+
+                println("=== === === === generated proof string : $proofs")
                 _proofGenerationResult.value = Result.success(proofs)
+                _proofGenerationPerformance.value = performance
 
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -50,7 +56,7 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
         return bytes.joinToString(" ") { String.format("%02x", it.toUByte().toInt()) }
     }
 
-    private fun generateProofCore(): Array<ProofResult> {
+    private fun generateProofCore(): Pair<Array<ProofResult>, ProofGenerationPerformance> {
         val chain = keystoreHelper.getAttestationCertificate(Constants.KEY_ALIAS)
 
         // 証明書チェーンから子証明書（1番目）と親証明書（2番目）を取得
@@ -76,7 +82,10 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             null
         )
 
-        // prover.ktで定義されたグローバル定数を使用してproveParentChildRelを呼び出し
+        val individualTimes = mutableListOf<ProofGenerationTime>()
+
+        // 第1の証明生成
+        val proof1StartTime = System.currentTimeMillis()
         val proofResult1 = proveParentChildRel(
             context = application.applicationContext,
             child = parentCert,
@@ -84,9 +93,19 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             caPrevCmt = caCommitResult.cmt,
             caPrevCmtR = caCommitResult.r
         )
+        val proof1EndTime = System.currentTimeMillis()
+
+        individualTimes.add(ProofGenerationTime(
+            proofIndex = 1,
+            startTime = proof1StartTime,
+            endTime = proof1EndTime,
+            durationMs = proof1EndTime - proof1StartTime
+        ))
 
         println("=== === === === proofResult1 : ${proofResult1.proof}")
 
+        // 第2の証明生成
+        val proof2StartTime = System.currentTimeMillis()
         val proofResult2 = proveParentChildRel(
             context = application.applicationContext,
             child = childCert,
@@ -94,6 +113,14 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             caPrevCmt = proofResult1.nextCmt,
             caPrevCmtR = proofResult1.nextCmtR
         )
+        val proof2EndTime = System.currentTimeMillis()
+
+        individualTimes.add(ProofGenerationTime(
+            proofIndex = 2,
+            startTime = proof2StartTime,
+            endTime = proof2EndTime,
+            durationMs = proof2EndTime - proof2StartTime
+        ))
 
         println("=== === === === proofResult2 : ${proofResult2.proof}")
 
@@ -109,6 +136,12 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             nextCmtR = proofResult2.nextCmtR
         )
 
-        return arrayOf(manipulatedProof1, manipulatedProof2)
+        val totalTime = individualTimes.sumOf { it.durationMs }
+        val performance = ProofGenerationPerformance(
+            individualTimes = individualTimes,
+            totalTime = totalTime
+        )
+
+        return Pair(arrayOf(manipulatedProof1, manipulatedProof2), performance)
     }
 }
