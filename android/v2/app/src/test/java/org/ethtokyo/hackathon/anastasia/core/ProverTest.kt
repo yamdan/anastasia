@@ -15,7 +15,7 @@ import java.util.Base64
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.test.assertEquals
-import uniffi.mopro.ProofResult
+import org.ethtokyo.hackathon.anastasia.data.ProofResult
 
 class ProverTest {
 
@@ -136,6 +136,7 @@ class ProverTest {
 
         // ProofResultオブジェクトを作成
         val proofResult = ProofResult(
+            proofForEE = true, // End Entity証明書として設定
             proof = dummyProof,
             nextCmt = dummyNextCmt,
             nextCmtR = dummyNextCmtR
