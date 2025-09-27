@@ -5,8 +5,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.ethtokyo.hackathon.anastasia.Constants
 import org.ethtokyo.hackathon.anastasia.core.ECKeystoreHelper
 import org.ethtokyo.hackathon.anastasia.core.proveParentChildRel
@@ -28,30 +30,44 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
+    private val _progressMessage = MutableLiveData<String>()
+    val progressMessage: LiveData<String> = _progressMessage
+
     fun generateProof() {
         viewModelScope.launch {
             _isLoading.value = true
+            _progressMessage.value = "Proof generation started..."
 
             try {
                 delay(2000)
                 val result = generateProofCore()
 
+                _progressMessage.value = "Proof generation completed!"
                 _proofsGenerationResult.value = Result.success(result)
 
             } catch (e: Exception) {
                 e.printStackTrace()
+                _progressMessage.value = "Proof generation failed: ${e.message}"
                 _proofsGenerationResult.value = Result.failure(e)
-            } finally {
                 _isLoading.value = false
             }
         }
+    }
+
+    fun onNavigationCompleted() {
+        _isLoading.value = false
+    }
+
+    fun resetState() {
+        _isLoading.value = false
+        _progressMessage.value = ""
     }
 
     private fun bytesToHexString(bytes: ByteArray): String {
         return bytes.joinToString(" ") { String.format("%02x", it.toUByte().toInt()) }
     }
 
-    private fun generateProofCore(): ProofsGenerationResult {
+    private suspend fun generateProofCore(): ProofsGenerationResult = withContext(Dispatchers.IO) {
         val chain = keystoreHelper.getAttestationCertificate(Constants.KEY_ALIAS)
 
         // 証明書チェーンから子証明書（1番目）と親証明書（2番目）を取得
@@ -97,7 +113,10 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             durationMs = proof1EndTime - proof1StartTime
         ))
 
-        println("=== === === === proofResult1 : ${proofResult1.proof}")
+        // UIスレッドでプログレスメッセージを更新
+        withContext(Dispatchers.Main) {
+            _progressMessage.value = "Proof 1 of 2 completed (${(proof1EndTime - proof1StartTime) / 1000.0}s)"
+        }
 
         // 第2の証明生成
         val proof2StartTime = System.currentTimeMillis()
@@ -117,9 +136,11 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             durationMs = proof2EndTime - proof2StartTime
         ))
 
-        println("=== === === === proofResult2 : ${proofResult2.proof}")
+        // UIスレッドでプログレスメッセージを更新
+        withContext(Dispatchers.Main) {
+            _progressMessage.value = "Proof 2 of 2 completed (${(proof2EndTime - proof2StartTime) / 1000.0}s)"
+        }
 
-        // moproのProofResultを内部のProofResultに変換
         val manipulatedProof1 = ProofResult(
             proof = "ca_" + proofResult1.proof,
             nextCmt = proofResult1.nextCmt,
@@ -131,7 +152,7 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             nextCmtR = proofResult2.nextCmtR
         )
 
-        return ProofsGenerationResult(
+        return@withContext ProofsGenerationResult(
             proofs = arrayOf(manipulatedProof1, manipulatedProof2),
             performances = individualTimes.toTypedArray()
         )

@@ -15,7 +15,7 @@ import java.util.Base64
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.test.assertEquals
-import uniffi.mopro.ProofResult
+import org.ethtokyo.hackathon.anastasia.data.ProofResult
 
 class ProverTest {
 

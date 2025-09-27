@@ -10,7 +10,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import org.ethtokyo.hackathon.anastasia.R
 import org.ethtokyo.hackathon.anastasia.databinding.FragmentProofGenerationBinding
-import org.ethtokyo.hackathon.anastasia.data.ProofsGenerationResult
 
 class ProofGenerationFragment : Fragment() {
 
@@ -18,8 +17,8 @@ class ProofGenerationFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var viewModel: ProofGenerationViewModel
-    private var currentResult: ProofsGenerationResult? = null
     private var hasNavigated = false
+    private var isNavigating = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -39,10 +38,19 @@ class ProofGenerationFragment : Fragment() {
         viewModel.proofsGenerationResult.observe(viewLifecycleOwner) { result ->
             if (result.isSuccess) {
                 val proofsResult = result.getOrNull()
-                if (proofsResult != null && proofsResult.proofs.isNotEmpty()) {
-                    currentResult = proofsResult
-                    navigateIfReady()
-                } else {
+                if (proofsResult != null && proofsResult.proofs.isNotEmpty() && !hasNavigated) {
+                    hasNavigated = true
+                    isNavigating = true
+
+                    // 即座に画面遷移を実行
+                    val action = ProofGenerationFragmentDirections.actionProofGenerationFragmentToProofCompletedFragment(
+                        proofsResult
+                    )
+                    findNavController().navigate(action)
+
+                    // 画面遷移後にローディング状態を解除
+                    viewModel.onNavigationCompleted()
+                } else if (!hasNavigated) {
                     Toast.makeText(context, "Proof generation failed: No proofs generated", Toast.LENGTH_LONG).show()
                     findNavController().navigate(R.id.action_proofGenerationFragment_to_navigation_key_management)
                 }
@@ -55,36 +63,53 @@ class ProofGenerationFragment : Fragment() {
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            binding.btnStart.isEnabled = !isLoading
+            binding.btnStart.isEnabled = !isLoading && !isNavigating
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
 
-            if (isLoading) {
+            if (isLoading || isNavigating) {
                 binding.btnStart.text = "Processing..."
             } else {
                 binding.btnStart.text = "Start"
             }
         }
-    }
 
-    private fun navigateIfReady() {
-        val result = currentResult
-
-        if (result != null && !hasNavigated) {
-            hasNavigated = true
-
-            val action = ProofGenerationFragmentDirections.actionProofGenerationFragmentToProofCompletedFragment(
-                result
-            )
-            findNavController().navigate(action)
+        viewModel.progressMessage.observe(viewLifecycleOwner) { message ->
+            if (message.isNotEmpty()) {
+                binding.tvProgressMessage.text = message
+                binding.tvProgressMessage.visibility = View.VISIBLE
+            } else {
+                binding.tvProgressMessage.visibility = View.GONE
+            }
         }
     }
 
     private fun setupListeners() {
         binding.btnStart.setOnClickListener {
             hasNavigated = false
-            currentResult = null
+            isNavigating = false
+            binding.tvProgressMessage.visibility = View.GONE
             viewModel.generateProof()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // 画面に戻ってきた時に状態をリセット
+        if (hasNavigated) {
+            hasNavigated = false
+            isNavigating = false
+            viewModel.resetState()
+
+            // UIを強制的に更新
+            updateUI()
+        }
+    }
+
+    private fun updateUI() {
+        binding.btnStart.isEnabled = true
+        binding.btnStart.text = "Start"
+        binding.progressBar.visibility = View.GONE
+        binding.tvProgressMessage.visibility = View.GONE
     }
 
     override fun onDestroyView() {
