@@ -7,6 +7,8 @@ import kotlinx.parcelize.Parcelize
 data class ProofResult(
     val proofForEE: Boolean,
     val proof: String,
+    val publicInputs: List<String>,
+    val numPublicInputs: UInt,
     val nextCmt: String,
     val nextCmtR: String
 ) : Parcelable

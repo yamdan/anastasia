@@ -21,19 +21,9 @@ fun bytes(vararg ints: Int): ByteArray =
 
 // 内部ProofResult型用の拡張関数
 fun InternalProofResult.convertProofForInfura(): String {
-    val originalProof = this.proof
 
-    // 先頭の "0x" を削除
-    val proofHex = if (originalProof.startsWith("0x")) {
-        originalProof.substring(2)
-    } else {
-        originalProof
-    }
-
-    // --- publicInputs と proofData を分離 ---
-    // public inputs: 32バイト × 9個 = 288バイト = 576 hex文字
-    val publicInputsHex = proofHex.substring(0, 576)
-    val proofDataHex = proofHex.substring(576)
+    val publicInputsHex = this.publicInputs.joinToString(separator = "")
+    val proofDataHex = this.proof
     val proofLength = proofDataHex.length / 2 // バイト数
 
     // --- ABI 構造を構築 ---
@@ -58,8 +48,7 @@ fun InternalProofResult.convertProofForInfura(): String {
     // proof length (1ワード)
     val proofLengthPadded = proofLength.toString(16).padStart(64, '0')
 
-    // publicInputs count (固定で9)
-    val publicInputsCount = "0000000000000000000000000000000000000000000000000000000000000009"
+    val publicInputsCount = this.numPublicInputs.toString(16).padStart(64, '0')
 
     // --- dataフィールド組み立て ---
     val dataForInfura =
@@ -74,9 +63,6 @@ fun InternalProofResult.convertProofForInfura(): String {
     return dataForInfura
 }
 
-private fun bytesToHexString(bytes: ByteArray): String {
-    return bytes.joinToString(" ") { String.format("%02x", it.toUByte().toInt()) }
-}
 
 fun proveParentChildRel(context: Context, child: Certificate, parent: Certificate, caPrevCmt: String, caPrevCmtR: String): InternalProofResult {
     val circuitForChild = selectAppropriateCircuit(context, child)
@@ -105,12 +91,15 @@ fun proveParentChildRel(context: Context, child: Certificate, parent: Certificat
         pubKeyX,
         pubKeyY,
         caPrevCmt,
-        caPrevCmtR
+        caPrevCmtR,
+        null
     )
 
     return InternalProofResult(
         proofForEE = child.isEndEntity(),
         proof = moproProved.proof,
+        publicInputs = moproProved.publicInputs,
+        numPublicInputs = moproProved.numPublicInputs,
         nextCmt = moproProved.nextCmt,
         nextCmtR = moproProved.nextCmtR
     )
