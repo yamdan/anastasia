@@ -105,7 +105,8 @@ fun NoirComponent() {
                                     caIssuerPkY,
                                     null
                                 )
-                                val caPrevCmt = caCommitResult.cmt
+                                val caPrevCmtX = caCommitResult.cmtX
+                                val caPrevCmtY = caCommitResult.cmtY
                                 val caPrevCmtR = caCommitResult.r
                                 //val caPrevCmt = "0ede28f511104f08069e07986707873be5cbba917f02f02407ad1fdd6838679b"
                                 //val caPrevCmtR = "deadbeef"
@@ -123,17 +124,20 @@ fun NoirComponent() {
                                     caAuthorityKeyId,
                                     caIssuerPkX,
                                     caIssuerPkY,
-                                    caPrevCmt,
+                                    caPrevCmtX,
+                                    caPrevCmtY,
                                     caPrevCmtR,
                                     "2025-09-14T00:00:00Z",
                                 )
                                 val caProof = caResult.proof
                                 val caPublicInputs = caResult.publicInputs
-                                val caNextCmt = caResult.nextCmt
+                                val caNextCmtX = caResult.nextCmtX
+                                val caNextCmtY = caResult.nextCmtY
                                 val caNextCmtR = caResult.nextCmtR
                                 Log.w(null, caProof)
                                 Log.w(null, caPublicInputs.toString())
-                                Log.w(null, caNextCmt)
+                                Log.w(null, caNextCmtX)
+                                Log.w(null, caNextCmtY)
                                 Log.w(null, caNextCmtR)
 
                                 /*
@@ -201,23 +205,26 @@ fun NoirComponent() {
                                     eeAuthorityKeyId,
                                     eeIssuerPkX,
                                     eeIssuerPkY,
-                                    caNextCmt,
+                                    caNextCmtX,
+                                    caNextCmtY,
                                     caNextCmtR,
                                     "2025-09-14T00:00:00Z",
                                 )
                                 val eeProof = eeResult.proof
                                 val eePublicInputs = eeResult.publicInputs
-                                val eeNextCmt = eeResult.nextCmt
+                                val eeNextCmtX = eeResult.nextCmtX
+                                val eeNextCmtY = eeResult.nextCmtY
                                 val eeNextCmtR = eeResult.nextCmtR
                                 Log.w(null, eeProof)
                                 Log.w(null, eePublicInputs.toString())
-                                Log.w(null, eeNextCmt)
+                                Log.w(null, eeNextCmtX)
+                                Log.w(null, eeNextCmtY)
                                 Log.w(null, eeNextCmtR)
 
                                 val endTime = System.currentTimeMillis()
                                 val duration = endTime - startTime
 
-                                val proofSizeHex = caProof.length + caNextCmt.length + caNextCmtR.length + eeProof.length + eeNextCmt.length + eeNextCmtR.length
+                                val proofSizeHex = caProof.length + caNextCmtX.length + caNextCmtY.length + caNextCmtR.length + eeProof.length + eeNextCmtX.length + eeNextCmtY.length + eeNextCmtR.length
                                 val proofSize = proofSizeHex / 2 // bytes
                                 provingTime = "Proving time: $duration ms"
                                 proofResult = "Proof generated: $proofSize bytes"
