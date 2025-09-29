@@ -1,6 +1,7 @@
 mod api;
 mod cert;
 mod circuit;
+mod commit;
 mod poseidon;
 mod prove;
 mod utils;

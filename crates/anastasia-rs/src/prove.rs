@@ -1,9 +1,3 @@
-use crate::{
-    cert::ParsedCert,
-    circuit::Circuit,
-    utils::{UtcTime, commit_attrs, field_to_hex, from_u8_array_to_fr_vec, hex_to_field},
-};
-
 use ark_bn254::Fr;
 use ark_ff::UniformRand;
 use ark_std::rand::rngs::OsRng;
@@ -15,6 +9,13 @@ use noir::{
     native_types::{Witness, WitnessMap},
 };
 
+use crate::{
+    cert::ParsedCert,
+    circuit::Circuit,
+    commit::commit_attrs,
+    utils::{FromHexString, ToHexString, UtcTime, from_u8_array_to_fr_vec},
+};
+
 pub fn prove(
     circuit: &Circuit,
     cert: Vec<u8>,
@@ -22,10 +23,11 @@ pub fn prove(
     authority_key_id: Vec<u8>,
     issuer_pk_x: Vec<u8>,
     issuer_pk_y: Vec<u8>,
-    prev_cmt: String,
+    prev_cmt_x: String,
+    prev_cmt_y: String,
     prev_cmt_r: String,
     max_extra_extension_len: usize,
-) -> Result<(Vec<u8>, String, String), String> {
+) -> Result<(Vec<u8>, String, String, String), String> {
     println!(
         "Debug: max_extra_extension_len = {}",
         max_extra_extension_len
@@ -36,7 +38,7 @@ pub fn prove(
 
     let mut rng = OsRng;
     let next_cmt_r = Fr::rand(&mut rng);
-    let next_cmt = commit_attrs(
+    let (next_cmt_x, next_cmt_y) = commit_attrs(
         parsed_cert.subject,
         parsed_cert.subject_key_identifier,
         parsed_cert.subject_pk_x,
@@ -56,9 +58,11 @@ pub fn prove(
         issuer_pk_y
             .try_into()
             .map_err(|_| "issuer_pk_y must be 32 bytes")?,
-        hex_to_field(&prev_cmt)?,
-        hex_to_field(&prev_cmt_r)?,
-        next_cmt,
+        Fr::from_hex_string(&prev_cmt_x)?,
+        Fr::from_hex_string(&prev_cmt_y)?,
+        Fr::from_hex_string(&prev_cmt_r)?,
+        next_cmt_x,
+        next_cmt_y,
         next_cmt_r,
         max_extra_extension_len,
     )?;
@@ -86,8 +90,9 @@ pub fn prove(
 
     Ok((
         compressed_proof,
-        field_to_hex(&next_cmt),
-        field_to_hex(&next_cmt_r),
+        next_cmt_x.to_hex_string(),
+        next_cmt_y.to_hex_string(),
+        next_cmt_r.to_hex_string(),
     ))
 }
 
@@ -97,10 +102,12 @@ pub fn generate_witness(
     authority_key_id: [u8; 20],
     issuer_pk_x: [u8; 32],
     issuer_pk_y: [u8; 32],
-    prev_cmt: Fr,
-    prev_cmt_r: Fr,
-    next_cmt: Fr,
-    next_cmt_r: Fr,
+    prev_cmt_x: Fr,
+    prev_cmt_y: Fr,
+    prev_cmt_r: Fr, // TODO: change to lo and hi parts as GrumpkinFr
+    next_cmt_x: Fr,
+    next_cmt_y: Fr,
+    next_cmt_r: Fr, // TODO: change to lo and hi parts as GrumpkinFr
     max_extra_extension_len: usize,
 ) -> Result<WitnessMap<GenericFieldElement<Fr>>, String> {
     let mut witness: Vec<Fr> = Vec::new();
@@ -146,9 +153,11 @@ pub fn generate_witness(
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.not_before));
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.not_after));
     witness.extend(from_u8_array_to_fr_vec(&now.to_bytes()));
-    witness.push(prev_cmt);
+    witness.push(prev_cmt_x);
+    witness.push(prev_cmt_y);
     witness.push(prev_cmt_r);
-    witness.push(next_cmt);
+    witness.push(next_cmt_x);
+    witness.push(next_cmt_y);
     witness.push(next_cmt_r);
 
     let mut witness_map = WitnessMap::new();
