@@ -3,6 +3,10 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.androidx.navigation.safeargs.kotlin)
     id("kotlin-parcelize")
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
+}
+secrets {
+    propertiesFileName = "secrets.properties"
 }
 
 android {
@@ -17,13 +21,6 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        val apiKey = System.getenv("SEPOLIA_API_KEY")
-        if (apiKey != null) {
-            buildConfigField("String", "SEPOLIA_API_KEY", "\"$apiKey\"")
-        } else {
-            throw GradleException("Environment variable SEPOLIA_API_KEY is not set.")
-        }
     }
 
     buildTypes {
