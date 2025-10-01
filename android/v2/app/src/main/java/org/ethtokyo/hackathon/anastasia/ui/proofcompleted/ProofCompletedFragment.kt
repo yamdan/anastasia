@@ -56,7 +56,7 @@ class ProofCompletedFragment : Fragment() {
 
     private fun setupListeners(proofResults: Array<ProofResult>, proofsText: String) {
         binding.buttonYes.setOnClickListener {
-            viewModel.recordProofs(proofResults)
+            viewModel.verifyProofs(proofResults)
         }
         binding.buttonNo.setOnClickListener {
             findNavController().navigate(R.id.action_proofCompletedFragment_to_navigation_key_management)

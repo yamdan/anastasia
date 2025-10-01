@@ -13,7 +13,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.ethtokyo.hackathon.anastasia.BuildConfig
 import org.ethtokyo.hackathon.anastasia.Constants
 import org.ethtokyo.hackathon.anastasia.core.convertProofForInfura
 import org.ethtokyo.hackathon.anastasia.data.AppSettings
@@ -77,7 +76,7 @@ class ProofCompletedViewModel(application: Application) : AndroidViewModel(appli
         .build()
 
 
-    fun recordProofs(proofs: Array<ProofResult>) {
+    fun verifyProofs(proofs: Array<ProofResult>) {
         viewModelScope.launch {
             _isLoading.value = true
             _progressMessage.value = "Preparing proof submissions..."
