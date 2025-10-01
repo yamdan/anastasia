@@ -18,6 +18,10 @@ class AppSettingsRepository(private val context: Context) {
         private const val KEY_EE_CERT_VERIFIER_ADDRESS = "ee_cert_verifier_address"
         private const val KEY_EE_CERT_LONG_VERIFIER_ADDRESS = "ee_cert_long_verifier_address"
     }
+    private fun isValidHexString(value: String): Boolean {
+        if (value.isBlank()) return false
+        return value.matches(Regex("^[0-9a-fA-F]+$"))
+    }
 
     fun saveSepoliaApiKey(apiKey: String) {
         sharedPreferences.edit()
@@ -30,7 +34,12 @@ class AppSettingsRepository(private val context: Context) {
         val defaultValue = BuildConfig.SEPOLIA_API_KEY
         val result = if (stored.isNullOrBlank()) defaultValue ?: "" else stored
         Log.d("AppSettingsRepo", "getSepoliaApiKey: stored='$stored', default='$defaultValue', result='$result'")
-        return result
+        return if (isValidHexString(result)) {
+            result
+        } else {
+            Log.d("AppSettings", "getSepoliaApiKeyValue: '$result' is not a valid hex string, returning empty string")
+            ""
+        }
     }
 
     fun saveCaCertVerifierAddress(address: String) {
