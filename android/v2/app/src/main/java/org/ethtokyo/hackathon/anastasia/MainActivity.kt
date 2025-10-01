@@ -26,7 +26,7 @@ class MainActivity : AppCompatActivity() {
         // menu should be considered as top level destinations.
         val appBarConfiguration = AppBarConfiguration(
             setOf(
-                R.id.navigation_key_management, R.id.navigation_vc_management
+                R.id.navigation_key_management, R.id.navigation_vc_management, R.id.navigation_settings
             )
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
@@ -36,7 +36,8 @@ class MainActivity : AppCompatActivity() {
         navController.addOnDestinationChangedListener { _, destination, _ ->
             when (destination.id) {
                 R.id.navigation_key_management,
-                R.id.navigation_vc_management -> {
+                R.id.navigation_vc_management,
+                R.id.navigation_settings -> {
                     navView.visibility = android.view.View.VISIBLE
                 }
                 else -> {

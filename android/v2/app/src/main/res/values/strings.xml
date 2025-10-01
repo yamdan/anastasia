@@ -2,4 +2,5 @@
     <string name="app_name">Anastasia</string>
     <string name="title_key_management">Key Management</string>
     <string name="title_vc_management">VC Management</string>
+    <string name="title_settings">Settings</string>
 </resources>
