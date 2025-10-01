@@ -1,8 +1,10 @@
 package org.ethtokyo.hackathon.anastasia.ui.proofcompleted
 
+import android.app.Application
+import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -11,9 +13,12 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.ethtokyo.hackathon.anastasia.BuildConfig
 import org.ethtokyo.hackathon.anastasia.Constants
 import org.ethtokyo.hackathon.anastasia.core.convertProofForInfura
+import org.ethtokyo.hackathon.anastasia.data.AppSettings
 import org.ethtokyo.hackathon.anastasia.data.ProofResult
+import org.ethtokyo.hackathon.anastasia.data.execptions.InvalidDestinationException
 import org.ethtokyo.hackathon.anastasia.smart_contract.create_eth_call_json
 import org.ethtokyo.hackathon.anastasia.smart_contract.resolveInfuraPath
 import org.json.JSONArray
@@ -24,7 +29,8 @@ data class ProofSubmissionResult(
     val proofIndex: Int,
     val isSuccess: Boolean,
     val response: String?,
-    val error: String?
+    val error: String?,
+    val smartContractAddress: String
 )
 
 data class AllProofsResult(
@@ -42,6 +48,7 @@ data class AllProofsResult(
             resultJson.put("isSuccess", result.isSuccess)
             resultJson.put("response", result.response)
             resultJson.put("error", result.error)
+            resultJson.put("smartContractAddress", result.smartContractAddress)
             resultsArray.put(resultJson)
         }
         json.put("results", resultsArray)
@@ -50,7 +57,9 @@ data class AllProofsResult(
     }
 }
 
-class ProofCompletedViewModel : ViewModel() {
+class ProofCompletedViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val appSettings = AppSettings.getInstance(application)
 
     private val _postResult = MutableLiveData<Result<AllProofsResult>>()
     val postResult: LiveData<Result<AllProofsResult>> = _postResult
@@ -87,7 +96,8 @@ class ProofCompletedViewModel : ViewModel() {
 
     private suspend fun postProofToServer(proofs: Array<ProofResult>): AllProofsResult = withContext(Dispatchers.IO) {
         val results = mutableListOf<ProofSubmissionResult>()
-        val endpoint = resolveInfuraPath()
+        val apiKey = appSettings.getSepoliaApiKeyValue()
+        val endpoint = resolveInfuraPath(apiKey)
 
         proofs.forEachIndexed { index, proofResult ->
             // プログレス更新（UIスレッドで実行）
@@ -97,9 +107,21 @@ class ProofCompletedViewModel : ViewModel() {
 
             try {
                 val smContractAddress = if (proofResult.proofForEE){
-                    Constants.SmartContract.SC_ADDRESS_EE
+                    val eeLongAddress = appSettings.getEeCertLongVerifierAddressValue()
+                    Log.d("ProofCompletedVM", "EE Long Address from settings: '$eeLongAddress'")
+                    if (eeLongAddress.isBlank()){
+                        Log.e("ProofCompletedVM", "EE Cert Long Verifier Address is blank!")
+                        throw InvalidDestinationException("EE Cert Long Verifier Address is blank. Check Settings page.")
+                    }
+                    eeLongAddress
                 } else {
-                    Constants.SmartContract.SC_ADDRESS_CA
+                    val caAddress = appSettings.getCaCertVerifierAddressValue()
+                    Log.d("ProofCompletedVM", "CA Address from settings: '$caAddress'")
+                    if (caAddress.isBlank()){
+                        Log.e("ProofCompletedVM", "CA Cert Verifier Address is blank!")
+                        throw InvalidDestinationException("CA Cert Verifier Address is blank. Check Settings page.")
+                    }
+                    caAddress
                 }
                 val converted = proofResult.convertProofForInfura()
                 val jsonPayload = create_eth_call_json(smContractAddress, converted)
@@ -121,14 +143,16 @@ class ProofCompletedViewModel : ViewModel() {
                                 proofIndex = index,
                                 isSuccess = true,
                                 response = responseBody,
-                                error = null
+                                error = null,
+                                smartContractAddress = smContractAddress
                             ))
                         } else {
                             results.add(ProofSubmissionResult(
                                 proofIndex = index,
                                 isSuccess = false,
                                 response = responseBody,
-                                error = errorMessage ?: "Server returned error in response"
+                                error = errorMessage ?: "Server returned error in response",
+                                smartContractAddress = smContractAddress
                             ))
                         }
                     } else {
@@ -136,7 +160,8 @@ class ProofCompletedViewModel : ViewModel() {
                             proofIndex = index,
                             isSuccess = false,
                             response = responseBody,
-                            error = "HTTP ${response.code}: ${response.message}"
+                            error = "HTTP ${response.code}: ${response.message}",
+                            smartContractAddress = smContractAddress
                         ))
                     }
                 }
@@ -145,7 +170,8 @@ class ProofCompletedViewModel : ViewModel() {
                     proofIndex = index,
                     isSuccess = false,
                     response = null,
-                    error = e.message ?: "Unknown error"
+                    error = e.message ?: "Unknown error",
+                    smartContractAddress = ""
                 ))
             }
         }

@@ -25,6 +25,10 @@ fun resolveInfuraPath(): String {
     return joinPathToInfura(apiKey)
 }
 
+fun resolveInfuraPath(apiKey: String): String {
+    return joinPathToInfura(apiKey)
+}
+
 fun joinPathToInfura(path: String): String {
     val baseUrl = Constants.SmartContract.INFURA_ENDPOINT_URL.removeSuffix("/")
     val pathSegment = path.removePrefix("/")

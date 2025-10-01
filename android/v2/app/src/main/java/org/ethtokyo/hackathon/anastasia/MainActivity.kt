@@ -1,12 +1,14 @@
 package org.ethtokyo.hackathon.anastasia
 
 import android.os.Bundle
+import android.util.Log
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
+import org.ethtokyo.hackathon.anastasia.data.AppSettings
 import org.ethtokyo.hackathon.anastasia.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -18,6 +20,15 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Initialize app settings on startup
+        Log.d("MainActivity", "Initializing AppSettings...")
+        val appSettings = AppSettings.getInstance(this)
+        Log.d("MainActivity", "AppSettings initialized. Testing values...")
+        Log.d("MainActivity", "CA Address: '${appSettings.getCaCertVerifierAddressValue()}'")
+        Log.d("MainActivity", "EE Long Address: '${appSettings.getEeCertLongVerifierAddressValue()}'")
+        Log.d("MainActivity", "BuildConfig SC_ADDRESS_CA: '${BuildConfig.SC_ADDRESS_CA}'")
+        Log.d("MainActivity", "BuildConfig SC_ADDRESS_EE_LONG: '${BuildConfig.SC_ADDRESS_EE_LONG}'")
 
         val navView: BottomNavigationView = binding.navView
 
