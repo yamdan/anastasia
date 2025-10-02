@@ -17,7 +17,7 @@ import org.ethtokyo.hackathon.anastasia.Constants
 import org.ethtokyo.hackathon.anastasia.core.convertProofForInfura
 import org.ethtokyo.hackathon.anastasia.data.AppSettings
 import org.ethtokyo.hackathon.anastasia.data.ProofResult
-import org.ethtokyo.hackathon.anastasia.data.execptions.InvalidDestinationException
+import org.ethtokyo.hackathon.anastasia.data.exceptions.InvalidDestinationException
 import org.ethtokyo.hackathon.anastasia.smart_contract.create_eth_call_json
 import org.ethtokyo.hackathon.anastasia.smart_contract.resolveInfuraPath
 import org.json.JSONArray
