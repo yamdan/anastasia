@@ -1,6 +1,7 @@
 package org.ethtokyo.hackathon.anastasia.ui.smartcontractcompleted
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -52,13 +53,15 @@ class SmartContractCompletedFragment : Fragment() {
                 val result = resultsArray.getJSONObject(i)
                 val proofIndex = result.getInt("proofIndex")
                 val isSuccess = result.getBoolean("isSuccess")
-                val response = result.optString("response", null)
-                val error = result.optString("error", null)
+                val response = result.optString("response", "")
+                val error = result.optString("error", "")
 
                 builder.append("--- Proof ${proofIndex + 1} ---\n")
                 builder.append("Status: ${if (isSuccess) "✅ Success" else "❌ Failed"}\n")
+                val smartContractAddress = result.optString("smartContractAddress", "N/A")
+                builder.append("Smart Contract Address: $smartContractAddress\n")
 
-                if (isSuccess && !response.isNullOrEmpty()) {
+                if (isSuccess && response.isNotEmpty()) {
                     // レスポンスが成功の場合、簡潔に表示
                     builder.append("Response: ✅ Verification successful\n")
                     // レスポンスの概要を表示（JSONの場合は整理して表示）
@@ -66,12 +69,12 @@ class SmartContractCompletedFragment : Fragment() {
                     builder.append("Details: $responsePreview\n")
                 } else if (!isSuccess) {
                     // エラーの場合、詳細な情報を表示
-                    if (!error.isNullOrEmpty()) {
+                    if (error.isNotEmpty()) {
                         builder.append("Error: $error\n")
                     }
 
                     // エラー時でもレスポンスがある場合は表示（サーバーエラーの詳細など）
-                    if (!response.isNullOrEmpty() && response != error) {
+                    if (response.isNotEmpty() && response != error) {
                         val responsePreview = formatResponsePreview(response)
                         builder.append("Server Response: $responsePreview\n")
                     }
