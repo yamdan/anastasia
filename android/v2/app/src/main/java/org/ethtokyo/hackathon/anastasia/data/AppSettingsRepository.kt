@@ -16,7 +16,6 @@ class AppSettingsRepository(private val context: Context) {
         private const val KEY_SEPOLIA_API_KEY = "sepolia_api_key"
         private const val KEY_CA_CERT_VERIFIER_ADDRESS = "ca_cert_verifier_address"
         private const val KEY_EE_CERT_VERIFIER_ADDRESS = "ee_cert_verifier_address"
-        private const val KEY_EE_CERT_LONG_VERIFIER_ADDRESS = "ee_cert_long_verifier_address"
     }
     private fun isValidHexString(value: String): Boolean {
         if (value.isBlank()) return false
@@ -67,20 +66,6 @@ class AppSettingsRepository(private val context: Context) {
         val defaultValue = BuildConfig.SC_ADDRESS_EE
         val result = if (stored.isNullOrBlank()) defaultValue ?: "" else stored
         Log.d("AppSettingsRepo", "getEeCertVerifierAddress: stored='$stored', default='$defaultValue', result='$result'")
-        return result
-    }
-
-    fun saveEeCertLongVerifierAddress(address: String) {
-        sharedPreferences.edit()
-            .putString(KEY_EE_CERT_LONG_VERIFIER_ADDRESS, address)
-            .apply()
-    }
-
-    fun getEeCertLongVerifierAddress(): String {
-        val stored = sharedPreferences.getString(KEY_EE_CERT_LONG_VERIFIER_ADDRESS, null)
-        val defaultValue = BuildConfig.SC_ADDRESS_EE_LONG
-        val result = if (stored.isNullOrBlank()) defaultValue ?: "" else stored
-        Log.d("AppSettingsRepo", "getEeCertLongVerifierAddress: stored='$stored', default='$defaultValue', result='$result'")
         return result
     }
 }

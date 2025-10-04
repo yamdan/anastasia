@@ -15,7 +15,6 @@ import org.ethtokyo.hackathon.anastasia.core.proveParentChildRel
 import org.ethtokyo.hackathon.anastasia.core.computeSubjectKeyId
 import org.ethtokyo.hackathon.anastasia.core.extractECPublicKeyCoordinates
 import org.ethtokyo.hackathon.anastasia.data.ProofGenerationTime
-import org.ethtokyo.hackathon.anastasia.data.ProofResult
 import org.ethtokyo.hackathon.anastasia.data.ProofsGenerationResult
 import uniffi.mopro.commitAttrs
 import java.security.cert.X509Certificate
@@ -101,7 +100,8 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             context = application.applicationContext,
             child = parentCert,
             parent = grandparentCert,
-            caPrevCmt = caCommitResult.cmt,
+            caPrevCmtX = caCommitResult.cmtX,
+            caPrevCmtY = caCommitResult.cmtY,
             caPrevCmtR = caCommitResult.r
         )
         val proof1EndTime = System.currentTimeMillis()
@@ -124,7 +124,8 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             context = application.applicationContext,
             child = childCert,
             parent = parentCert,
-            caPrevCmt = proofResult1.nextCmt,
+            caPrevCmtX = proofResult1.nextCmtX,
+            caPrevCmtY = proofResult1.nextCmtY,
             caPrevCmtR = proofResult1.nextCmtR
         )
         val proof2EndTime = System.currentTimeMillis()

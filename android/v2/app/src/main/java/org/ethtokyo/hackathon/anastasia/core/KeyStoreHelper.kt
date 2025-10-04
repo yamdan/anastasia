@@ -3,8 +3,6 @@ package org.ethtokyo.hackathon.anastasia.core
 
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
-import android.util.Base64
-import org.json.JSONObject
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.KeyStore
@@ -13,57 +11,6 @@ import java.security.cert.Certificate
 import java.security.interfaces.ECPrivateKey
 import java.security.interfaces.ECPublicKey
 
-
-fun certificateToPem(certificate: Certificate): String {
-    val encoded = Base64.encode(certificate.encoded, Base64.DEFAULT)
-    val pemContent = String(encoded).chunked(64).joinToString("\n")
-    return "-----BEGIN CERTIFICATE-----\n$pemContent-----END CERTIFICATE-----"
-}
-
-fun certificateChainToPem(certificates: Array<Certificate>): String {
-    return certificates.mapIndexed { index, cert ->
-        "Certificate $index:\n${certificateToPem(cert)}"
-    }.joinToString("\n\n")
-}
-
-
-fun ecPublicKeyToJwkString(publicKey: ECPublicKey): String? {
-    return try {
-        val ecPoint = publicKey.w
-        val fieldSize = publicKey.params.curve.field.fieldSize
-        val coordinateSize = (fieldSize + 7) / 8
-
-        // EC Point の座標を取得
-        val xCoord = ecPoint.affineX.toByteArray().let { bytes ->
-            when {
-                bytes.size > coordinateSize -> bytes.sliceArray(bytes.size - coordinateSize until bytes.size)
-                bytes.size < coordinateSize -> ByteArray(coordinateSize - bytes.size) + bytes
-                else -> bytes
-            }
-        }
-
-        val yCoord = ecPoint.affineY.toByteArray().let { bytes ->
-            when {
-                bytes.size > coordinateSize -> bytes.sliceArray(bytes.size - coordinateSize until bytes.size)
-                bytes.size < coordinateSize -> ByteArray(coordinateSize - bytes.size) + bytes
-                else -> bytes
-            }
-        }
-
-        val jwk = JSONObject().apply {
-            put("kty", "EC")
-            put("crv", "P-256")
-            put("x", Base64.encodeToString(xCoord, Base64.URL_SAFE or Base64.NO_PADDING))
-            put("y", Base64.encodeToString(yCoord, Base64.URL_SAFE or Base64.NO_PADDING))
-            put("use", "sig")
-            put("alg", "ES256")
-        }
-
-        jwk.toString(2) // 2スペースインデント
-    } catch (e: Exception) {
-        null
-    }
-}
 
 class ECKeystoreHelper {
 

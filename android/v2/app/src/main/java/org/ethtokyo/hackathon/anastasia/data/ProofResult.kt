@@ -9,6 +9,7 @@ data class ProofResult(
     val proof: String,
     val publicInputs: List<String>,
     val numPublicInputs: UInt,
-    val nextCmt: String,
+    val nextCmtX: String,
+    val nextCmtY: String,
     val nextCmtR: String
 ) : Parcelable

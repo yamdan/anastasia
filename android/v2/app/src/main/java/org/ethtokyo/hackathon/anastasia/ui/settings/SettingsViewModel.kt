@@ -12,7 +12,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val sepoliaApiKey: LiveData<String> = appSettings.sepoliaApiKey
     val caCertVerifierAddress: LiveData<String> = appSettings.caCertVerifierAddress
     val eeCertVerifierAddress: LiveData<String> = appSettings.eeCertVerifierAddress
-    val eeCertLongVerifierAddress: LiveData<String> = appSettings.eeCertLongVerifierAddress
 
     fun loadSettings() {
         appSettings.loadSettings()
@@ -22,13 +21,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         sepoliaApiKey: String,
         caCertVerifierAddress: String,
         eeCertVerifierAddress: String,
-        eeCertLongVerifierAddress: String
     ) {
         appSettings.updateSettings(
             sepoliaApiKey,
             caCertVerifierAddress,
             eeCertVerifierAddress,
-            eeCertLongVerifierAddress
         )
     }
 }

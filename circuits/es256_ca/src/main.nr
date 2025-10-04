@@ -28,9 +28,9 @@ fn main(
     not_before: [u8; 7],
     not_after: [u8; 7],
     now: pub [u8; 7],
-    prev_cmt: pub Field,
+    prev_cmt: pub (Field, Field),
     prev_cmt_r: Field,
-    next_cmt: pub Field,
+    next_cmt: pub (Field, Field),
     next_cmt_r: Field,
 ) {
     let not_before = models::UtcTime::from_bytes(not_before);

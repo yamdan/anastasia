@@ -14,12 +14,12 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.ethtokyo.hackathon.anastasia.Constants
-import org.ethtokyo.hackathon.anastasia.core.convertProofForInfura
+import org.ethtokyo.hackathon.anastasia.core.smart_contract.convertProofForInfura
 import org.ethtokyo.hackathon.anastasia.data.AppSettings
 import org.ethtokyo.hackathon.anastasia.data.ProofResult
 import org.ethtokyo.hackathon.anastasia.data.exceptions.InvalidDestinationException
-import org.ethtokyo.hackathon.anastasia.smart_contract.create_eth_call_json
-import org.ethtokyo.hackathon.anastasia.smart_contract.resolveInfuraPath
+import org.ethtokyo.hackathon.anastasia.core.smart_contract.create_eth_call_json
+import org.ethtokyo.hackathon.anastasia.core.smart_contract.resolveInfuraPath
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
@@ -106,13 +106,13 @@ class ProofCompletedViewModel(application: Application) : AndroidViewModel(appli
 
             try {
                 val smContractAddress = if (proofResult.proofForEE){
-                    val eeLongAddress = appSettings.getEeCertLongVerifierAddressValue()
-                    Log.d("ProofCompletedVM", "EE Long Address from settings: '$eeLongAddress'")
-                    if (eeLongAddress.isBlank()){
+                    val eeAddress = appSettings.getEeCertVerifierAddressValue()
+                    Log.d("ProofCompletedVM", "EE Long Address from settings: '$eeAddress'")
+                    if (eeAddress.isBlank()){
                         Log.e("ProofCompletedVM", "EE Cert Long Verifier Address is blank!")
                         throw InvalidDestinationException("EE Cert Long Verifier Address is blank. Check Settings page.")
                     }
-                    eeLongAddress
+                    eeAddress
                 } else {
                     val caAddress = appSettings.getCaCertVerifierAddressValue()
                     Log.d("ProofCompletedVM", "CA Address from settings: '$caAddress'")

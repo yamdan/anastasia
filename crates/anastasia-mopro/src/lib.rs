@@ -39,7 +39,8 @@ fn prove(
     authority_key_id: Vec<u8>,
     issuer_pk_x: Vec<u8>,
     issuer_pk_y: Vec<u8>,
-    prev_cmt: String,
+    prev_cmt_x: String,
+    prev_cmt_y: String,
     prev_cmt_r: String,
     now: Option<String>,
 ) -> Result<ProofResult, MoproError> {
@@ -58,7 +59,8 @@ fn prove(
         authority_key_id,
         issuer_pk_x,
         issuer_pk_y,
-        prev_cmt,
+        prev_cmt_x,
+        prev_cmt_y,
         prev_cmt_r,
     )
     .map_err(|e| MoproError::NoirError(e.to_string()))?;
@@ -93,7 +95,7 @@ mod tests {
             0xa8, 0x5a, 0xfb, 0xd2,
         ];
 
-        let CommitResult { cmt, r } = commit_attrs(
+        let CommitResult { cmt_x, cmt_y, r } = commit_attrs(
             subject,
             subject_key_identifier,
             subject_pk_x,
@@ -101,7 +103,8 @@ mod tests {
             None,
         )
         .unwrap();
-        assert_eq!(cmt.len(), 64); // 32 bytes in hex
+        assert_eq!(cmt_x.len(), 64); // 32 bytes in hex
+        assert_eq!(cmt_y.len(), 64); // 32 bytes in hex
         assert_eq!(r.len(), 64); // 32 bytes in hex
     }
 
@@ -129,7 +132,7 @@ mod tests {
         ];
         let r = "deadbeef".to_string();
 
-        let CommitResult { cmt, r } = commit_attrs(
+        let CommitResult { cmt_x, cmt_y, r } = commit_attrs(
             subject,
             subject_key_identifier,
             subject_pk_x,
@@ -137,11 +140,16 @@ mod tests {
             Some(r),
         )
         .unwrap();
-        assert_eq!(cmt.len(), 64); // 32 bytes in hex
+        assert_eq!(cmt_x.len(), 64); // 32 bytes in hex
+        assert_eq!(cmt_y.len(), 64); // 32 bytes in hex
         assert_eq!(r.len(), 64); // 32 bytes in hex
         assert_eq!(
-            cmt,
-            "0ede28f511104f08069e07986707873be5cbba917f02f02407ad1fdd6838679b"
+            cmt_x,
+            "1566ab02692714a5c5c07252b13597c49b80b0b4d78849fb8ff9f0d930c9481c"
+        );
+        assert_eq!(
+            cmt_y,
+            "20a10a6b5362161c9412b2a93897e481234834c699c84936459d9c6a30cf2537"
         );
     }
 
@@ -179,7 +187,8 @@ mod tests {
         ];
         let prev_cmt_r = "deadbeef";
         let CommitResult {
-            cmt: prev_cmt,
+            cmt_x: prev_cmt_x,
+            cmt_y: prev_cmt_y,
             r: _,
         } = commit_attrs(
             issuer,
@@ -195,7 +204,8 @@ mod tests {
             proof,
             public_inputs,
             num_public_inputs,
-            next_cmt,
+            next_cmt_x,
+            next_cmt_y,
             next_cmt_r,
         } = prove(
             meta,
@@ -203,22 +213,24 @@ mod tests {
             authority_key_id,
             issuer_pk_x,
             issuer_pk_y,
-            prev_cmt.to_string(),
+            prev_cmt_x.to_string(),
+            prev_cmt_y.to_string(),
             prev_cmt_r.to_string(),
             Some("2025-09-14T00:00:00Z".to_string()),
         )
         .unwrap();
 
         assert!(!proof.is_empty());
-        assert_eq!(next_cmt.len(), 64); // 32 bytes in hex
+        assert_eq!(next_cmt_x.len(), 64); // 32 bytes in hex
+        assert_eq!(next_cmt_y.len(), 64); // 32 bytes in hex
         assert_eq!(next_cmt_r.len(), 64); // 32 bytes in hex
         assert_eq!(
             num_public_inputs,
-            9 // Number of public inputs expected for es256_ca
+            11 // Number of public inputs expected for es256_ca
         );
         assert_eq!(
             public_inputs.len(),
-            9 // Number of public inputs expected for es256_ca
+            11 // Number of public inputs expected for es256_ca
         );
 
         // Generate next commitment and check it matches
@@ -244,7 +256,8 @@ mod tests {
             0x3c, 0xeb, 0x47, 0xcd,
         ];
         let CommitResult {
-            cmt: next_cmt_generated,
+            cmt_x: next_cmt_x_generated,
+            cmt_y: next_cmt_y_generated,
             r: _,
         } = commit_attrs(
             subject,
@@ -254,6 +267,7 @@ mod tests {
             Some(next_cmt_r),
         )
         .unwrap();
-        assert_eq!(next_cmt, next_cmt_generated);
+        assert_eq!(next_cmt_x, next_cmt_x_generated);
+        assert_eq!(next_cmt_y, next_cmt_y_generated);
     }
 }

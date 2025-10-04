@@ -27,9 +27,9 @@ class MainActivity : AppCompatActivity() {
         val appSettings = AppSettings.getInstance(this)
         Log.d("MainActivity", "AppSettings initialized. Testing values...")
         Log.d("MainActivity", "CA Address: '${appSettings.getCaCertVerifierAddressValue()}'")
-        Log.d("MainActivity", "EE Long Address: '${appSettings.getEeCertLongVerifierAddressValue()}'")
+        Log.d("MainActivity", "EE Address: '${appSettings.getEeCertVerifierAddressValue()}'")
         Log.d("MainActivity", "BuildConfig SC_ADDRESS_CA: '${BuildConfig.SC_ADDRESS_CA}'")
-        Log.d("MainActivity", "BuildConfig SC_ADDRESS_EE_LONG: '${BuildConfig.SC_ADDRESS_EE_LONG}'")
+        Log.d("MainActivity", "BuildConfig SC_ADDRESS_EE: '${BuildConfig.SC_ADDRESS_EE}'")
 
         val navView: BottomNavigationView = binding.navView
 

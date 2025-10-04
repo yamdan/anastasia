@@ -18,9 +18,6 @@ class AppSettings private constructor(context: Context) {
     private val _eeCertVerifierAddress = MutableLiveData<String>()
     val eeCertVerifierAddress: LiveData<String> = _eeCertVerifierAddress
 
-    private val _eeCertLongVerifierAddress = MutableLiveData<String>()
-    val eeCertLongVerifierAddress: LiveData<String> = _eeCertLongVerifierAddress
-
     companion object {
         @Volatile
         private var INSTANCE: AppSettings? = null
@@ -40,25 +37,21 @@ class AppSettings private constructor(context: Context) {
         _sepoliaApiKey.value = repository.getSepoliaApiKey()
         _caCertVerifierAddress.value = repository.getCaCertVerifierAddress()
         _eeCertVerifierAddress.value = repository.getEeCertVerifierAddress()
-        _eeCertLongVerifierAddress.value = repository.getEeCertLongVerifierAddress()
     }
 
     fun updateSettings(
         sepoliaApiKey: String,
         caCertVerifierAddress: String,
         eeCertVerifierAddress: String,
-        eeCertLongVerifierAddress: String
     ) {
         repository.saveSepoliaApiKey(sepoliaApiKey)
         repository.saveCaCertVerifierAddress(caCertVerifierAddress)
         repository.saveEeCertVerifierAddress(eeCertVerifierAddress)
-        repository.saveEeCertLongVerifierAddress(eeCertLongVerifierAddress)
 
         // Update LiveData to notify all observers
         _sepoliaApiKey.value = sepoliaApiKey
         _caCertVerifierAddress.value = caCertVerifierAddress
         _eeCertVerifierAddress.value = eeCertVerifierAddress
-        _eeCertLongVerifierAddress.value = eeCertLongVerifierAddress
     }
 
     // Synchronous getters for cases where LiveData observation is not suitable
@@ -86,11 +79,4 @@ class AppSettings private constructor(context: Context) {
         return result
     }
 
-    fun getEeCertLongVerifierAddressValue(): String {
-        val liveDataValue = _eeCertLongVerifierAddress.value
-        val repositoryValue = repository.getEeCertLongVerifierAddress()
-        val result = liveDataValue ?: repositoryValue
-        Log.d("AppSettings", "getEeCertLongVerifierAddressValue: liveData='$liveDataValue', repo='$repositoryValue', result='$result'")
-        return result
-    }
 }

@@ -1,3 +1,7 @@
+use std::ecdsa_secp256r1::verify_signature;
+
+use sha256::sha256_var;
+
 use crate::{
     commit::commit_attrs,
     models::{
@@ -6,8 +10,6 @@ use crate::{
         subject_key_identifier_extension, UtcTime,
     },
 };
-use sha256::sha256_var;
-use std::ecdsa_secp256r1::verify_signature;
 
 pub fn verify<let MAX_TBS_LEN: u32, let MAX_EXT_LEN: u32>(
     issuer_pk_x: [u8; 32],
@@ -34,9 +36,9 @@ pub fn verify<let MAX_TBS_LEN: u32, let MAX_EXT_LEN: u32>(
     key_usage_digital_signature_index: u32,
     extra_extension: [u8; MAX_EXT_LEN],
     extra_extension_len: u32,
-    prev_cmt: Field,
+    prev_cmt: (Field, Field),
     prev_cmt_r: Field,
-    next_cmt: Field,
+    next_cmt: (Field, Field),
     next_cmt_r: Field,
 ) {
     let mut buf: [u8; MAX_TBS_LEN] = [0; MAX_TBS_LEN];

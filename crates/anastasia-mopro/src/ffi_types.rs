@@ -50,14 +50,16 @@ impl From<CircuitMeta> for anastasia_rs::CircuitMeta {
 
 #[derive(Clone, Debug, Record)]
 pub struct CommitResult {
-    pub cmt: String,
+    pub cmt_x: String,
+    pub cmt_y: String,
     pub r: String,
 }
 
 impl From<anastasia_rs::CommitResult> for CommitResult {
     fn from(result: anastasia_rs::CommitResult) -> Self {
         CommitResult {
-            cmt: result.cmt,
+            cmt_x: result.cmt_x,
+            cmt_y: result.cmt_y,
             r: result.r,
         }
     }
@@ -66,7 +68,8 @@ impl From<anastasia_rs::CommitResult> for CommitResult {
 impl From<CommitResult> for anastasia_rs::CommitResult {
     fn from(result: CommitResult) -> Self {
         anastasia_rs::CommitResult {
-            cmt: result.cmt,
+            cmt_x: result.cmt_x,
+            cmt_y: result.cmt_y,
             r: result.r,
         }
     }
@@ -80,8 +83,10 @@ pub struct ProofResult {
     pub public_inputs: Vec<String>,
     /// The number of public inputs
     pub num_public_inputs: u32,
-    /// The next commitment
-    pub next_cmt: String,
+    /// The next commitment x-coordinate
+    pub next_cmt_x: String,
+    /// The next commitment y-coordinate
+    pub next_cmt_y: String,
     /// The random value used for the next commitment
     pub next_cmt_r: String,
 }
@@ -97,7 +102,8 @@ impl From<anastasia_rs::ProofResult> for ProofResult {
                 .map(|input| hex::encode(input))
                 .collect(),
             num_public_inputs: result.proof_with_public_inputs.num_public_inputs as u32,
-            next_cmt: result.next_cmt,
+            next_cmt_x: result.next_cmt_x,
+            next_cmt_y: result.next_cmt_y,
             next_cmt_r: result.next_cmt_r,
         }
     }
@@ -119,7 +125,8 @@ impl TryFrom<ProofResult> for anastasia_rs::ProofResult {
                 public_inputs,
                 num_public_inputs: result.num_public_inputs as usize,
             },
-            next_cmt: result.next_cmt,
+            next_cmt_x: result.next_cmt_x,
+            next_cmt_y: result.next_cmt_y,
             next_cmt_r: result.next_cmt_r,
         })
     }
