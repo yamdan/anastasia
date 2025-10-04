@@ -14,6 +14,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import org.ethtokyo.hackathon.anastasia.R
 import org.ethtokyo.hackathon.anastasia.databinding.FragmentProofCompletedBinding
+import org.ethtokyo.hackathon.anastasia.data.AppSettings
 import org.ethtokyo.hackathon.anastasia.data.ProofGenerationPerformance
 import org.ethtokyo.hackathon.anastasia.data.ProofResult
 
@@ -48,22 +49,62 @@ class ProofCompletedFragment : Fragment() {
         )
         binding.textViewPerformance.text = performance.toFormattedString()
 
-        setupListeners(proofsResult.proofs, proofsText)
+        setupUI(proofsResult.proofs, proofsText)
         setupObservers()
 
         return binding.root
     }
 
-    private fun setupListeners(proofResults: Array<ProofResult>, proofsText: String) {
+    private fun setupUI(proofResults: Array<ProofResult>, proofsText: String) {
+        val appSettings = AppSettings.getInstance(requireContext())
+        val hasRequiredSettings = checkRequiredSettings(appSettings)
+
+        if (hasRequiredSettings) {
+            // 設定が揃っている場合：質問とYES/NOボタンを表示
+            binding.textViewMessage.visibility = View.VISIBLE
+            binding.buttonYes.visibility = View.VISIBLE
+            binding.buttonNo.visibility = View.VISIBLE
+            binding.buttonFinish.visibility = View.GONE
+            setupSmartContractListeners(proofResults)
+        } else {
+            // 設定が不足している場合：Finishボタンのみ表示
+            binding.textViewMessage.visibility = View.GONE
+            binding.buttonYes.visibility = View.GONE
+            binding.buttonNo.visibility = View.GONE
+            binding.buttonFinish.visibility = View.VISIBLE
+            setupFinishListener()
+        }
+
+        // 共通のリスナー設定
+        binding.textViewProof.setOnClickListener {
+            copyToClipboard(proofsText)
+        }
+    }
+
+    private fun checkRequiredSettings(appSettings: AppSettings): Boolean {
+        val sepoliaApiKey = appSettings.getSepoliaApiKeyValue()
+        val caCertAddress = appSettings.getCaCertVerifierAddressValue()
+        val eeCertAddress = appSettings.getEeCertVerifierAddressValue()
+        val eeCertLongAddress = appSettings.getEeCertLongVerifierAddressValue()
+
+        return sepoliaApiKey.isNotBlank() &&
+               caCertAddress.isNotBlank() &&
+               eeCertAddress.isNotBlank() &&
+               eeCertLongAddress.isNotBlank()
+    }
+
+    private fun setupSmartContractListeners(proofResults: Array<ProofResult>) {
         binding.buttonYes.setOnClickListener {
-            viewModel.recordProofs(proofResults)
+            viewModel.verifyProofs(proofResults)
         }
         binding.buttonNo.setOnClickListener {
             findNavController().navigate(R.id.action_proofCompletedFragment_to_navigation_key_management)
         }
+    }
 
-        binding.textViewProof.setOnClickListener {
-            copyToClipboard(proofsText)
+    private fun setupFinishListener() {
+        binding.buttonFinish.setOnClickListener {
+            findNavController().navigate(R.id.action_proofCompletedFragment_to_navigation_key_management)
         }
     }
 
