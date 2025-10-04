@@ -64,7 +64,7 @@ fun InternalProofResult.convertProofForInfura(): String {
 }
 
 
-fun proveParentChildRel(context: Context, child: Certificate, parent: Certificate, caPrevCmt: String, caPrevCmtR: String): InternalProofResult {
+fun proveParentChildRel(context: Context, child: Certificate, parent: Certificate, caPrevCmtX: String,caPrevCmtY: String, caPrevCmtR: String): InternalProofResult {
     val circuitForChild = selectAppropriateCircuit(context, child)
     val circuitMetaForLibrary = CircuitMeta(
         "${circuitForChild.circuit}-${circuitForChild.vk}-${circuitForChild.srs}",
@@ -90,7 +90,8 @@ fun proveParentChildRel(context: Context, child: Certificate, parent: Certificat
         authorityKeyId,
         pubKeyX,
         pubKeyY,
-        caPrevCmt,
+        caPrevCmtX,
+        caPrevCmtY,
         caPrevCmtR,
         null
     )
@@ -100,7 +101,8 @@ fun proveParentChildRel(context: Context, child: Certificate, parent: Certificat
         proof = moproProved.proof,
         publicInputs = moproProved.publicInputs,
         numPublicInputs = moproProved.numPublicInputs,
-        nextCmt = moproProved.nextCmt,
+        nextCmtX = moproProved.nextCmtX,
+        nextCmtY = moproProved.nextCmtY,
         nextCmtR = moproProved.nextCmtR
     )
 }

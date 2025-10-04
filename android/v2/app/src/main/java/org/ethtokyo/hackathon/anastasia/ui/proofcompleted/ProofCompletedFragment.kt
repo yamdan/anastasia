@@ -38,7 +38,7 @@ class ProofCompletedFragment : Fragment() {
 
         // 複数のproofを改行区切りで表示
         val proofsText = proofsResult.proofs.joinToString("\n\n") { proofResult ->
-            "Proof:\n${proofResult.proof}\n\nNext Commitment:\n${proofResult.nextCmt}\n\nNext Commitment R:\n${proofResult.nextCmtR}"
+            "Proof:\n${proofResult.proof}\n\nNext CommitmentX:\n${proofResult.nextCmtX}\n\nNext CommitmentY:\n${proofResult.nextCmtY}\n\nNext Commitment R:\n${proofResult.nextCmtR}"
         }
         binding.textViewProof.text = proofsText
 

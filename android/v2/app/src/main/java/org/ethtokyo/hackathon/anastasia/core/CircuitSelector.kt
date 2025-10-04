@@ -16,7 +16,6 @@ data class Circuit(
 )
 
 private val assetFileCache = mutableMapOf<String, String>()
-private val assetBinaryCache = mutableMapOf<String, ByteArray>()
 
 @Throws(IOException::class)
 private fun copyFileInternal(inputStream: InputStream, outputStream: OutputStream) {
@@ -63,9 +62,10 @@ fun getFilePathFromAssets(context: Context, assetFileName: String): String {
 fun selectAppropriateCircuit(context: Context, certificate: Certificate): Circuit {
     val prefix = certificate.getCircuitDir()
 
+    // todo: 暗号アルゴリズムごとに適切な回路を使用できるようにすべき
     return Circuit(
-        vk = getFilePathFromAssets(context, "$prefix/es256_${prefix}.vk"),
-        circuit = getFilePathFromAssets(context, "$prefix/es256_${prefix}.json"),
+        vk = getFilePathFromAssets(context, "$prefix/es256.vk"),
+        circuit = getFilePathFromAssets(context, "$prefix/es256.json"),
         srs = getFilePathFromAssets(context, "$prefix/common.srs")
     )
 }
@@ -89,7 +89,7 @@ fun Certificate.isEndEntity(): Boolean {
 
 fun Certificate.getCircuitDir(): String {
     if (this.isEndEntity()){
-        return "ee"
+        return "ee_long"
     }
     return "ca"
 }

@@ -101,7 +101,8 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             context = application.applicationContext,
             child = parentCert,
             parent = grandparentCert,
-            caPrevCmt = caCommitResult.cmt,
+            caPrevCmtX = caCommitResult.cmtX,
+            caPrevCmtY = caCommitResult.cmtY,
             caPrevCmtR = caCommitResult.r
         )
         val proof1EndTime = System.currentTimeMillis()
@@ -124,7 +125,8 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             context = application.applicationContext,
             child = childCert,
             parent = parentCert,
-            caPrevCmt = proofResult1.nextCmt,
+            caPrevCmtX = proofResult1.nextCmtX,
+            caPrevCmtY = proofResult1.nextCmtY,
             caPrevCmtR = proofResult1.nextCmtR
         )
         val proof2EndTime = System.currentTimeMillis()
