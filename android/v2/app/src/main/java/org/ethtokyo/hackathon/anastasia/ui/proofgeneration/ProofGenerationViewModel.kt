@@ -15,7 +15,6 @@ import org.ethtokyo.hackathon.anastasia.core.proveParentChildRel
 import org.ethtokyo.hackathon.anastasia.core.computeSubjectKeyId
 import org.ethtokyo.hackathon.anastasia.core.extractECPublicKeyCoordinates
 import org.ethtokyo.hackathon.anastasia.data.ProofGenerationTime
-import org.ethtokyo.hackathon.anastasia.data.ProofResult
 import org.ethtokyo.hackathon.anastasia.data.ProofsGenerationResult
 import uniffi.mopro.commitAttrs
 import java.security.cert.X509Certificate

@@ -5,6 +5,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
+import org.ethtokyo.hackathon.anastasia.core.smart_contract.convertProofForInfura
 import org.junit.Test
 import org.junit.Ignore
 import org.junit.Before
