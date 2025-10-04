@@ -42,22 +42,16 @@ class SettingsFragment : Fragment() {
             binding.editTextEeCertVerifierAddress.setText(address)
         }
 
-        settingsViewModel.eeCertLongVerifierAddress.observe(viewLifecycleOwner) { address ->
-            binding.editTextEeCertLongVerifierAddress.setText(address)
-        }
-
         // Save button click listener
         binding.buttonSave.setOnClickListener {
             val sepoliaApiKey = binding.editTextSepoliaApiKey.text.toString()
             val caCertVerifierAddress = binding.editTextCaCertVerifierAddress.text.toString()
             val eeCertVerifierAddress = binding.editTextEeCertVerifierAddress.text.toString()
-            val eeCertLongVerifierAddress = binding.editTextEeCertLongVerifierAddress.text.toString()
 
             settingsViewModel.saveSettings(
                 sepoliaApiKey,
                 caCertVerifierAddress,
-                eeCertVerifierAddress,
-                eeCertLongVerifierAddress
+                eeCertVerifierAddress
             )
 
             Toast.makeText(context, "Settings saved successfully", Toast.LENGTH_SHORT).show()

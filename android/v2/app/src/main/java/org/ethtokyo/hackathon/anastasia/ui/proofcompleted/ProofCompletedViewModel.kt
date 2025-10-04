@@ -106,13 +106,13 @@ class ProofCompletedViewModel(application: Application) : AndroidViewModel(appli
 
             try {
                 val smContractAddress = if (proofResult.proofForEE){
-                    val eeLongAddress = appSettings.getEeCertLongVerifierAddressValue()
-                    Log.d("ProofCompletedVM", "EE Long Address from settings: '$eeLongAddress'")
-                    if (eeLongAddress.isBlank()){
+                    val eeAddress = appSettings.getEeCertVerifierAddressValue()
+                    Log.d("ProofCompletedVM", "EE Long Address from settings: '$eeAddress'")
+                    if (eeAddress.isBlank()){
                         Log.e("ProofCompletedVM", "EE Cert Long Verifier Address is blank!")
                         throw InvalidDestinationException("EE Cert Long Verifier Address is blank. Check Settings page.")
                     }
-                    eeLongAddress
+                    eeAddress
                 } else {
                     val caAddress = appSettings.getCaCertVerifierAddressValue()
                     Log.d("ProofCompletedVM", "CA Address from settings: '$caAddress'")

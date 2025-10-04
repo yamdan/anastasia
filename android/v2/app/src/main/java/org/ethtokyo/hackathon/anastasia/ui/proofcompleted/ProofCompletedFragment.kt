@@ -85,12 +85,10 @@ class ProofCompletedFragment : Fragment() {
         val sepoliaApiKey = appSettings.getSepoliaApiKeyValue()
         val caCertAddress = appSettings.getCaCertVerifierAddressValue()
         val eeCertAddress = appSettings.getEeCertVerifierAddressValue()
-        val eeCertLongAddress = appSettings.getEeCertLongVerifierAddressValue()
 
         return sepoliaApiKey.isNotBlank() &&
                caCertAddress.isNotBlank() &&
-               eeCertAddress.isNotBlank() &&
-               eeCertLongAddress.isNotBlank()
+               eeCertAddress.isNotBlank()
     }
 
     private fun setupSmartContractListeners(proofResults: Array<ProofResult>) {

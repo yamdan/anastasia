@@ -89,7 +89,7 @@ fun Certificate.isEndEntity(): Boolean {
 
 fun Certificate.getCircuitDir(): String {
     if (this.isEndEntity()){
-        return "ee_long"
+        return "ee"
     }
     return "ca"
 }
