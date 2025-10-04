@@ -5,10 +5,17 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import org.json.JSONArray
+import org.json.JSONObject
+import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
@@ -51,8 +58,27 @@ class ProofCompletedFragment : Fragment() {
 
         setupUI(proofsResult.proofs, proofsText)
         setupObservers()
+        setupMenu()
 
         return binding.root
+    }
+
+    private fun setupMenu() {
+        requireActivity().addMenuProvider(object : MenuProvider {
+            override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+                menuInflater.inflate(R.menu.proof_completed_menu, menu)
+            }
+
+            override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+                return when (menuItem.itemId) {
+                    R.id.action_copy_proofs_json -> {
+                        copyProofsAsJson()
+                        true
+                    }
+                    else -> false
+                }
+            }
+        }, viewLifecycleOwner, Lifecycle.State.RESUMED)
     }
 
     private fun setupUI(proofResults: Array<ProofResult>, proofsText: String) {
@@ -113,6 +139,24 @@ class ProofCompletedFragment : Fragment() {
         val clip = ClipData.newPlainText("Proof Data", text)
         clipboard.setPrimaryClip(clip)
         Toast.makeText(requireContext(), "Proof data copied to clipboard", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun copyProofsAsJson() {
+        val proofsResult = args.proofsResult
+        val jsonArray = JSONArray()
+
+        proofsResult.proofs.forEach { proofResult ->
+            val jsonObject = JSONObject()
+            jsonObject.put("proof", proofResult.proof)
+            jsonArray.put(jsonObject)
+        }
+
+        val jsonString = jsonArray.toString(2) // インデント2でフォーマット
+
+        val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("Proofs JSON", jsonString)
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(requireContext(), "Proofs JSON copied to clipboard", Toast.LENGTH_SHORT).show()
     }
 
     private fun setupObservers() {

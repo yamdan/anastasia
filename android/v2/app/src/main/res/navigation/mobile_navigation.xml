@@ -80,7 +80,7 @@
     <fragment
         android:id="@+id/proofCompletedFragment"
         android:name="org.ethtokyo.hackathon.anastasia.ui.proofcompleted.ProofCompletedFragment"
-        android:label="Proof generation completed"
+        android:label="Generation finished"
         tools:layout="@layout/fragment_proof_completed">
         <argument
             android:name="proofsResult"
