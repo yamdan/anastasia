@@ -20,6 +20,7 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setSupportActionBar(binding.toolbar)
 
         // Initialize app settings on startup
         Log.d("MainActivity", "Initializing AppSettings...")
