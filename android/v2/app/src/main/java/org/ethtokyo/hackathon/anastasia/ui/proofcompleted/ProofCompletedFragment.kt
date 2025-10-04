@@ -14,7 +14,8 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import org.ethtokyo.hackathon.anastasia.R
 import org.ethtokyo.hackathon.anastasia.databinding.FragmentProofCompletedBinding
-import uniffi.mopro.ProofResult
+import org.ethtokyo.hackathon.anastasia.data.ProofGenerationPerformance
+import org.ethtokyo.hackathon.anastasia.data.ProofResult
 
 class ProofCompletedFragment : Fragment() {
 
@@ -31,22 +32,23 @@ class ProofCompletedFragment : Fragment() {
         viewModel = ViewModelProvider(this)[ProofCompletedViewModel::class.java]
         _binding = FragmentProofCompletedBinding.inflate(inflater, container, false)
 
-        // ProofResultオブジェクトを再構築
-        val proofResults = Array(args.proofs.size) { i ->
-            ProofResult(
-                proof = args.proofs[i],
-                nextCmt = args.nextCmts[i],
-                nextCmtR = args.nextCmtRs[i]
-            )
-        }
+        // ProofsGenerationResultから直接データを取得
+        val proofsResult = args.proofsResult
 
         // 複数のproofを改行区切りで表示
-        val proofsText = proofResults.joinToString("\n\n") { proofResult ->
+        val proofsText = proofsResult.proofs.joinToString("\n\n") { proofResult ->
             "Proof:\n${proofResult.proof}\n\nNext Commitment:\n${proofResult.nextCmt}\n\nNext Commitment R:\n${proofResult.nextCmtR}"
         }
         binding.textViewProof.text = proofsText
 
-        setupListeners(proofResults, proofsText)
+        // パフォーマンスデータの表示
+        val performance = ProofGenerationPerformance(
+            individualTimes = proofsResult.performances.toList(),
+            totalTime = proofsResult.totalTime
+        )
+        binding.textViewPerformance.text = performance.toFormattedString()
+
+        setupListeners(proofsResult.proofs, proofsText)
         setupObservers()
 
         return binding.root

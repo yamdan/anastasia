@@ -1,6 +1,6 @@
 package org.ethtokyo.hackathon.anastasia.core
 
-import uniffi.mopro.ProofResult
+import org.ethtokyo.hackathon.anastasia.data.ProofResult as InternalProofResult
 import uniffi.mopro.prove
 import java.security.cert.Certificate
 import java.security.cert.X509Certificate
@@ -19,27 +19,11 @@ import org.bouncycastle.asn1.x509.Extension
 fun bytes(vararg ints: Int): ByteArray =
     ints.map { it.toByte() }.toByteArray()
 
-fun ProofResult.convertProofForInfura(): String {
-    val originalProof = this.proof
+// 内部ProofResult型用の拡張関数
+fun InternalProofResult.convertProofForInfura(): String {
 
-    // ワークアラウンド: 先頭の "ca_" / "ee_" を削除
-    val cleaned = when {
-        originalProof.startsWith("ca_") -> originalProof.substring(3)
-        originalProof.startsWith("ee_") -> originalProof.substring(3)
-        else -> originalProof
-    }
-
-    // 先頭の "0x" を削除
-    val proofHex = if (cleaned.startsWith("0x")) {
-        cleaned.substring(2)
-    } else {
-        cleaned
-    }
-
-    // --- publicInputs と proofData を分離 ---
-    // public inputs: 32バイト × 9個 = 288バイト = 576 hex文字
-    val publicInputsHex = proofHex.substring(0, 576)
-    val proofDataHex = proofHex.substring(576)
+    val publicInputsHex = this.publicInputs.joinToString(separator = "")
+    val proofDataHex = this.proof
     val proofLength = proofDataHex.length / 2 // バイト数
 
     // --- ABI 構造を構築 ---
@@ -64,8 +48,7 @@ fun ProofResult.convertProofForInfura(): String {
     // proof length (1ワード)
     val proofLengthPadded = proofLength.toString(16).padStart(64, '0')
 
-    // publicInputs count (固定で9)
-    val publicInputsCount = "0000000000000000000000000000000000000000000000000000000000000009"
+    val publicInputsCount = this.numPublicInputs.toString(16).padStart(64, '0')
 
     // --- dataフィールド組み立て ---
     val dataForInfura =
@@ -80,11 +63,8 @@ fun ProofResult.convertProofForInfura(): String {
     return dataForInfura
 }
 
-private fun bytesToHexString(bytes: ByteArray): String {
-    return bytes.joinToString(" ") { String.format("%02x", it.toUByte().toInt()) }
-}
 
-fun proveParentChildRel(context: Context, child: Certificate, parent: Certificate, caPrevCmt: String, caPrevCmtR: String): ProofResult {
+fun proveParentChildRel(context: Context, child: Certificate, parent: Certificate, caPrevCmt: String, caPrevCmtR: String): InternalProofResult {
     val circuitForChild = selectAppropriateCircuit(context, child)
     val circuitMetaForLibrary = CircuitMeta(
         "${circuitForChild.circuit}-${circuitForChild.vk}-${circuitForChild.srs}",
@@ -92,9 +72,6 @@ fun proveParentChildRel(context: Context, child: Certificate, parent: Certificat
         circuitForChild.vk,
         circuitForChild.srs,
     )
-    println("=== === === circuit : ${circuitForChild.circuit}")
-    println("=== === === vk : ${circuitForChild.vk}")
-    println("=== === === srs : ${circuitForChild.srs}")
 
     val parentX509 = parent as X509Certificate
     val childX509 = child as X509Certificate
@@ -102,20 +79,29 @@ fun proveParentChildRel(context: Context, child: Certificate, parent: Certificat
 
     // child証明書からAuthority Key Identifierを取得、なければparentのSubjectから算出
     val authorityKeyId = extractOrComputeAuthorityKeyId(childX509, parentX509)
-    println("authorityKeyId: ${bytesToHexString(authorityKeyId)}")
 
     // parent証明書から公開鍵のx、y座標を抽出
     val (pubKeyX, pubKeyY) = extractECPublicKeyCoordinates(parentX509)
 
     // prove関数を呼び出し
-    return prove(
+    val moproProved = prove(
         circuitMetaForLibrary,
         certDerBytes,
         authorityKeyId,
         pubKeyX,
         pubKeyY,
         caPrevCmt,
-        caPrevCmtR
+        caPrevCmtR,
+        null
+    )
+
+    return InternalProofResult(
+        proofForEE = child.isEndEntity(),
+        proof = moproProved.proof,
+        publicInputs = moproProved.publicInputs,
+        numPublicInputs = moproProved.numPublicInputs,
+        nextCmt = moproProved.nextCmt,
+        nextCmtR = moproProved.nextCmtR
     )
 }
 
