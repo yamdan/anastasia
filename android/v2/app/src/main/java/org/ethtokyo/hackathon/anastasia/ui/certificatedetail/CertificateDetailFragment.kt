@@ -5,8 +5,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
 import org.ethtokyo.hackathon.anastasia.Constants
 import org.ethtokyo.hackathon.anastasia.core.ECKeystoreHelper
+import org.ethtokyo.hackathon.anastasia.data.CertificateDetailItem
 import org.ethtokyo.hackathon.anastasia.databinding.FragmentCertificateDetailBinding
 import java.security.cert.X509Certificate
 import java.text.SimpleDateFormat
@@ -17,6 +19,7 @@ class CertificateDetailFragment : Fragment() {
     private var _binding: FragmentCertificateDetailBinding? = null
     private val binding get() = _binding!!
     private val keystoreHelper = ECKeystoreHelper()
+    private lateinit var adapter: CertificateDetailAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -25,10 +28,20 @@ class CertificateDetailFragment : Fragment() {
     ): View {
         _binding = FragmentCertificateDetailBinding.inflate(inflater, container, false)
 
+        setupRecyclerView()
+
         val certificateIndex = arguments?.getInt("certificateIndex", -1) ?: -1
         displayCertificateDetails(certificateIndex)
 
         return binding.root
+    }
+
+    private fun setupRecyclerView() {
+        adapter = CertificateDetailAdapter(emptyList())
+        binding.recyclerCertificateDetails.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = this@CertificateDetailFragment.adapter
+        }
     }
 
     private fun displayCertificateDetails(certificateIndex: Int) {
@@ -37,13 +50,8 @@ class CertificateDetailFragment : Fragment() {
             if (certificateChain != null && certificateIndex >= 0 && certificateIndex < certificateChain.size) {
                 val certificate = certificateChain[certificateIndex] as? X509Certificate
                 if (certificate != null) {
-                    val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-
-                    binding.tvSubjectValue.text = certificate.subjectX500Principal.name
-                    binding.tvIssuerValue.text = certificate.issuerX500Principal.name
-                    binding.tvSerialValue.text = certificate.serialNumber.toString(16).uppercase()
-                    binding.tvValidityFrom.text = "Valid From: ${dateFormat.format(certificate.notBefore)}"
-                    binding.tvValidityTo.text = "Valid To: ${dateFormat.format(certificate.notAfter)}"
+                    val detailItems = buildDetailItems(certificate)
+                    adapter.updateDetails(detailItems)
                 } else {
                     displayErrorDetails()
                 }
@@ -55,12 +63,41 @@ class CertificateDetailFragment : Fragment() {
         }
     }
 
+    private fun buildDetailItems(certificate: X509Certificate): List<CertificateDetailItem> {
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+
+        return listOf(
+            CertificateDetailItem(
+                title = "Subject",
+                value = certificate.subjectX500Principal.name
+            ),
+            CertificateDetailItem(
+                title = "Issuer",
+                value = certificate.issuerX500Principal.name
+            ),
+            CertificateDetailItem(
+                title = "Serial Number",
+                value = certificate.serialNumber.toString(16).uppercase()
+            ),
+            CertificateDetailItem(
+                title = "Valid From",
+                value = dateFormat.format(certificate.notBefore)
+            ),
+            CertificateDetailItem(
+                title = "Valid To",
+                value = dateFormat.format(certificate.notAfter)
+            )
+        )
+    }
+
     private fun displayErrorDetails() {
-        binding.tvSubjectValue.text = "Unable to load certificate details"
-        binding.tvIssuerValue.text = "Error occurred"
-        binding.tvSerialValue.text = "N/A"
-        binding.tvValidityFrom.text = "N/A"
-        binding.tvValidityTo.text = "N/A"
+        val errorItems = listOf(
+            CertificateDetailItem(
+                title = "Error",
+                value = "Unable to load certificate details"
+            )
+        )
+        adapter.updateDetails(errorItems)
     }
 
     override fun onDestroyView() {
