@@ -19,7 +19,7 @@ use crate::{
 pub fn prove(
     circuit: &Circuit,
     cert: Vec<u8>,
-    now: Option<DateTime<Utc>>,
+    now: DateTime<Utc>,
     authority_key_id: Vec<u8>,
     issuer_pk_x: Vec<u8>,
     issuer_pk_y: Vec<u8>,
@@ -98,7 +98,7 @@ pub fn prove(
 
 pub fn generate_witness(
     parsed_cert: ParsedCert,
-    now: Option<DateTime<Utc>>,
+    now: DateTime<Utc>,
     authority_key_id: [u8; 20],
     issuer_pk_x: [u8; 32],
     issuer_pk_y: [u8; 32],
@@ -112,14 +112,13 @@ pub fn generate_witness(
 ) -> Result<WitnessMap<GenericFieldElement<Fr>>, String> {
     let mut witness: Vec<Fr> = Vec::new();
 
-    let datetime = now.unwrap_or_else(|| Utc::now());
     let now = UtcTime {
-        year: datetime.year() as u16,
-        month: datetime.month() as u8,
-        day: datetime.day() as u8,
-        hour: datetime.hour() as u8,
-        minute: datetime.minute() as u8,
-        second: datetime.second() as u8,
+        year: now.year() as u16,
+        month: now.month() as u8,
+        day: now.day() as u8,
+        hour: now.hour() as u8,
+        minute: now.minute() as u8,
+        second: now.second() as u8,
     };
 
     witness.extend(from_u8_array_to_fr_vec(&issuer_pk_x));

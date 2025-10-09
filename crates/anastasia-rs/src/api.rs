@@ -80,7 +80,7 @@ pub struct ProofResult {
 pub fn prove(
     circuit_meta: &CircuitMeta,
     cert: Vec<u8>,
-    now: Option<DateTime<Utc>>,
+    now: DateTime<Utc>,
     authority_key_id: Vec<u8>,
     issuer_pk_x: Vec<u8>,
     issuer_pk_y: Vec<u8>,
@@ -218,7 +218,7 @@ mod tests {
         );
         let cert = std::fs::read("test_data/es256_ca.der").unwrap();
 
-        let now = Some(Utc.with_ymd_and_hms(2025, 9, 15, 0, 0, 0).unwrap());
+        let now = Utc.with_ymd_and_hms(2025, 9, 15, 0, 0, 0).unwrap();
 
         // Generate previous commitment
         let issuer = vec![
@@ -331,7 +331,7 @@ mod tests {
         );
         let cert = std::fs::read("test_data/es256_ee.der").unwrap();
 
-        let now = Some(Utc.with_ymd_and_hms(2025, 9, 15, 0, 0, 0).unwrap());
+        let now = Utc.with_ymd_and_hms(2025, 9, 15, 0, 0, 0).unwrap();
 
         // Generate previous commitment
         let issuer = vec![
