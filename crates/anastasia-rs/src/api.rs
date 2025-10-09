@@ -1,17 +1,16 @@
 use ark_bn254::Fr;
-use ark_ff::{PrimeField, UniformRand};
+use ark_ff::{AdditiveGroup, PrimeField, UniformRand};
 use ark_std::rand::rngs::OsRng;
 use chrono::{DateTime, Utc};
-use noir::utils::{
-    ProofWithPublicInputs, get_num_public_inputs_from_circuit, parse_proof_with_public_inputs,
-};
+use noir::utils::ProofWithPublicInputs;
 
 use crate::{
     cert::ParsedCert,
     circuit::{Circuit, CircuitMeta},
-    utils::ToHexString,
+    utils::{FromHexString, ToHexString},
 };
 
+#[derive(Debug)]
 pub struct CommitResult {
     pub cmt_x: String,
     pub cmt_y: String,
@@ -19,10 +18,10 @@ pub struct CommitResult {
 }
 
 pub fn commit_attrs(
-    distinguished_name: &Vec<u8>,
-    key_id: &Vec<u8>,
-    pk_x: &Vec<u8>,
-    pk_y: &Vec<u8>,
+    distinguished_name: &[u8],
+    key_id: &[u8],
+    pk_x: &[u8],
+    pk_y: &[u8],
     r: Option<&str>,
 ) -> Result<CommitResult, String> {
     let mut rng = OsRng;
@@ -35,7 +34,7 @@ pub fn commit_attrs(
 
     let cmt = crate::commit::commit_attrs(
         {
-            let mut padded_dn = distinguished_name.clone();
+            let mut padded_dn = distinguished_name.to_vec();
             if padded_dn.len() > 124 {
                 return Err("distinguished name must be at most 124 bytes".to_string());
             }
@@ -45,14 +44,11 @@ pub fn commit_attrs(
                 .map_err(|_| "distinguished name must be at most 124 bytes".to_string())?
         },
         key_id
-            .as_slice()
             .try_into()
             .map_err(|_| "key_identifier must be 20 bytes".to_string())?,
-        pk_x.as_slice()
-            .try_into()
+        pk_x.try_into()
             .map_err(|_| "publickey_x must be 32 bytes".to_string())?,
-        pk_y.as_slice()
-            .try_into()
+        pk_y.try_into()
             .map_err(|_| "publickey_y must be 32 bytes".to_string())?,
         r,
     )?;
@@ -67,7 +63,8 @@ pub fn commit_attrs(
     })
 }
 
-pub struct ProofResult {
+#[derive(Debug)]
+pub struct ProofResultHex {
     /// The proof with public inputs
     pub proof_with_public_inputs: ProofWithPublicInputs,
     /// The next commitment x-coordinate
@@ -78,47 +75,78 @@ pub struct ProofResult {
     pub next_cmt_r: String,
 }
 
+impl From<ProofResult> for ProofResultHex {
+    fn from(result: ProofResult) -> Self {
+        ProofResultHex {
+            proof_with_public_inputs: result.proof_with_public_inputs,
+            next_cmt_x: result.next_cmt_x.to_hex_string(),
+            next_cmt_y: result.next_cmt_y.to_hex_string(),
+            next_cmt_r: result.next_cmt_r.to_hex_string(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ProofResult {
+    /// The proof with public inputs
+    pub proof_with_public_inputs: ProofWithPublicInputs,
+    /// The next commitment x-coordinate
+    pub next_cmt_x: Fr,
+    /// The next commitment y-coordinate
+    pub next_cmt_y: Fr,
+    /// The random value used for the next commitment
+    pub next_cmt_r: Fr,
+}
+
 pub fn prove(
     circuit_meta: &CircuitMeta,
-    cert: &Vec<u8>,
-    now: &DateTime<Utc>,
-    authority_key_id: &Vec<u8>,
-    issuer_pk_x: &Vec<u8>,
-    issuer_pk_y: &Vec<u8>,
+    cert: &[u8],
+    now: Option<i64>,
+    authority_key_id: &[u8],
+    issuer_pk_x: &[u8],
+    issuer_pk_y: &[u8],
     prev_cmt_x: &String,
     prev_cmt_y: &String,
     prev_cmt_r: &String,
-) -> Result<ProofResult, String> {
+) -> Result<ProofResultHex, String> {
     let parsed_cert =
         ParsedCert::from_der(&cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
+
+    let now_datetime = match now {
+        Some(ts) => chrono::DateTime::from_timestamp_secs(ts)
+            .ok_or_else(|| "Invalid timestamp".to_string())?
+            .with_timezone(&chrono::Utc),
+        None => chrono::Utc::now(),
+    };
 
     prove_single(
         circuit_meta,
         &parsed_cert,
-        now,
+        &now_datetime,
         authority_key_id,
         issuer_pk_x,
         issuer_pk_y,
-        prev_cmt_x,
-        prev_cmt_y,
-        prev_cmt_r,
+        &Fr::from_hex_string(prev_cmt_x)?,
+        &Fr::from_hex_string(prev_cmt_y)?,
+        &Fr::from_hex_string(prev_cmt_r)?,
     )
+    .map(ProofResultHex::from)
 }
 
 pub fn prove_single(
     circuit_meta: &CircuitMeta,
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
-    authority_key_id: &Vec<u8>,
-    issuer_pk_x: &Vec<u8>,
-    issuer_pk_y: &Vec<u8>,
-    prev_cmt_x: &String,
-    prev_cmt_y: &String,
-    prev_cmt_r: &String,
+    authority_key_id: &[u8],
+    issuer_pk_x: &[u8],
+    issuer_pk_y: &[u8],
+    prev_cmt_x: &Fr,
+    prev_cmt_y: &Fr,
+    prev_cmt_r: &Fr,
 ) -> Result<ProofResult, String> {
     let circuit = Circuit::new(circuit_meta)?;
 
-    let (proof, next_cmt_x, next_cmt_y, next_cmt_r) = crate::prove::prove(
+    let (proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r) = crate::prove::prove(
         &circuit,
         parsed_cert,
         now,
@@ -131,18 +159,8 @@ pub fn prove_single(
         circuit.max_extra_extension_len,
     )?;
 
-    let num_public_inputs = get_num_public_inputs_from_circuit(&circuit.bytecode).map_err(|e| {
-        format!(
-            "Failed to get number of public inputs from circuit bytecode: {}",
-            e
-        )
-    })?;
-
-    let parsed_proof = parse_proof_with_public_inputs(&proof, num_public_inputs)
-        .map_err(|e| format!("Failed to parse proof with public inputs: {}", e))?;
-
     Ok(ProofResult {
-        proof_with_public_inputs: parsed_proof,
+        proof_with_public_inputs,
         next_cmt_x,
         next_cmt_y,
         next_cmt_r,
@@ -153,7 +171,7 @@ pub fn prove_single(
 mod tests {
     use super::*;
 
-    use chrono::TimeZone;
+    use serial_test::serial;
 
     #[test]
     fn test_commit_attrs() {
@@ -237,6 +255,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_prove_es256_ca() {
         let meta = CircuitMeta::new(
             "es256_ca".to_string(),
@@ -246,7 +265,7 @@ mod tests {
         );
         let cert = std::fs::read("test_data/es256_ca_strongbox.der").unwrap();
 
-        let now = Utc.with_ymd_and_hms(2025, 9, 15, 0, 0, 0).unwrap();
+        let now = 1757808000; // 2025-09-14T00:00:00Z
 
         // Generate previous commitment
         let issuer = vec![
@@ -284,7 +303,7 @@ mod tests {
         .unwrap();
 
         // Generate proof
-        let ProofResult {
+        let ProofResultHex {
             proof_with_public_inputs,
             next_cmt_x,
             next_cmt_y,
@@ -292,7 +311,7 @@ mod tests {
         } = prove(
             &meta,
             &cert,
-            &now,
+            Some(now),
             &authority_key_id,
             &issuer_pk_x,
             &issuer_pk_y,
@@ -350,6 +369,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_prove_es256_ee() {
         let meta = CircuitMeta::new(
             "es256_ee".to_string(),
@@ -359,7 +379,7 @@ mod tests {
         );
         let cert = std::fs::read("test_data/es256_ee.der").unwrap();
 
-        let now = Utc.with_ymd_and_hms(2025, 9, 15, 0, 0, 0).unwrap();
+        let now = 1757808000; // 2025-09-14T00:00:00Z
 
         // Generate previous commitment
         let issuer = vec![
@@ -398,7 +418,7 @@ mod tests {
         .unwrap();
 
         // Generate proof
-        let ProofResult {
+        let ProofResultHex {
             proof_with_public_inputs,
             next_cmt_x,
             next_cmt_y,
@@ -406,7 +426,7 @@ mod tests {
         } = prove(
             &meta,
             &cert,
-            &now,
+            Some(now),
             &authority_key_id,
             &issuer_pk_x,
             &issuer_pk_y,

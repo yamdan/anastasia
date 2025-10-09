@@ -91,8 +91,8 @@ pub struct ProofResult {
     pub next_cmt_r: String,
 }
 
-impl From<anastasia_rs::ProofResult> for ProofResult {
-    fn from(result: anastasia_rs::ProofResult) -> Self {
+impl From<anastasia_rs::ProofResultHex> for ProofResult {
+    fn from(result: anastasia_rs::ProofResultHex) -> Self {
         ProofResult {
             proof: hex::encode(result.proof_with_public_inputs.proof),
             public_inputs: result
@@ -109,7 +109,7 @@ impl From<anastasia_rs::ProofResult> for ProofResult {
     }
 }
 
-impl TryFrom<ProofResult> for anastasia_rs::ProofResult {
+impl TryFrom<ProofResult> for anastasia_rs::ProofResultHex {
     type Error = hex::FromHexError;
 
     fn try_from(result: ProofResult) -> Result<Self, Self::Error> {
@@ -119,7 +119,7 @@ impl TryFrom<ProofResult> for anastasia_rs::ProofResult {
             .iter()
             .map(|input| hex::decode(input))
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(anastasia_rs::ProofResult {
+        Ok(anastasia_rs::ProofResultHex {
             proof_with_public_inputs: anastasia_rs::ProofWithPublicInputs {
                 proof,
                 public_inputs,

@@ -44,17 +44,10 @@ fn prove(
     prev_cmt_r: String,
     now: Option<i64>,
 ) -> Result<ProofResult, MoproError> {
-    let now = match now {
-        Some(ts) => chrono::DateTime::from_timestamp_secs(ts)
-            .ok_or_else(|| MoproError::NoirError("Invalid timestamp".to_string()))?
-            .with_timezone(&chrono::Utc),
-        None => chrono::Utc::now(),
-    };
-
     let proof = anastasia_rs::prove(
         &circuit_meta.into(),
         &cert,
-        &now,
+        now,
         &authority_key_id,
         &issuer_pk_x,
         &issuer_pk_y,
@@ -161,7 +154,7 @@ mod tests {
             "../anastasia-rs/data/common.srs".to_string(),
         );
 
-        let cert = std::fs::read("../anastasia-rs/test_data/es256_ca.der").unwrap();
+        let cert = std::fs::read("../anastasia-rs/test_data/es256_ca_strongbox.der").unwrap();
 
         // Generate previous commitment
         let issuer = vec![

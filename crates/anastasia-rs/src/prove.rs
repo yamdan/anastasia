@@ -7,27 +7,30 @@ use noir::{
     acir_field::GenericFieldElement,
     barretenberg::prove::prove_ultra_honk_keccak,
     native_types::{Witness, WitnessMap},
+    utils::{
+        ProofWithPublicInputs, get_num_public_inputs_from_circuit, parse_proof_with_public_inputs,
+    },
 };
 
 use crate::{
     cert::ParsedCert,
     circuit::Circuit,
     commit::commit_attrs,
-    utils::{FromHexString, ToHexString, UtcTime, from_u8_array_to_fr_vec},
+    utils::{UtcTime, from_u8_array_to_fr_vec},
 };
 
 pub fn prove(
     circuit: &Circuit,
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
-    authority_key_id: &Vec<u8>,
-    issuer_pk_x: &Vec<u8>,
-    issuer_pk_y: &Vec<u8>,
-    prev_cmt_x: &String,
-    prev_cmt_y: &String,
-    prev_cmt_r: &String,
+    authority_key_id: &[u8],
+    issuer_pk_x: &[u8],
+    issuer_pk_y: &[u8],
+    prev_cmt_x: &Fr,
+    prev_cmt_y: &Fr,
+    prev_cmt_r: &Fr,
     max_extra_extension_len: usize,
-) -> Result<(Vec<u8>, String, String, String), String> {
+) -> Result<(ProofWithPublicInputs, Fr, Fr, Fr), String> {
     println!(
         "Debug: max_extra_extension_len = {}",
         max_extra_extension_len
@@ -47,53 +50,42 @@ pub fn prove(
         parsed_cert,
         now,
         authority_key_id
-            .as_slice()
             .try_into()
             .map_err(|_| "authority_key_id must be 20 bytes")?,
         issuer_pk_x
-            .as_slice()
             .try_into()
             .map_err(|_| "issuer_pk_x must be 32 bytes")?,
         issuer_pk_y
-            .as_slice()
             .try_into()
             .map_err(|_| "issuer_pk_y must be 32 bytes")?,
-        &Fr::from_hex_string(&prev_cmt_x)?,
-        &Fr::from_hex_string(&prev_cmt_y)?,
-        &Fr::from_hex_string(&prev_cmt_r)?,
+        prev_cmt_x,
+        prev_cmt_y,
+        prev_cmt_r,
         &next_cmt_x,
         &next_cmt_y,
         &next_cmt_r,
         max_extra_extension_len,
     )?;
 
-    let proof_with_public_inputs = prove_ultra_honk_keccak(
+    let proof = prove_ultra_honk_keccak(
         &circuit.bytecode,
         initial_witness,
         circuit.verification_key.clone(),
         false,
         false,
     )?;
-    //let (proof, _) = split_honk_proof(&proof_with_public_inputs, circuit.public_input_size)
-    //    .ok_or("Failed to split honk proof")?;
-    let proof = proof_with_public_inputs; // TODO: remove public inputs from proof
 
-    // let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-    // encoder
-    //     .write_all(&proof)
-    //     .map_err(|e| format!("Failed to write proof to encoder: {}", e))?;
-    // let compressed_proof = encoder
-    //     .finish()
-    //     .map_err(|e| format!("Failed to finish compression of proof: {}", e))?;
+    let num_public_inputs = get_num_public_inputs_from_circuit(&circuit.bytecode).map_err(|e| {
+        format!(
+            "Failed to get number of public inputs from circuit bytecode: {}",
+            e
+        )
+    })?;
 
-    let compressed_proof = proof; // TODO: enable compression
+    let proof_with_public_inputs = parse_proof_with_public_inputs(&proof, num_public_inputs)
+        .map_err(|e| format!("Failed to parse proof with public inputs: {}", e))?;
 
-    Ok((
-        compressed_proof,
-        next_cmt_x.to_hex_string(),
-        next_cmt_y.to_hex_string(),
-        next_cmt_r.to_hex_string(),
-    ))
+    Ok((proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r))
 }
 
 pub fn generate_witness(
@@ -123,7 +115,11 @@ pub fn generate_witness(
 
     witness.extend(from_u8_array_to_fr_vec(issuer_pk_x));
     witness.extend(from_u8_array_to_fr_vec(issuer_pk_y));
-    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.signature));
+
+    // TODO: support other signature algorithms rather than just ES256
+    let signature = parsed_cert.extract_normalized_es256_sig()?;
+    witness.extend(from_u8_array_to_fr_vec(&signature));
+
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.serial_number));
     witness.push(parsed_cert.serial_number_len.into());
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.issuer));
