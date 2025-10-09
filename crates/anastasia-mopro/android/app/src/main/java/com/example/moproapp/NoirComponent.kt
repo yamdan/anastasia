@@ -127,7 +127,7 @@ fun NoirComponent() {
                                     caPrevCmtX,
                                     caPrevCmtY,
                                     caPrevCmtR,
-                                    "2025-09-14T00:00:00Z",
+                                    1757808000, // 2025-09-14T00:00:00Z
                                 )
                                 val caProof = caResult.proof
                                 val caPublicInputs = caResult.publicInputs
@@ -208,7 +208,7 @@ fun NoirComponent() {
                                     caNextCmtX,
                                     caNextCmtY,
                                     caNextCmtR,
-                                    "2025-09-14T00:00:00Z",
+                                    1757808000, // 2025-09-14T00:00:00Z
                                 )
                                 val eeProof = eeResult.proof
                                 val eePublicInputs = eeResult.publicInputs
