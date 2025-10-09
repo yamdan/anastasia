@@ -7,6 +7,7 @@ use noir::utils::{
 };
 
 use crate::{
+    cert::ParsedCert,
     circuit::{Circuit, CircuitMeta},
     utils::ToHexString,
 };
@@ -79,20 +80,47 @@ pub struct ProofResult {
 
 pub fn prove(
     circuit_meta: &CircuitMeta,
-    cert: Vec<u8>,
-    now: DateTime<Utc>,
-    authority_key_id: Vec<u8>,
-    issuer_pk_x: Vec<u8>,
-    issuer_pk_y: Vec<u8>,
-    prev_cmt_x: String,
-    prev_cmt_y: String,
-    prev_cmt_r: String,
+    cert: &Vec<u8>,
+    now: &DateTime<Utc>,
+    authority_key_id: &Vec<u8>,
+    issuer_pk_x: &Vec<u8>,
+    issuer_pk_y: &Vec<u8>,
+    prev_cmt_x: &String,
+    prev_cmt_y: &String,
+    prev_cmt_r: &String,
+) -> Result<ProofResult, String> {
+    let parsed_cert =
+        ParsedCert::from_der(&cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
+
+    prove_single(
+        circuit_meta,
+        &parsed_cert,
+        now,
+        authority_key_id,
+        issuer_pk_x,
+        issuer_pk_y,
+        prev_cmt_x,
+        prev_cmt_y,
+        prev_cmt_r,
+    )
+}
+
+pub fn prove_single(
+    circuit_meta: &CircuitMeta,
+    parsed_cert: &ParsedCert,
+    now: &DateTime<Utc>,
+    authority_key_id: &Vec<u8>,
+    issuer_pk_x: &Vec<u8>,
+    issuer_pk_y: &Vec<u8>,
+    prev_cmt_x: &String,
+    prev_cmt_y: &String,
+    prev_cmt_r: &String,
 ) -> Result<ProofResult, String> {
     let circuit = Circuit::new(circuit_meta)?;
 
     let (proof, next_cmt_x, next_cmt_y, next_cmt_r) = crate::prove::prove(
         &circuit,
-        cert,
+        parsed_cert,
         now,
         authority_key_id,
         issuer_pk_x,
@@ -263,14 +291,14 @@ mod tests {
             next_cmt_r,
         } = prove(
             &meta,
-            cert,
-            now,
-            authority_key_id,
-            issuer_pk_x,
-            issuer_pk_y,
-            prev_cmt_x.to_string(),
-            prev_cmt_y.to_string(),
-            prev_cmt_r.to_string(),
+            &cert,
+            &now,
+            &authority_key_id,
+            &issuer_pk_x,
+            &issuer_pk_y,
+            &prev_cmt_x,
+            &prev_cmt_y,
+            &prev_cmt_r.to_string(),
         )
         .unwrap();
 
@@ -377,14 +405,14 @@ mod tests {
             next_cmt_r,
         } = prove(
             &meta,
-            cert,
-            now,
-            authority_key_id,
-            issuer_pk_x,
-            issuer_pk_y,
-            prev_cmt_x.to_string(),
-            prev_cmt_y.to_string(),
-            prev_cmt_r.to_string(),
+            &cert,
+            &now,
+            &authority_key_id,
+            &issuer_pk_x,
+            &issuer_pk_y,
+            &prev_cmt_x,
+            &prev_cmt_y,
+            &prev_cmt_r.to_string(),
         )
         .unwrap();
 

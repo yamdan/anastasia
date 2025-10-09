@@ -53,14 +53,14 @@ fn prove(
 
     let proof = anastasia_rs::prove(
         &circuit_meta.into(),
-        cert,
-        now,
-        authority_key_id,
-        issuer_pk_x,
-        issuer_pk_y,
-        prev_cmt_x,
-        prev_cmt_y,
-        prev_cmt_r,
+        &cert,
+        &now,
+        &authority_key_id,
+        &issuer_pk_x,
+        &issuer_pk_y,
+        &prev_cmt_x,
+        &prev_cmt_y,
+        &prev_cmt_r,
     )
     .map_err(|e| MoproError::NoirError(e.to_string()))?;
 

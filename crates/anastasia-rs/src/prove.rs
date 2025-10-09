@@ -18,23 +18,20 @@ use crate::{
 
 pub fn prove(
     circuit: &Circuit,
-    cert: Vec<u8>,
-    now: DateTime<Utc>,
-    authority_key_id: Vec<u8>,
-    issuer_pk_x: Vec<u8>,
-    issuer_pk_y: Vec<u8>,
-    prev_cmt_x: String,
-    prev_cmt_y: String,
-    prev_cmt_r: String,
+    parsed_cert: &ParsedCert,
+    now: &DateTime<Utc>,
+    authority_key_id: &Vec<u8>,
+    issuer_pk_x: &Vec<u8>,
+    issuer_pk_y: &Vec<u8>,
+    prev_cmt_x: &String,
+    prev_cmt_y: &String,
+    prev_cmt_r: &String,
     max_extra_extension_len: usize,
 ) -> Result<(Vec<u8>, String, String, String), String> {
     println!(
         "Debug: max_extra_extension_len = {}",
         max_extra_extension_len
     );
-
-    let parsed_cert =
-        ParsedCert::from_der(&cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
 
     let mut rng = OsRng;
     let next_cmt_r = Fr::rand(&mut rng);
@@ -50,20 +47,23 @@ pub fn prove(
         parsed_cert,
         now,
         authority_key_id
+            .as_slice()
             .try_into()
             .map_err(|_| "authority_key_id must be 20 bytes")?,
         issuer_pk_x
+            .as_slice()
             .try_into()
             .map_err(|_| "issuer_pk_x must be 32 bytes")?,
         issuer_pk_y
+            .as_slice()
             .try_into()
             .map_err(|_| "issuer_pk_y must be 32 bytes")?,
-        Fr::from_hex_string(&prev_cmt_x)?,
-        Fr::from_hex_string(&prev_cmt_y)?,
-        Fr::from_hex_string(&prev_cmt_r)?,
-        next_cmt_x,
-        next_cmt_y,
-        next_cmt_r,
+        &Fr::from_hex_string(&prev_cmt_x)?,
+        &Fr::from_hex_string(&prev_cmt_y)?,
+        &Fr::from_hex_string(&prev_cmt_r)?,
+        &next_cmt_x,
+        &next_cmt_y,
+        &next_cmt_r,
         max_extra_extension_len,
     )?;
 
@@ -97,17 +97,17 @@ pub fn prove(
 }
 
 pub fn generate_witness(
-    parsed_cert: ParsedCert,
-    now: DateTime<Utc>,
-    authority_key_id: [u8; 20],
-    issuer_pk_x: [u8; 32],
-    issuer_pk_y: [u8; 32],
-    prev_cmt_x: Fr,
-    prev_cmt_y: Fr,
-    prev_cmt_r: Fr, // TODO: change to lo and hi parts as GrumpkinFr
-    next_cmt_x: Fr,
-    next_cmt_y: Fr,
-    next_cmt_r: Fr, // TODO: change to lo and hi parts as GrumpkinFr
+    parsed_cert: &ParsedCert,
+    now: &DateTime<Utc>,
+    authority_key_id: &[u8; 20],
+    issuer_pk_x: &[u8; 32],
+    issuer_pk_y: &[u8; 32],
+    prev_cmt_x: &Fr,
+    prev_cmt_y: &Fr,
+    prev_cmt_r: &Fr, // TODO: change to lo and hi parts as GrumpkinFr
+    next_cmt_x: &Fr,
+    next_cmt_y: &Fr,
+    next_cmt_r: &Fr, // TODO: change to lo and hi parts as GrumpkinFr
     max_extra_extension_len: usize,
 ) -> Result<WitnessMap<GenericFieldElement<Fr>>, String> {
     let mut witness: Vec<Fr> = Vec::new();
@@ -121,8 +121,8 @@ pub fn generate_witness(
         second: now.second() as u8,
     };
 
-    witness.extend(from_u8_array_to_fr_vec(&issuer_pk_x));
-    witness.extend(from_u8_array_to_fr_vec(&issuer_pk_y));
+    witness.extend(from_u8_array_to_fr_vec(issuer_pk_x));
+    witness.extend(from_u8_array_to_fr_vec(issuer_pk_y));
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.signature));
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.serial_number));
     witness.push(parsed_cert.serial_number_len.into());
@@ -136,7 +136,7 @@ pub fn generate_witness(
     witness.extend(from_u8_array_to_fr_vec(
         &parsed_cert.authority_key_identifier,
     ));
-    witness.extend(from_u8_array_to_fr_vec(&authority_key_id));
+    witness.extend(from_u8_array_to_fr_vec(authority_key_id));
     witness.push(parsed_cert.subject_key_identifier_index.into());
     witness.push(parsed_cert.authority_key_identifier_index.into());
     witness.push(parsed_cert.basic_constraints_ca_index.into());
@@ -152,12 +152,12 @@ pub fn generate_witness(
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.not_before));
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.not_after));
     witness.extend(from_u8_array_to_fr_vec(&now.to_bytes()));
-    witness.push(prev_cmt_x);
-    witness.push(prev_cmt_y);
-    witness.push(prev_cmt_r);
-    witness.push(next_cmt_x);
-    witness.push(next_cmt_y);
-    witness.push(next_cmt_r);
+    witness.push(*prev_cmt_x);
+    witness.push(*prev_cmt_y);
+    witness.push(*prev_cmt_r);
+    witness.push(*next_cmt_x);
+    witness.push(*next_cmt_y);
+    witness.push(*next_cmt_r);
 
     let mut witness_map = WitnessMap::new();
     for (i, witness) in witness.iter().enumerate() {
