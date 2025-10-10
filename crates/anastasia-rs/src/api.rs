@@ -1,14 +1,27 @@
+use std::io::Write;
+
 use ark_bn254::Fr;
-use ark_ff::{AdditiveGroup, PrimeField, UniformRand};
+use ark_ff::{AdditiveGroup, BigInteger, PrimeField, UniformRand};
+use ark_serialize::CanonicalSerialize;
 use ark_std::rand::rngs::OsRng;
+use base64::{
+    Engine as _,
+    engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD},
+};
 use chrono::{DateTime, Utc};
+use ciborium::ser;
+use flate2::{Compression, write::GzEncoder};
 use noir::utils::ProofWithPublicInputs;
+use serde::Serialize;
+use serde_bytes::ByteBuf;
 
 use crate::{
     cert::ParsedCert,
     circuit::{Circuit, CircuitMeta},
     utils::{FromHexString, ToHexString},
 };
+
+pub const ROOT_COMMITMENT_R: Fr = Fr::ZERO;
 
 #[derive(Debug)]
 pub struct CommitResult {
@@ -64,7 +77,7 @@ pub fn commit_attrs(
 }
 
 #[derive(Debug)]
-pub struct ProofResultHex {
+pub struct ProofResult {
     /// The proof with public inputs
     pub proof_with_public_inputs: ProofWithPublicInputs,
     /// The next commitment x-coordinate
@@ -75,27 +88,15 @@ pub struct ProofResultHex {
     pub next_cmt_r: String,
 }
 
-impl From<ProofResult> for ProofResultHex {
-    fn from(result: ProofResult) -> Self {
-        ProofResultHex {
+impl From<SingleProofResult> for ProofResult {
+    fn from(result: SingleProofResult) -> Self {
+        ProofResult {
             proof_with_public_inputs: result.proof_with_public_inputs,
             next_cmt_x: result.next_cmt_x.to_hex_string(),
             next_cmt_y: result.next_cmt_y.to_hex_string(),
             next_cmt_r: result.next_cmt_r.to_hex_string(),
         }
     }
-}
-
-#[derive(Debug)]
-pub struct ProofResult {
-    /// The proof with public inputs
-    pub proof_with_public_inputs: ProofWithPublicInputs,
-    /// The next commitment x-coordinate
-    pub next_cmt_x: Fr,
-    /// The next commitment y-coordinate
-    pub next_cmt_y: Fr,
-    /// The random value used for the next commitment
-    pub next_cmt_r: Fr,
 }
 
 pub fn prove(
@@ -108,7 +109,7 @@ pub fn prove(
     prev_cmt_x: &String,
     prev_cmt_y: &String,
     prev_cmt_r: &String,
-) -> Result<ProofResultHex, String> {
+) -> Result<ProofResult, String> {
     let parsed_cert =
         ParsedCert::from_der(&cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
 
@@ -130,10 +131,22 @@ pub fn prove(
         &Fr::from_hex_string(prev_cmt_y)?,
         &Fr::from_hex_string(prev_cmt_r)?,
     )
-    .map(ProofResultHex::from)
+    .map(ProofResult::from)
 }
 
-pub fn prove_single(
+#[derive(Debug)]
+pub struct SingleProofResult {
+    /// The proof with public inputs
+    pub proof_with_public_inputs: ProofWithPublicInputs,
+    /// The next commitment x-coordinate
+    pub next_cmt_x: Fr,
+    /// The next commitment y-coordinate
+    pub next_cmt_y: Fr,
+    /// The random value used for the next commitment
+    pub next_cmt_r: Fr,
+}
+
+fn prove_single(
     circuit_meta: &CircuitMeta,
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
@@ -143,7 +156,7 @@ pub fn prove_single(
     prev_cmt_x: &Fr,
     prev_cmt_y: &Fr,
     prev_cmt_r: &Fr,
-) -> Result<ProofResult, String> {
+) -> Result<SingleProofResult, String> {
     let circuit = Circuit::new(circuit_meta)?;
 
     let (proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r) = crate::prove::prove(
@@ -159,12 +172,251 @@ pub fn prove_single(
         circuit.max_extra_extension_len,
     )?;
 
-    Ok(ProofResult {
+    Ok(SingleProofResult {
         proof_with_public_inputs,
         next_cmt_x,
         next_cmt_y,
         next_cmt_r,
     })
+}
+
+#[derive(Debug)]
+pub struct ChainProofResult {
+    /// The timestamp of the proof
+    pub now: i64,
+    /// The pseudonym generated with the proof
+    pub nym: Fr,
+    /// The CBOR-encoded proofs and commitments used in the proof chain
+    pub proofs_and_commitments: Vec<u8>,
+}
+
+#[derive(Serialize, Debug)]
+pub struct ProofsAndCommitments {
+    #[serde(rename = "p")]
+    pub proofs: Vec<ByteBuf>,
+    #[serde(rename = "c")]
+    pub commitments: Vec<(ByteBuf, ByteBuf)>,
+}
+
+pub fn prove_chain(
+    intermediate_circuits_meta: &[CircuitMeta],
+    leaf_circuit_meta: &CircuitMeta,
+    root_cert: &[u8],
+    intermediate_certs: &[&[u8]],
+    leaf_cert: &[u8],
+    now: Option<i64>,
+) -> Result<ChainProofResult, String> {
+    if intermediate_circuits_meta.len() != intermediate_certs.len() {
+        return Err(
+            "Number of intermediate circuits must match number of intermediate certificates"
+                .to_string(),
+        );
+    }
+
+    let now_datetime = match now {
+        Some(ts) => chrono::DateTime::from_timestamp_secs(ts)
+            .ok_or_else(|| "Invalid timestamp".to_string())?
+            .with_timezone(&chrono::Utc),
+        None => chrono::Utc::now(),
+    };
+
+    let mut proofs = Vec::with_capacity(intermediate_certs.len() + 1);
+    let mut commitments = Vec::with_capacity(intermediate_certs.len());
+
+    // Generate initial commitment from root certificate
+    let parsed_root_cert = ParsedCert::from_der(&root_cert)
+        .map_err(|e| format!("Failed to parse root cert: {}", e))?;
+    let mut authority_key_id = parsed_root_cert.subject_key_identifier;
+    let mut issuer_pk_x = parsed_root_cert.subject_pk_x;
+    let mut issuer_pk_y = parsed_root_cert.subject_pk_y;
+    let mut prev_cmt_r = ROOT_COMMITMENT_R;
+    let (mut prev_cmt_x, mut prev_cmt_y) = crate::commit::commit_attrs(
+        parsed_root_cert.subject,
+        authority_key_id,
+        issuer_pk_x,
+        issuer_pk_y,
+        prev_cmt_r,
+    )?;
+
+    // Prove for each intermediate certificate in the chain
+    for (circuit_meta, cert) in intermediate_circuits_meta.iter().zip(intermediate_certs) {
+        let parsed_cert =
+            ParsedCert::from_der(&cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
+
+        let SingleProofResult {
+            proof_with_public_inputs,
+            next_cmt_x,
+            next_cmt_y,
+            next_cmt_r,
+        } = prove_single(
+            circuit_meta,
+            &parsed_cert,
+            &now_datetime,
+            &authority_key_id.to_vec(),
+            &issuer_pk_x.to_vec(),
+            &issuer_pk_y.to_vec(),
+            &prev_cmt_x,
+            &prev_cmt_y,
+            &prev_cmt_r,
+        )?;
+
+        proofs.push(proof_with_public_inputs.proof);
+
+        let mut next_cmt_x_bytes = Vec::new();
+        next_cmt_x
+            .serialize_uncompressed(&mut next_cmt_x_bytes)
+            .map_err(|e| format!("Failed to serialize next_cmt_x: {}", e))?;
+        let mut next_cmt_y_bytes = Vec::new();
+        next_cmt_y
+            .serialize_uncompressed(&mut next_cmt_y_bytes)
+            .map_err(|e| format!("Failed to serialize next_cmt_y: {}", e))?;
+        commitments.push((next_cmt_x_bytes, next_cmt_y_bytes));
+
+        prev_cmt_x = next_cmt_x;
+        prev_cmt_y = next_cmt_y;
+        prev_cmt_r = next_cmt_r;
+        authority_key_id = parsed_cert.subject_key_identifier;
+        issuer_pk_x = parsed_cert.subject_pk_x;
+        issuer_pk_y = parsed_cert.subject_pk_y;
+    }
+
+    // Prove for the leaf certificate
+    let parsed_leaf_cert = ParsedCert::from_der(&leaf_cert)
+        .map_err(|e| format!("Failed to parse leaf cert: {}", e))?;
+    let SingleProofResult {
+        proof_with_public_inputs,
+        next_cmt_x,
+        next_cmt_y,
+        next_cmt_r: _,
+    } = prove_single(
+        leaf_circuit_meta,
+        &parsed_leaf_cert,
+        &now_datetime,
+        &authority_key_id.to_vec(),
+        &issuer_pk_x.to_vec(),
+        &issuer_pk_y.to_vec(),
+        &prev_cmt_x,
+        &prev_cmt_y,
+        &prev_cmt_r,
+    )?;
+    proofs.push(proof_with_public_inputs.proof);
+
+    let nym = next_cmt_x + next_cmt_y; // TODO: fix
+
+    // serialize proofs_and_commitments to CBOR
+    let proofs_and_commitments = ProofsAndCommitments {
+        proofs: proofs.into_iter().map(ByteBuf::from).collect(),
+        commitments: commitments
+            .into_iter()
+            .map(|(x, y)| (ByteBuf::from(x), ByteBuf::from(y)))
+            .collect(),
+    };
+    let mut proofs_and_commitments_cbor = Vec::new();
+    ser::into_writer(&proofs_and_commitments, &mut proofs_and_commitments_cbor)
+        .map_err(|e| format!("Failed to serialize proof_and_commitments to CBOR: {}", e))?;
+
+    // compress the CBOR data with gzip
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    encoder
+        .write_all(&proofs_and_commitments_cbor)
+        .map_err(|e| format!("Failed to write proof to compression encoder: {}", e))?;
+    let compressed_proof = encoder
+        .finish()
+        .map_err(|e| format!("Failed to finish compression of proof: {}", e))?;
+
+    Ok(ChainProofResult {
+        now: now_datetime.timestamp(),
+        nym,
+        proofs_and_commitments: compressed_proof,
+    })
+}
+
+#[derive(Debug)]
+pub struct ChainProofResultBase64 {
+    /// The timestamp of the proof
+    pub now: i64,
+    /// The pseudonym generated with the proof
+    pub nym: String,
+    /// The CBOR-encoded proofs and commitments used in the proof chain
+    pub proofs_and_commitments: String,
+}
+
+pub fn prove_chain_base64(
+    intermediate_circuits_meta: &[CircuitMeta],
+    leaf_circuit_meta: &CircuitMeta,
+    root_cert: &[u8],
+    intermediate_certs: &[&[u8]],
+    leaf_cert: &[u8],
+    now: Option<i64>,
+) -> Result<ChainProofResultBase64, String> {
+    let result = prove_chain(
+        intermediate_circuits_meta,
+        leaf_circuit_meta,
+        root_cert,
+        intermediate_certs,
+        leaf_cert,
+        now,
+    )?;
+    let nym_bytes = result.nym.into_bigint().to_bytes_be();
+    let nym = URL_SAFE_NO_PAD.encode(nym_bytes);
+    let proofs_and_commitments = URL_SAFE_NO_PAD.encode(result.proofs_and_commitments);
+
+    Ok(ChainProofResultBase64 {
+        now: result.now,
+        nym,
+        proofs_and_commitments,
+    })
+}
+
+pub fn prove_chain_as_key_attestation_jwt(
+    intermediate_circuits_meta: &[CircuitMeta],
+    leaf_circuit_meta: &CircuitMeta,
+    root_cert: &[u8],
+    intermediate_certs: &[&[u8]],
+    leaf_cert: &[u8],
+    now: Option<i64>,
+    aud: &str,
+) -> Result<String, String> {
+    let result = prove_chain_base64(
+        intermediate_circuits_meta,
+        leaf_circuit_meta,
+        root_cert,
+        intermediate_certs,
+        leaf_cert,
+        now,
+    )?;
+
+    let header = serde_json::json!({
+        "typ": "key-attestation+jwt",
+        "alg": "ANASTASIA-AKA",
+        "x5c": [STANDARD.encode(root_cert)],
+    });
+    println!("Header: {:?}", header);
+
+    let payload = serde_json::json!({
+        "iat": result.now,
+        "attested_keys": [
+            {
+                "kty": "oct",
+                "k": result.nym,
+                "kid": aud,
+            }
+        ],
+    });
+    println!("Payload: {:?}", payload);
+
+    let header_bytes =
+        serde_json::to_vec(&header).map_err(|e| format!("Failed to serialize header: {}", e))?;
+    let payload_bytes =
+        serde_json::to_vec(&payload).map_err(|e| format!("Failed to serialize payload: {}", e))?;
+
+    let jwt = format!(
+        "{}.{}.{}",
+        URL_SAFE_NO_PAD.encode(header_bytes),
+        URL_SAFE_NO_PAD.encode(payload_bytes),
+        result.proofs_and_commitments
+    );
+    Ok(jwt)
 }
 
 #[cfg(test)]
@@ -303,7 +555,7 @@ mod tests {
         .unwrap();
 
         // Generate proof
-        let ProofResultHex {
+        let ProofResult {
             proof_with_public_inputs,
             next_cmt_x,
             next_cmt_y,
@@ -418,7 +670,7 @@ mod tests {
         .unwrap();
 
         // Generate proof
-        let ProofResultHex {
+        let ProofResult {
             proof_with_public_inputs,
             next_cmt_x,
             next_cmt_y,
@@ -479,5 +731,115 @@ mod tests {
         .unwrap();
         assert_eq!(next_cmt_x, next_cmt_x_generated);
         assert_eq!(next_cmt_y, next_cmt_y_generated);
+    }
+
+    #[test]
+    #[serial]
+    fn test_prove_es256_chain_ca_ee() {
+        let meta_ca = CircuitMeta::new(
+            "es256_ca".to_string(),
+            "data/es256_ca.json".to_string(),
+            "data/es256_ca.vk".to_string(),
+            "data/common.srs".to_string(),
+        );
+        let meta_ee = CircuitMeta::new(
+            "es256_ee_long_ext".to_string(),
+            "data/es256_ee_long_ext.json".to_string(),
+            "data/es256_ee_long_ext.vk".to_string(),
+            "data/common.srs".to_string(),
+        );
+
+        let cert_root = std::fs::read("test_data/es256_ca_droidca3.der").unwrap();
+        let cert_ca = std::fs::read("test_data/es256_ca_strongbox.der").unwrap();
+        let cert_ee = std::fs::read("test_data/es256_ee.der").unwrap();
+
+        let now = 1757808000; // 2025-09-14T00:00:00Z
+
+        let result = prove_chain(
+            &[meta_ca],
+            &meta_ee,
+            &cert_root,
+            &[&cert_ca],
+            &cert_ee,
+            Some(now),
+        )
+        .unwrap();
+
+        assert_eq!(result.now, now);
+        assert!(result.nym != Fr::ZERO);
+        assert!(!result.proofs_and_commitments.is_empty());
+    }
+
+    #[test]
+    #[serial]
+    fn test_prove_es256_chain_ca_ee_b64() {
+        let meta_ca = CircuitMeta::new(
+            "es256_ca".to_string(),
+            "data/es256_ca.json".to_string(),
+            "data/es256_ca.vk".to_string(),
+            "data/common.srs".to_string(),
+        );
+        let meta_ee = CircuitMeta::new(
+            "es256_ee_long_ext".to_string(),
+            "data/es256_ee_long_ext.json".to_string(),
+            "data/es256_ee_long_ext.vk".to_string(),
+            "data/common.srs".to_string(),
+        );
+
+        let cert_root = std::fs::read("test_data/es256_ca_droidca3.der").unwrap();
+        let cert_ca = std::fs::read("test_data/es256_ca_strongbox.der").unwrap();
+        let cert_ee = std::fs::read("test_data/es256_ee.der").unwrap();
+
+        let now = 1757808000; // 2025-09-14T00:00:00Z
+
+        let result = prove_chain_base64(
+            &[meta_ca],
+            &meta_ee,
+            &cert_root,
+            &[&cert_ca],
+            &cert_ee,
+            Some(now),
+        )
+        .unwrap();
+
+        assert_eq!(result.now, now);
+        assert!(!result.nym.is_empty());
+        assert!(!result.proofs_and_commitments.is_empty());
+    }
+
+    #[test]
+    #[serial]
+    fn test_prove_es256_chain_ca_ee_key_attestation_jwt() {
+        let meta_ca = CircuitMeta::new(
+            "es256_ca".to_string(),
+            "data/es256_ca.json".to_string(),
+            "data/es256_ca.vk".to_string(),
+            "data/common.srs".to_string(),
+        );
+        let meta_ee = CircuitMeta::new(
+            "es256_ee_long_ext".to_string(),
+            "data/es256_ee_long_ext.json".to_string(),
+            "data/es256_ee_long_ext.vk".to_string(),
+            "data/common.srs".to_string(),
+        );
+
+        let cert_root = std::fs::read("test_data/es256_ca_droidca3.der").unwrap();
+        let cert_ca = std::fs::read("test_data/es256_ca_strongbox.der").unwrap();
+        let cert_ee = std::fs::read("test_data/es256_ee.der").unwrap();
+
+        let now = 1757808000; // 2025-09-14T00:00:00Z
+
+        let result = prove_chain_as_key_attestation_jwt(
+            &[meta_ca],
+            &meta_ee,
+            &cert_root,
+            &[&cert_ca],
+            &cert_ee,
+            Some(now),
+            "https://credential-issuer.example.com",
+        )
+        .unwrap();
+
+        assert!(!result.is_empty());
     }
 }
