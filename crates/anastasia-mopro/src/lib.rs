@@ -11,7 +11,7 @@ mopro_ffi::app!();
 
 mod ffi_types;
 
-use crate::ffi_types::{CircuitMeta, CommitResult, ProofResult};
+use crate::ffi_types::{ChainProofResultBase64, CircuitMeta, CommitResult, ProofResult};
 
 #[uniffi::export]
 fn commit_attrs(
@@ -58,6 +58,74 @@ fn prove(
     .map_err(|e| MoproError::NoirError(e.to_string()))?;
 
     Ok(proof.into())
+}
+
+#[uniffi::export]
+fn prove_chain_base64(
+    intermediate_circuits_meta: Vec<CircuitMeta>,
+    leaf_circuit_meta: CircuitMeta,
+    root_cert: Vec<u8>,
+    intermediate_certs: Vec<Vec<u8>>,
+    leaf_cert: Vec<u8>,
+    now: Option<i64>,
+) -> Result<ChainProofResultBase64, MoproError> {
+    let intermediate_circuits_meta_converted: Vec<anastasia_rs::CircuitMeta> =
+        intermediate_circuits_meta
+            .into_iter()
+            .map(|meta| meta.into())
+            .collect();
+
+    let intermediate_certs_converted: Vec<&[u8]> = intermediate_certs
+        .iter()
+        .map(|cert| cert.as_slice())
+        .collect();
+
+    let chain_proof = anastasia_rs::prove_chain_base64(
+        &intermediate_circuits_meta_converted,
+        &leaf_circuit_meta.into(),
+        &root_cert,
+        &intermediate_certs_converted,
+        &leaf_cert,
+        now,
+    )
+    .map_err(|e| MoproError::NoirError(e.to_string()))?;
+
+    Ok(chain_proof.into())
+}
+
+#[uniffi::export]
+fn prove_chain_jwt(
+    intermediate_circuits_meta: Vec<CircuitMeta>,
+    leaf_circuit_meta: CircuitMeta,
+    root_cert: Vec<u8>,
+    intermediate_certs: Vec<Vec<u8>>,
+    leaf_cert: Vec<u8>,
+    now: Option<i64>,
+    aud: &str,
+) -> Result<String, MoproError> {
+    let intermediate_circuits_meta_converted: Vec<anastasia_rs::CircuitMeta> =
+        intermediate_circuits_meta
+            .into_iter()
+            .map(|meta| meta.into())
+            .collect();
+
+    let intermediate_certs_converted: Vec<&[u8]> = intermediate_certs
+        .iter()
+        .map(|cert| cert.as_slice())
+        .collect();
+
+    let chain_proof = anastasia_rs::prove_chain_as_key_attestation_jwt(
+        &intermediate_circuits_meta_converted,
+        &leaf_circuit_meta.into(),
+        &root_cert,
+        &intermediate_certs_converted,
+        &leaf_cert,
+        now,
+        aud,
+    )
+    .map_err(|e| MoproError::NoirError(e.to_string()))?;
+
+    Ok(chain_proof)
 }
 
 #[cfg(test)]

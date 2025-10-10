@@ -91,8 +91,8 @@ pub struct ProofResult {
     pub next_cmt_r: String,
 }
 
-impl From<anastasia_rs::ProofResultHex> for ProofResult {
-    fn from(result: anastasia_rs::ProofResultHex) -> Self {
+impl From<anastasia_rs::ProofResult> for ProofResult {
+    fn from(result: anastasia_rs::ProofResult) -> Self {
         ProofResult {
             proof: hex::encode(result.proof_with_public_inputs.proof),
             public_inputs: result
@@ -109,7 +109,7 @@ impl From<anastasia_rs::ProofResultHex> for ProofResult {
     }
 }
 
-impl TryFrom<ProofResult> for anastasia_rs::ProofResultHex {
+impl TryFrom<ProofResult> for anastasia_rs::ProofResult {
     type Error = hex::FromHexError;
 
     fn try_from(result: ProofResult) -> Result<Self, Self::Error> {
@@ -119,7 +119,7 @@ impl TryFrom<ProofResult> for anastasia_rs::ProofResultHex {
             .iter()
             .map(|input| hex::decode(input))
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(anastasia_rs::ProofResultHex {
+        Ok(anastasia_rs::ProofResult {
             proof_with_public_inputs: anastasia_rs::ProofWithPublicInputs {
                 proof,
                 public_inputs,
@@ -129,5 +129,35 @@ impl TryFrom<ProofResult> for anastasia_rs::ProofResultHex {
             next_cmt_y: result.next_cmt_y,
             next_cmt_r: result.next_cmt_r,
         })
+    }
+}
+
+#[derive(Clone, Debug, Record)]
+pub struct ChainProofResultBase64 {
+    /// The timestamp of the proof
+    pub now: i64,
+    /// The pseudonym generated with the proof
+    pub nym: String,
+    /// The CBOR-encoded proofs and commitments used in the proof chain
+    pub proofs_and_commitments: String,
+}
+
+impl From<anastasia_rs::ChainProofResultBase64> for ChainProofResultBase64 {
+    fn from(result: anastasia_rs::ChainProofResultBase64) -> Self {
+        ChainProofResultBase64 {
+            now: result.now,
+            nym: result.nym,
+            proofs_and_commitments: result.proofs_and_commitments,
+        }
+    }
+}
+
+impl From<ChainProofResultBase64> for anastasia_rs::ChainProofResultBase64 {
+    fn from(result: ChainProofResultBase64) -> Self {
+        anastasia_rs::ChainProofResultBase64 {
+            now: result.now,
+            nym: result.nym,
+            proofs_and_commitments: result.proofs_and_commitments,
+        }
     }
 }

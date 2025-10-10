@@ -729,6 +729,10 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
 // For large crates we prevent `MethodTooLargeException` (see #2340)
 // N.B. the name of the extension is very misleading, since it is 
 // rather `InterfaceTooLargeException`, caused by too many methods 
@@ -755,6 +759,10 @@ fun uniffi_anastasia_mopro_checksum_func_generate_noir_proof(
 fun uniffi_anastasia_mopro_checksum_func_get_noir_verification_key(
 ): Short
 fun uniffi_anastasia_mopro_checksum_func_prove(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_prove_chain_base64(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_prove_chain_jwt(
 ): Short
 fun uniffi_anastasia_mopro_checksum_func_verify_circom_proof(
 ): Short
@@ -818,6 +826,10 @@ fun uniffi_anastasia_mopro_fn_func_generate_noir_proof(`circuitPath`: RustBuffer
 fun uniffi_anastasia_mopro_fn_func_get_noir_verification_key(`circuitPath`: RustBuffer.ByValue,`srsPath`: RustBuffer.ByValue,`onChain`: Byte,`lowMemoryMode`: Byte,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 fun uniffi_anastasia_mopro_fn_func_prove(`circuitMeta`: RustBuffer.ByValue,`cert`: RustBuffer.ByValue,`authorityKeyId`: RustBuffer.ByValue,`issuerPkX`: RustBuffer.ByValue,`issuerPkY`: RustBuffer.ByValue,`prevCmtX`: RustBuffer.ByValue,`prevCmtY`: RustBuffer.ByValue,`prevCmtR`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_prove_chain_base64(`intermediateCircuitsMeta`: RustBuffer.ByValue,`leafCircuitMeta`: RustBuffer.ByValue,`rootCert`: RustBuffer.ByValue,`intermediateCerts`: RustBuffer.ByValue,`leafCert`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_prove_chain_jwt(`intermediateCircuitsMeta`: RustBuffer.ByValue,`leafCircuitMeta`: RustBuffer.ByValue,`rootCert`: RustBuffer.ByValue,`intermediateCerts`: RustBuffer.ByValue,`leafCert`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`aud`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 fun uniffi_anastasia_mopro_fn_func_verify_circom_proof(`zkeyPath`: RustBuffer.ByValue,`proofResult`: RustBuffer.ByValue,`proofLib`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): Byte
@@ -967,6 +979,12 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_anastasia_mopro_checksum_func_prove() != 27369.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_anastasia_mopro_checksum_func_prove_chain_base64() != 14898.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_anastasia_mopro_checksum_func_prove_chain_jwt() != 720.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_anastasia_mopro_checksum_func_verify_circom_proof() != 13928.toShort()) {
@@ -1174,6 +1192,51 @@ public object FfiConverterByteArray: FfiConverterRustBuffer<ByteArray> {
     override fun write(value: ByteArray, buf: ByteBuffer) {
         buf.putInt(value.size)
         buf.put(value)
+    }
+}
+
+
+
+data class ChainProofResultBase64 (
+    /**
+     * The timestamp of the proof
+     */
+    var `now`: kotlin.Long, 
+    /**
+     * The pseudonym generated with the proof
+     */
+    var `nym`: kotlin.String, 
+    /**
+     * The CBOR-encoded proofs and commitments used in the proof chain
+     */
+    var `proofsAndCommitments`: kotlin.String
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeChainProofResultBase64: FfiConverterRustBuffer<ChainProofResultBase64> {
+    override fun read(buf: ByteBuffer): ChainProofResultBase64 {
+        return ChainProofResultBase64(
+            FfiConverterLong.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ChainProofResultBase64) = (
+            FfiConverterLong.allocationSize(value.`now`) +
+            FfiConverterString.allocationSize(value.`nym`) +
+            FfiConverterString.allocationSize(value.`proofsAndCommitments`)
+    )
+
+    override fun write(value: ChainProofResultBase64, buf: ByteBuffer) {
+            FfiConverterLong.write(value.`now`, buf)
+            FfiConverterString.write(value.`nym`, buf)
+            FfiConverterString.write(value.`proofsAndCommitments`, buf)
     }
 }
 
@@ -1728,6 +1791,62 @@ public object FfiConverterSequenceString: FfiConverterRustBuffer<List<kotlin.Str
 /**
  * @suppress
  */
+public object FfiConverterSequenceByteArray: FfiConverterRustBuffer<List<kotlin.ByteArray>> {
+    override fun read(buf: ByteBuffer): List<kotlin.ByteArray> {
+        val len = buf.getInt()
+        return List<kotlin.ByteArray>(len) {
+            FfiConverterByteArray.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<kotlin.ByteArray>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterByteArray.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<kotlin.ByteArray>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterByteArray.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeCircuitMeta: FfiConverterRustBuffer<List<CircuitMeta>> {
+    override fun read(buf: ByteBuffer): List<CircuitMeta> {
+        val len = buf.getInt()
+        return List<CircuitMeta>(len) {
+            FfiConverterTypeCircuitMeta.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<CircuitMeta>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeCircuitMeta.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<CircuitMeta>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeCircuitMeta.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterMapStringSequenceString: FfiConverterRustBuffer<Map<kotlin.String, List<kotlin.String>>> {
     override fun read(buf: ByteBuffer): Map<kotlin.String, List<kotlin.String>> {
         val len = buf.getInt()
@@ -1815,6 +1934,26 @@ public object FfiConverterMapStringSequenceString: FfiConverterRustBuffer<Map<ko
     uniffiRustCallWithError(MoproException) { _status ->
     UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_prove(
         FfiConverterTypeCircuitMeta.lower(`circuitMeta`),FfiConverterByteArray.lower(`cert`),FfiConverterByteArray.lower(`authorityKeyId`),FfiConverterByteArray.lower(`issuerPkX`),FfiConverterByteArray.lower(`issuerPkY`),FfiConverterString.lower(`prevCmtX`),FfiConverterString.lower(`prevCmtY`),FfiConverterString.lower(`prevCmtR`),FfiConverterOptionalLong.lower(`now`),_status)
+}
+    )
+    }
+    
+
+    @Throws(MoproException::class) fun `proveChainBase64`(`intermediateCircuitsMeta`: List<CircuitMeta>, `leafCircuitMeta`: CircuitMeta, `rootCert`: kotlin.ByteArray, `intermediateCerts`: List<kotlin.ByteArray>, `leafCert`: kotlin.ByteArray, `now`: kotlin.Long?): ChainProofResultBase64 {
+            return FfiConverterTypeChainProofResultBase64.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_prove_chain_base64(
+        FfiConverterSequenceTypeCircuitMeta.lower(`intermediateCircuitsMeta`),FfiConverterTypeCircuitMeta.lower(`leafCircuitMeta`),FfiConverterByteArray.lower(`rootCert`),FfiConverterSequenceByteArray.lower(`intermediateCerts`),FfiConverterByteArray.lower(`leafCert`),FfiConverterOptionalLong.lower(`now`),_status)
+}
+    )
+    }
+    
+
+    @Throws(MoproException::class) fun `proveChainJwt`(`intermediateCircuitsMeta`: List<CircuitMeta>, `leafCircuitMeta`: CircuitMeta, `rootCert`: kotlin.ByteArray, `intermediateCerts`: List<kotlin.ByteArray>, `leafCert`: kotlin.ByteArray, `now`: kotlin.Long?, `aud`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_prove_chain_jwt(
+        FfiConverterSequenceTypeCircuitMeta.lower(`intermediateCircuitsMeta`),FfiConverterTypeCircuitMeta.lower(`leafCircuitMeta`),FfiConverterByteArray.lower(`rootCert`),FfiConverterSequenceByteArray.lower(`intermediateCerts`),FfiConverterByteArray.lower(`leafCert`),FfiConverterOptionalLong.lower(`now`),FfiConverterString.lower(`aud`),_status)
 }
     )
     }
