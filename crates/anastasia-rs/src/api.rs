@@ -376,7 +376,6 @@ pub fn prove_chain_as_key_attestation_jwt(
     intermediate_certs: &[&[u8]],
     leaf_cert: &[u8],
     now: Option<i64>,
-    aud: &str,
     user_sk: &str,
     context: &str,
 ) -> Result<String, String> {
@@ -404,7 +403,7 @@ pub fn prove_chain_as_key_attestation_jwt(
             {
                 "kty": "oct",
                 "k": result.nym,
-                "kid": aud,
+                "kid": context,
             }
         ],
     });
@@ -810,7 +809,6 @@ mod tests {
             &[&cert_ca],
             &cert_ee,
             Some(now),
-            context,
             &user_sk,
             context,
         )
