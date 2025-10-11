@@ -68,6 +68,8 @@ fn prove_chain_base64(
     intermediate_certs: Vec<Vec<u8>>,
     leaf_cert: Vec<u8>,
     now: Option<i64>,
+    user_sk: &str,
+    context: &str,
 ) -> Result<ChainProofResultBase64, MoproError> {
     let intermediate_circuits_meta_converted: Vec<anastasia_rs::CircuitMeta> =
         intermediate_circuits_meta
@@ -87,6 +89,8 @@ fn prove_chain_base64(
         &intermediate_certs_converted,
         &leaf_cert,
         now,
+        user_sk,
+        context,
     )
     .map_err(|e| MoproError::NoirError(e.to_string()))?;
 
@@ -101,7 +105,8 @@ fn prove_chain_jwt(
     intermediate_certs: Vec<Vec<u8>>,
     leaf_cert: Vec<u8>,
     now: Option<i64>,
-    aud: &str,
+    user_sk: &str,
+    context: &str,
 ) -> Result<String, MoproError> {
     let intermediate_circuits_meta_converted: Vec<anastasia_rs::CircuitMeta> =
         intermediate_circuits_meta
@@ -121,7 +126,8 @@ fn prove_chain_jwt(
         &intermediate_certs_converted,
         &leaf_cert,
         now,
-        aud,
+        user_sk,
+        context,
     )
     .map_err(|e| MoproError::NoirError(e.to_string()))?;
 
@@ -131,6 +137,8 @@ fn prove_chain_jwt(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use serial_test::serial;
 
     #[test]
     fn test_commit_attrs() {
@@ -214,6 +222,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_prove_es256_ca() {
         let meta = CircuitMeta::new(
             "es256_ca".to_string(),
@@ -329,5 +338,44 @@ mod tests {
         .unwrap();
         assert_eq!(next_cmt_x, next_cmt_x_generated);
         assert_eq!(next_cmt_y, next_cmt_y_generated);
+    }
+
+    #[test]
+    #[serial]
+    fn test_prove_es256_chain_jwt() {
+        let meta_ca = CircuitMeta::new(
+            "es256_ca".to_string(),
+            "../anastasia-rs/data/es256_ca.json".to_string(),
+            "../anastasia-rs/data/es256_ca.vk".to_string(),
+            "../anastasia-rs/data/common.srs".to_string(),
+        );
+        let meta_ee = CircuitMeta::new(
+            "es256_nym_ee".to_string(),
+            "../anastasia-rs/data/es256_nym_ee.json".to_string(),
+            "../anastasia-rs/data/es256_nym_ee.vk".to_string(),
+            "../anastasia-rs/data/common.srs".to_string(),
+        );
+
+        let cert_root = std::fs::read("../anastasia-rs/test_data/es256_ca_droidca3.der").unwrap();
+        let cert_ca = std::fs::read("../anastasia-rs/test_data/es256_ca_strongbox.der").unwrap();
+        let cert_ee = std::fs::read("../anastasia-rs/test_data/es256_ee.der").unwrap();
+
+        let now = 1757808000; // 2025-09-14T00:00:00Z
+        let user_sk = "deadbeef";
+        let context = "https://credential-issuer.example.com";
+
+        let result = prove_chain_jwt(
+            vec![meta_ca],
+            meta_ee,
+            cert_root,
+            vec![cert_ca],
+            cert_ee,
+            Some(now),
+            user_sk,
+            context,
+        )
+        .unwrap();
+
+        assert!(!result.is_empty());
     }
 }

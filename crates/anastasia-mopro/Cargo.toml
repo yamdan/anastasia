@@ -30,3 +30,6 @@ chrono = "0.4.42"
 rust-witness = "0.1"
 
 # CIRCOM_DEPENDENCIES
+
+[dev-dependencies]
+serial_test = "3.2.0"

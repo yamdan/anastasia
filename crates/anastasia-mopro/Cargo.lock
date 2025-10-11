@@ -199,10 +199,12 @@ dependencies = [
  "ark-grumpkin",
  "ark-serialize",
  "ark-std",
+ "arrayvec",
  "base64",
  "bn254_blackbox_solver 1.0.0-beta.13",
  "chrono",
  "ciborium",
+ "digest",
  "flate2",
  "hex",
  "itertools 0.14.0",
@@ -212,6 +214,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_json",
+ "sha2",
  "x509-parser",
 ]
 
