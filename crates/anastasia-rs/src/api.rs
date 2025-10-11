@@ -395,7 +395,6 @@ pub fn prove_chain_as_key_attestation_jwt(
         "alg": "ANASTASIA-AKA",
         "x5c": [STANDARD.encode(root_cert)],
     });
-    println!("Header: {:?}", header);
 
     let payload = serde_json::json!({
         "iat": result.now,
@@ -407,7 +406,6 @@ pub fn prove_chain_as_key_attestation_jwt(
             }
         ],
     });
-    println!("Payload: {:?}", payload);
 
     let header_bytes =
         serde_json::to_vec(&header).map_err(|e| format!("Failed to serialize header: {}", e))?;
