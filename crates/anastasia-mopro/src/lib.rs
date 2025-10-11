@@ -14,6 +14,23 @@ mod ffi_types;
 use crate::ffi_types::{ChainProofResultBase64, CircuitMeta, CommitResult, ProofResult};
 
 #[uniffi::export]
+fn generate_user_sk() -> String {
+    anastasia_rs::generate_user_sk_hex()
+}
+
+#[uniffi::export]
+fn generate_nym(
+    user_sk: &str,
+    device_pk_x: &[u8],
+    device_pk_y: &[u8],
+    context: &str,
+) -> Result<String, MoproError> {
+    let nym = anastasia_rs::generate_nym_base64(user_sk, device_pk_x, device_pk_y, context)
+        .map_err(|e| MoproError::NoirError(e.to_string()))?;
+    Ok(nym)
+}
+
+#[uniffi::export]
 fn commit_attrs(
     subject: Vec<u8>,
     subject_key_identifier: Vec<u8>,
@@ -139,6 +156,30 @@ mod tests {
     use super::*;
 
     use serial_test::serial;
+
+    #[test]
+    fn test_generate_user_sk() {
+        let sk = generate_user_sk();
+        assert_eq!(sk.len(), 64); // 32 bytes in hex
+    }
+
+    #[test]
+    fn test_generate_nym() {
+        let user_sk = "deadbeef";
+        let pk_x = vec![
+            0xb4, 0x46, 0x2b, 0xe1, 0x47, 0x16, 0x55, 0x9d, 0x26, 0xf1, 0x2e, 0x60, 0x4f, 0xed,
+            0xe1, 0x53, 0x39, 0xd2, 0x5a, 0xa4, 0xf5, 0xdb, 0xda, 0x49, 0x6e, 0x1f, 0x30, 0x43,
+            0x36, 0x01, 0xed, 0x74,
+        ];
+        let pk_y = vec![
+            0xf6, 0x39, 0x6f, 0x87, 0xe8, 0xe7, 0x20, 0x55, 0x3d, 0x86, 0x22, 0xa1, 0xbb, 0xd7,
+            0xab, 0xf5, 0x01, 0x19, 0x1b, 0xae, 0x74, 0x94, 0x97, 0x86, 0x76, 0x47, 0x6b, 0x00,
+            0xfb, 0xd6, 0xda, 0x90,
+        ];
+        let context = "https://credential-issuer.example.com";
+        let nym = generate_nym(user_sk, &pk_x, &pk_y, context).unwrap();
+        assert_eq!(nym, "KHpTfbNadhyuSx_s9GMIiFZRPHfl0slN289Nhd0K6hg");
+    }
 
     #[test]
     fn test_commit_attrs() {

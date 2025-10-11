@@ -733,6 +733,10 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
 // For large crates we prevent `MethodTooLargeException` (see #2340)
 // N.B. the name of the extension is very misleading, since it is 
 // rather `InterfaceTooLargeException`, caused by too many methods 
@@ -755,6 +759,10 @@ fun uniffi_anastasia_mopro_checksum_func_generate_circom_proof(
 fun uniffi_anastasia_mopro_checksum_func_generate_halo2_proof(
 ): Short
 fun uniffi_anastasia_mopro_checksum_func_generate_noir_proof(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_generate_nym(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_generate_user_sk(
 ): Short
 fun uniffi_anastasia_mopro_checksum_func_get_noir_verification_key(
 ): Short
@@ -822,6 +830,10 @@ fun uniffi_anastasia_mopro_fn_func_generate_circom_proof(`zkeyPath`: RustBuffer.
 fun uniffi_anastasia_mopro_fn_func_generate_halo2_proof(`srsPath`: RustBuffer.ByValue,`pkPath`: RustBuffer.ByValue,`circuitInputs`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 fun uniffi_anastasia_mopro_fn_func_generate_noir_proof(`circuitPath`: RustBuffer.ByValue,`srsPath`: RustBuffer.ByValue,`inputs`: RustBuffer.ByValue,`onChain`: Byte,`vk`: RustBuffer.ByValue,`lowMemoryMode`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_generate_nym(`userSk`: RustBuffer.ByValue,`devicePkX`: RustBuffer.ByValue,`devicePkY`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_generate_user_sk(uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 fun uniffi_anastasia_mopro_fn_func_get_noir_verification_key(`circuitPath`: RustBuffer.ByValue,`srsPath`: RustBuffer.ByValue,`onChain`: Byte,`lowMemoryMode`: Byte,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
@@ -973,6 +985,12 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_anastasia_mopro_checksum_func_generate_noir_proof() != 5696.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_anastasia_mopro_checksum_func_generate_nym() != 58234.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_anastasia_mopro_checksum_func_generate_user_sk() != 47375.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_anastasia_mopro_checksum_func_get_noir_verification_key() != 7183.toShort()) {
@@ -1914,6 +1932,25 @@ public object FfiConverterMapStringSequenceString: FfiConverterRustBuffer<Map<ko
     uniffiRustCallWithError(MoproException) { _status ->
     UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_generate_noir_proof(
         FfiConverterString.lower(`circuitPath`),FfiConverterOptionalString.lower(`srsPath`),FfiConverterSequenceString.lower(`inputs`),FfiConverterBoolean.lower(`onChain`),FfiConverterByteArray.lower(`vk`),FfiConverterBoolean.lower(`lowMemoryMode`),_status)
+}
+    )
+    }
+    
+
+    @Throws(MoproException::class) fun `generateNym`(`userSk`: kotlin.String, `devicePkX`: kotlin.ByteArray, `devicePkY`: kotlin.ByteArray, `context`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_generate_nym(
+        FfiConverterString.lower(`userSk`),FfiConverterByteArray.lower(`devicePkX`),FfiConverterByteArray.lower(`devicePkY`),FfiConverterString.lower(`context`),_status)
+}
+    )
+    }
+    
+ fun `generateUserSk`(): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_generate_user_sk(
+        _status)
 }
     )
     }
