@@ -2,6 +2,7 @@ mod api;
 mod cert;
 mod circuit;
 mod commit;
+mod hash_to_field;
 mod poseidon;
 mod prove;
 mod utils;
