@@ -5,6 +5,7 @@ mod commit;
 mod hash_to_field;
 mod poseidon;
 mod prove;
+mod pseudonym;
 mod utils;
 
 pub use api::{

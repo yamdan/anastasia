@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use ark_bn254::Fr;
-use ark_ff::{AdditiveGroup, BigInteger, PrimeField, UniformRand};
+use ark_ff::{AdditiveGroup, PrimeField, UniformRand};
 use ark_serialize::CanonicalSerialize;
 use ark_std::rand::rngs::OsRng;
 use base64::{
@@ -18,7 +18,7 @@ use serde_bytes::ByteBuf;
 use crate::{
     cert::ParsedCert,
     circuit::{Circuit, CircuitMeta},
-    utils::{FromHexString, ToHexString},
+    utils::{FromHexString, ToBase64UrlString, ToHexString},
 };
 
 pub const ROOT_COMMITMENT_R: Fr = Fr::ZERO;
@@ -159,7 +159,7 @@ fn prove_single(
 ) -> Result<SingleProofResult, String> {
     let circuit = Circuit::new(circuit_meta)?;
 
-    let (proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r) = crate::prove::prove(
+    let (proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r) = crate::prove::prove_ca(
         &circuit,
         parsed_cert,
         now,
@@ -205,6 +205,8 @@ pub fn prove_chain(
     intermediate_certs: &[&[u8]],
     leaf_cert: &[u8],
     now: Option<i64>,
+    user_sk: &Fr,
+    context: &str,
 ) -> Result<ChainProofResult, String> {
     if intermediate_circuits_meta.len() != intermediate_certs.len() {
         return Err(
@@ -242,24 +244,20 @@ pub fn prove_chain(
     for (circuit_meta, cert) in intermediate_circuits_meta.iter().zip(intermediate_certs) {
         let parsed_cert =
             ParsedCert::from_der(&cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
-
-        let SingleProofResult {
-            proof_with_public_inputs,
-            next_cmt_x,
-            next_cmt_y,
-            next_cmt_r,
-        } = prove_single(
-            circuit_meta,
-            &parsed_cert,
-            &now_datetime,
-            &authority_key_id.to_vec(),
-            &issuer_pk_x.to_vec(),
-            &issuer_pk_y.to_vec(),
-            &prev_cmt_x,
-            &prev_cmt_y,
-            &prev_cmt_r,
-        )?;
-
+        let circuit = Circuit::new(circuit_meta)?;
+        let (proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r) =
+            crate::prove::prove_ca(
+                &circuit,
+                &parsed_cert,
+                &now_datetime,
+                &authority_key_id.to_vec(),
+                &issuer_pk_x.to_vec(),
+                &issuer_pk_y.to_vec(),
+                &prev_cmt_x,
+                &prev_cmt_y,
+                &prev_cmt_r,
+                circuit.max_extra_extension_len,
+            )?;
         proofs.push(proof_with_public_inputs.proof);
 
         let mut next_cmt_x_bytes = Vec::new();
@@ -283,13 +281,9 @@ pub fn prove_chain(
     // Prove for the leaf certificate
     let parsed_leaf_cert = ParsedCert::from_der(&leaf_cert)
         .map_err(|e| format!("Failed to parse leaf cert: {}", e))?;
-    let SingleProofResult {
-        proof_with_public_inputs,
-        next_cmt_x,
-        next_cmt_y,
-        next_cmt_r: _,
-    } = prove_single(
-        leaf_circuit_meta,
+    let leaf_circuit = Circuit::new(leaf_circuit_meta)?;
+    let (proof_with_public_inputs, nym) = crate::prove::prove_ee(
+        &leaf_circuit,
         &parsed_leaf_cert,
         &now_datetime,
         &authority_key_id.to_vec(),
@@ -298,10 +292,11 @@ pub fn prove_chain(
         &prev_cmt_x,
         &prev_cmt_y,
         &prev_cmt_r,
+        user_sk,
+        context,
+        leaf_circuit.max_extra_extension_len,
     )?;
     proofs.push(proof_with_public_inputs.proof);
-
-    let nym = next_cmt_x + next_cmt_y; // TODO: fix
 
     // serialize proofs_and_commitments to CBOR
     let proofs_and_commitments = ProofsAndCommitments {
@@ -348,7 +343,13 @@ pub fn prove_chain_base64(
     intermediate_certs: &[&[u8]],
     leaf_cert: &[u8],
     now: Option<i64>,
+    user_sk: &str,
+    context: &str,
 ) -> Result<ChainProofResultBase64, String> {
+    let user_sk_bytes =
+        hex::decode(user_sk).map_err(|e| format!("Failed to decode user_sk: {}", e))?;
+    let user_sk = Fr::from_be_bytes_mod_order(&user_sk_bytes);
+
     let result = prove_chain(
         intermediate_circuits_meta,
         leaf_circuit_meta,
@@ -356,14 +357,14 @@ pub fn prove_chain_base64(
         intermediate_certs,
         leaf_cert,
         now,
+        &user_sk,
+        context,
     )?;
-    let nym_bytes = result.nym.into_bigint().to_bytes_be();
-    let nym = URL_SAFE_NO_PAD.encode(nym_bytes);
     let proofs_and_commitments = URL_SAFE_NO_PAD.encode(result.proofs_and_commitments);
 
     Ok(ChainProofResultBase64 {
         now: result.now,
-        nym,
+        nym: result.nym.to_base64_url_string(),
         proofs_and_commitments,
     })
 }
@@ -376,6 +377,8 @@ pub fn prove_chain_as_key_attestation_jwt(
     leaf_cert: &[u8],
     now: Option<i64>,
     aud: &str,
+    user_sk: &str,
+    context: &str,
 ) -> Result<String, String> {
     let result = prove_chain_base64(
         intermediate_circuits_meta,
@@ -384,6 +387,8 @@ pub fn prove_chain_as_key_attestation_jwt(
         intermediate_certs,
         leaf_cert,
         now,
+        user_sk,
+        context,
     )?;
 
     let header = serde_json::json!({
@@ -735,43 +740,6 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_prove_es256_chain_ca_ee() {
-        let meta_ca = CircuitMeta::new(
-            "es256_ca".to_string(),
-            "data/es256_ca.json".to_string(),
-            "data/es256_ca.vk".to_string(),
-            "data/common.srs".to_string(),
-        );
-        let meta_ee = CircuitMeta::new(
-            "es256_ee_long_ext".to_string(),
-            "data/es256_ee_long_ext.json".to_string(),
-            "data/es256_ee_long_ext.vk".to_string(),
-            "data/common.srs".to_string(),
-        );
-
-        let cert_root = std::fs::read("test_data/es256_ca_droidca3.der").unwrap();
-        let cert_ca = std::fs::read("test_data/es256_ca_strongbox.der").unwrap();
-        let cert_ee = std::fs::read("test_data/es256_ee.der").unwrap();
-
-        let now = 1757808000; // 2025-09-14T00:00:00Z
-
-        let result = prove_chain(
-            &[meta_ca],
-            &meta_ee,
-            &cert_root,
-            &[&cert_ca],
-            &cert_ee,
-            Some(now),
-        )
-        .unwrap();
-
-        assert_eq!(result.now, now);
-        assert!(result.nym != Fr::ZERO);
-        assert!(!result.proofs_and_commitments.is_empty());
-    }
-
-    #[test]
-    #[serial]
     fn test_prove_es256_chain_ca_ee_b64() {
         let meta_ca = CircuitMeta::new(
             "es256_ca".to_string(),
@@ -780,9 +748,9 @@ mod tests {
             "data/common.srs".to_string(),
         );
         let meta_ee = CircuitMeta::new(
-            "es256_ee_long_ext".to_string(),
-            "data/es256_ee_long_ext.json".to_string(),
-            "data/es256_ee_long_ext.vk".to_string(),
+            "es256_nym_ee".to_string(),
+            "data/es256_nym_ee.json".to_string(),
+            "data/es256_nym_ee.vk".to_string(),
             "data/common.srs".to_string(),
         );
 
@@ -791,6 +759,8 @@ mod tests {
         let cert_ee = std::fs::read("test_data/es256_ee.der").unwrap();
 
         let now = 1757808000; // 2025-09-14T00:00:00Z
+        let user_sk = "deadbeef";
+        let context = "https://credential-issuer.example.com";
 
         let result = prove_chain_base64(
             &[meta_ca],
@@ -799,6 +769,8 @@ mod tests {
             &[&cert_ca],
             &cert_ee,
             Some(now),
+            &user_sk,
+            context,
         )
         .unwrap();
 
@@ -817,9 +789,9 @@ mod tests {
             "data/common.srs".to_string(),
         );
         let meta_ee = CircuitMeta::new(
-            "es256_ee_long_ext".to_string(),
-            "data/es256_ee_long_ext.json".to_string(),
-            "data/es256_ee_long_ext.vk".to_string(),
+            "es256_nym_ee".to_string(),
+            "data/es256_nym_ee.json".to_string(),
+            "data/es256_nym_ee.vk".to_string(),
             "data/common.srs".to_string(),
         );
 
@@ -828,6 +800,8 @@ mod tests {
         let cert_ee = std::fs::read("test_data/es256_ee.der").unwrap();
 
         let now = 1757808000; // 2025-09-14T00:00:00Z
+        let user_sk = "deadbeef";
+        let context = "https://credential-issuer.example.com";
 
         let result = prove_chain_as_key_attestation_jwt(
             &[meta_ca],
@@ -836,7 +810,9 @@ mod tests {
             &[&cert_ca],
             &cert_ee,
             Some(now),
-            "https://credential-issuer.example.com",
+            context,
+            &user_sk,
+            context,
         )
         .unwrap();
 

@@ -1,15 +1,7 @@
-use std::sync::LazyLock;
-
 use ark_bn254::Fr;
-use ark_crypto_primitives::sponge::poseidon::PoseidonConfig;
 use ark_ff::{BigInteger, PrimeField};
 use ark_grumpkin::Fr as GrumpkinFr;
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-
-use crate::poseidon::get_poseidon_parameters_2;
-
-pub static POSEIDON_CONFIG_2: LazyLock<PoseidonConfig<Fr>> =
-    LazyLock::new(|| get_poseidon_parameters_2());
 
 pub trait ToHexString {
     fn to_hex_string(&self) -> String;
@@ -47,19 +39,21 @@ impl FromHexString for GrumpkinFr {
     }
 }
 
-pub fn _field_to_base64url(v: &Fr) -> String {
-    let bytes = v.into_bigint().to_bytes_be();
-    URL_SAFE_NO_PAD.encode(bytes)
+pub trait ToBase64UrlString {
+    fn to_base64_url_string(&self) -> String;
 }
 
-pub fn _base64url_to_field(s: &str) -> Result<Fr, String> {
-    let bytes = URL_SAFE_NO_PAD
-        .decode(s)
-        .map_err(|_| "Failed to decode base64url string".to_string())?;
-    if bytes.len() != 32 {
-        return Err("Decoded bytes must be 32 bytes".to_string());
+impl ToBase64UrlString for Fr {
+    fn to_base64_url_string(&self) -> String {
+        let bytes = self.into_bigint().to_bytes_be();
+        URL_SAFE_NO_PAD.encode(bytes)
     }
-    Ok(Fr::from_be_bytes_mod_order(&bytes))
+}
+impl ToBase64UrlString for GrumpkinFr {
+    fn to_base64_url_string(&self) -> String {
+        let bytes = self.into_bigint().to_bytes_be();
+        URL_SAFE_NO_PAD.encode(bytes)
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
