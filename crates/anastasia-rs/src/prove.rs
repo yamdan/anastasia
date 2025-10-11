@@ -1,5 +1,3 @@
-use std::sync::LazyLock;
-
 use ark_bn254::Fr;
 use ark_ff::UniformRand;
 use ark_std::rand::rngs::OsRng;
@@ -13,22 +11,15 @@ use noir::{
         ProofWithPublicInputs, get_num_public_inputs_from_circuit, parse_proof_with_public_inputs,
     },
 };
-use sha2::Sha256;
 
 use crate::{
     cert::ParsedCert,
     circuit::Circuit,
     commit::commit_attrs,
-    hash_to_field::{DefaultScalarHasher, HashToScalar},
+    hash_to_field::{HASH_TO_SCALAR, HashToScalar},
     pseudonym::generate_nym,
     utils::{UtcTime, from_u8_array_to_fr_vec},
 };
-
-const HASH_TO_FIELD_BN254_FR_DST: &[u8; 47] = b"QUUX-V01-CS02-with-BN254Fr_XMD:SHA-256_SSWU_RO_";
-
-static HASH_TO_SCALAR: LazyLock<DefaultScalarHasher<Sha256>> = LazyLock::new(|| {
-    <DefaultScalarHasher<Sha256> as HashToScalar<Fr>>::new(HASH_TO_FIELD_BN254_FR_DST)
-});
 
 pub fn prove_ca(
     circuit: &Circuit,

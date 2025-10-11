@@ -9,8 +9,9 @@ mod pseudonym;
 mod utils;
 
 pub use api::{
-    ChainProofResult, ChainProofResultBase64, CommitResult, ProofResult, commit_attrs, prove,
-    prove_chain, prove_chain_as_key_attestation_jwt, prove_chain_base64,
+    ChainProofResult, ChainProofResultBase64, CommitResult, ProofResult, commit_attrs,
+    generate_nym, generate_nym_base64, generate_user_sk, generate_user_sk_hex, prove, prove_chain,
+    prove_chain_as_key_attestation_jwt, prove_chain_base64,
 };
 pub use circuit::{Circuit, CircuitMeta};
 pub use noir::utils::ProofWithPublicInputs;

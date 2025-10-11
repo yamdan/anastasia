@@ -18,10 +18,48 @@ use serde_bytes::ByteBuf;
 use crate::{
     cert::ParsedCert,
     circuit::{Circuit, CircuitMeta},
+    hash_to_field::{HASH_TO_SCALAR, HashToScalar},
     utils::{FromHexString, ToBase64UrlString, ToHexString},
 };
 
 pub const ROOT_COMMITMENT_R: Fr = Fr::ZERO;
+
+pub fn generate_user_sk() -> Fr {
+    let mut rng = OsRng;
+    Fr::rand(&mut rng)
+}
+
+pub fn generate_user_sk_hex() -> String {
+    let sk = generate_user_sk();
+    sk.to_hex_string()
+}
+
+pub fn generate_nym(
+    user_sk: &Fr,
+    device_pk_x: &[u8],
+    device_pk_y: &[u8],
+    context: &str,
+) -> Result<Fr, String> {
+    let device_pk_x: &[u8; 32] = device_pk_x
+        .try_into()
+        .map_err(|_| "device_pk_x must be 32 bytes".to_string())?;
+    let device_pk_y: &[u8; 32] = device_pk_y
+        .try_into()
+        .map_err(|_| "device_pk_y must be 32 bytes".to_string())?;
+    let context_field = HASH_TO_SCALAR.hash_to_scalar(context.as_bytes());
+    crate::pseudonym::generate_nym(user_sk, &(*device_pk_x, *device_pk_y), &context_field)
+}
+
+pub fn generate_nym_base64(
+    user_sk: &str,
+    device_pk_x: &[u8],
+    device_pk_y: &[u8],
+    context: &str,
+) -> Result<String, String> {
+    let user_sk_field = Fr::from_hex_string(user_sk)?;
+    let nym = generate_nym(&user_sk_field, device_pk_x, device_pk_y, context)?;
+    Ok(nym.to_base64_url_string())
+}
 
 #[derive(Debug)]
 pub struct CommitResult {
@@ -245,7 +283,7 @@ pub fn prove_chain(
         let parsed_cert =
             ParsedCert::from_der(&cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
         let circuit = Circuit::new(circuit_meta)?;
-        let (proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r) =
+        let (ca_proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r) =
             crate::prove::prove_ca(
                 &circuit,
                 &parsed_cert,
@@ -258,7 +296,7 @@ pub fn prove_chain(
                 &prev_cmt_r,
                 circuit.max_extra_extension_len,
             )?;
-        proofs.push(proof_with_public_inputs.proof);
+        proofs.push(ca_proof_with_public_inputs.proof);
 
         let mut next_cmt_x_bytes = Vec::new();
         next_cmt_x
@@ -282,7 +320,7 @@ pub fn prove_chain(
     let parsed_leaf_cert = ParsedCert::from_der(&leaf_cert)
         .map_err(|e| format!("Failed to parse leaf cert: {}", e))?;
     let leaf_circuit = Circuit::new(leaf_circuit_meta)?;
-    let (proof_with_public_inputs, nym) = crate::prove::prove_ee(
+    let (ee_proof_with_public_inputs, nym) = crate::prove::prove_ee(
         &leaf_circuit,
         &parsed_leaf_cert,
         &now_datetime,
@@ -296,7 +334,7 @@ pub fn prove_chain(
         context,
         leaf_circuit.max_extra_extension_len,
     )?;
-    proofs.push(proof_with_public_inputs.proof);
+    proofs.push(ee_proof_with_public_inputs.proof);
 
     // serialize proofs_and_commitments to CBOR
     let proofs_and_commitments = ProofsAndCommitments {
@@ -426,6 +464,57 @@ mod tests {
     use super::*;
 
     use serial_test::serial;
+
+    #[test]
+    fn test_generate_user_sk() {
+        let sk = generate_user_sk();
+        assert!(sk != Fr::ZERO);
+    }
+
+    #[test]
+    fn test_generate_user_sk_hex() {
+        let sk = generate_user_sk_hex();
+        assert!(sk.len() == 64);
+    }
+
+    #[test]
+    fn test_generate_nym() {
+        let user_sk = Fr::from_hex_string("deadbeef").unwrap();
+        let pk_x = vec![
+            0xb4, 0x46, 0x2b, 0xe1, 0x47, 0x16, 0x55, 0x9d, 0x26, 0xf1, 0x2e, 0x60, 0x4f, 0xed,
+            0xe1, 0x53, 0x39, 0xd2, 0x5a, 0xa4, 0xf5, 0xdb, 0xda, 0x49, 0x6e, 0x1f, 0x30, 0x43,
+            0x36, 0x01, 0xed, 0x74,
+        ];
+        let pk_y = vec![
+            0xf6, 0x39, 0x6f, 0x87, 0xe8, 0xe7, 0x20, 0x55, 0x3d, 0x86, 0x22, 0xa1, 0xbb, 0xd7,
+            0xab, 0xf5, 0x01, 0x19, 0x1b, 0xae, 0x74, 0x94, 0x97, 0x86, 0x76, 0x47, 0x6b, 0x00,
+            0xfb, 0xd6, 0xda, 0x90,
+        ];
+        let context = "https://credential-issuer.example.com";
+        let nym = generate_nym(&user_sk, &pk_x, &pk_y, context).unwrap();
+        assert_eq!(
+            nym.to_hex_string(),
+            "287a537db35a761cae4b1fecf463088856513c77e5d2c94ddbcf4d85dd0aea18"
+        );
+    }
+
+    #[test]
+    fn test_generate_nym_base64() {
+        let user_sk = "deadbeef";
+        let pk_x = vec![
+            0xb4, 0x46, 0x2b, 0xe1, 0x47, 0x16, 0x55, 0x9d, 0x26, 0xf1, 0x2e, 0x60, 0x4f, 0xed,
+            0xe1, 0x53, 0x39, 0xd2, 0x5a, 0xa4, 0xf5, 0xdb, 0xda, 0x49, 0x6e, 0x1f, 0x30, 0x43,
+            0x36, 0x01, 0xed, 0x74,
+        ];
+        let pk_y = vec![
+            0xf6, 0x39, 0x6f, 0x87, 0xe8, 0xe7, 0x20, 0x55, 0x3d, 0x86, 0x22, 0xa1, 0xbb, 0xd7,
+            0xab, 0xf5, 0x01, 0x19, 0x1b, 0xae, 0x74, 0x94, 0x97, 0x86, 0x76, 0x47, 0x6b, 0x00,
+            0xfb, 0xd6, 0xda, 0x90,
+        ];
+        let context = "https://credential-issuer.example.com";
+        let nym = generate_nym_base64(user_sk, &pk_x, &pk_y, context).unwrap();
+        assert_eq!(nym, "KHpTfbNadhyuSx_s9GMIiFZRPHfl0slN289Nhd0K6hg");
+    }
 
     #[test]
     fn test_commit_attrs() {
@@ -813,5 +902,6 @@ mod tests {
         .unwrap();
 
         assert!(!result.is_empty());
+        println!("JWT: {}", result);
     }
 }

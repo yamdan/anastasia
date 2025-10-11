@@ -11,10 +11,19 @@
 // https://github.com/azixus/algebra/blob/dcf73a5f9610ba9d16a3c8e0de0b3835e5e5d5e4/ff/src/fields/field_hashers/mod.rs
 
 use core::marker::PhantomData;
+use std::sync::LazyLock;
 
+use ark_bn254::Fr;
 use ark_ff::{Field, PrimeField};
 use arrayvec::ArrayVec;
 use digest::{FixedOutputReset, Update, core_api::BlockSizeUser};
+use sha2::Sha256;
+
+const HASH_TO_FIELD_BN254_FR_DST: &[u8; 47] = b"QUUX-V01-CS02-with-BN254Fr_XMD:SHA-256_SSWU_RO_";
+
+pub static HASH_TO_SCALAR: LazyLock<DefaultScalarHasher<Sha256>> = LazyLock::new(|| {
+    <DefaultScalarHasher<Sha256> as HashToScalar<Fr>>::new(HASH_TO_FIELD_BN254_FR_DST)
+});
 
 pub trait Expander {
     fn expand(&self, msg: &[u8], length: usize) -> Vec<u8>;
