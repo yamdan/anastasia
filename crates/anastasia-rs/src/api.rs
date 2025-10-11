@@ -902,6 +902,5 @@ mod tests {
         .unwrap();
 
         assert!(!result.is_empty());
-        println!("JWT: {}", result);
     }
 }
