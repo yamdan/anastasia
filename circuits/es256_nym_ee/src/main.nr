@@ -1,0 +1,58 @@
+use es256_nym_core::{models, verify};
+
+global MAX_TBS_LEN: u32 = 700;
+global MAX_EXTRA_EXT_LEN: u32 = 500;
+
+fn main(
+    issuer_pk_x: [u8; 32],
+    issuer_pk_y: [u8; 32],
+    sig: [u8; 64],
+    serial_number: [u8; 20],
+    serial_number_len: u32,
+    issuer: [u8; 124],
+    issuer_len: u32,
+    subject: [u8; 124],
+    subject_len: u32,
+    subject_pk_x: [u8; 32],
+    subject_pk_y: [u8; 32],
+    given_authority_key_identifier: [u8; 20],
+    extra_extension: [u8; MAX_EXTRA_EXT_LEN],
+    extra_extension_len: u32,
+    not_before: [u8; 7],
+    not_after: [u8; 7],
+    now: pub [u8; 7],
+    prev_cmt: pub (Field, Field),
+    prev_cmt_r: Field,
+    user_sk: Field,
+    context: pub Field,
+    nym: pub Field,
+) {
+    let not_before = models::UtcTime::from_bytes(not_before);
+    let not_after = models::UtcTime::from_bytes(not_after);
+    let now = models::UtcTime::from_bytes(now);
+
+    verify::verify::<MAX_TBS_LEN, _>(
+        issuer_pk_x,
+        issuer_pk_y,
+        sig,
+        serial_number,
+        serial_number_len,
+        issuer,
+        issuer_len,
+        not_before,
+        not_after,
+        now,
+        subject,
+        subject_len,
+        subject_pk_x,
+        subject_pk_y,
+        given_authority_key_identifier,
+        extra_extension,
+        extra_extension_len,
+        prev_cmt,
+        prev_cmt_r,
+        user_sk,
+        context,
+        nym,
+    )
+}
