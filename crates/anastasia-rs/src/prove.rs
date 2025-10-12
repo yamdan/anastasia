@@ -201,7 +201,6 @@ fn generate_witness_ca(
     witness.push(parsed_cert.authority_key_identifier_index.into());
     witness.push(parsed_cert.basic_constraints_ca_index.into());
     witness.push(parsed_cert.key_usage_key_cert_sign_index.into());
-    witness.push(parsed_cert.key_usage_digital_signature_index.into());
 
     let mut witness_map = WitnessMap::new();
     for (i, witness) in witness.iter().enumerate() {

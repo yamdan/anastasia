@@ -115,7 +115,7 @@ pub fn commit_attrs(
 }
 
 #[derive(Debug)]
-pub struct ProofResult {
+pub struct CAProofResult {
     /// The proof with public inputs
     pub proof_with_public_inputs: ProofWithPublicInputs,
     /// The next commitment x-coordinate
@@ -126,18 +126,15 @@ pub struct ProofResult {
     pub next_cmt_r: String,
 }
 
-impl From<SingleProofResult> for ProofResult {
-    fn from(result: SingleProofResult) -> Self {
-        ProofResult {
-            proof_with_public_inputs: result.proof_with_public_inputs,
-            next_cmt_x: result.next_cmt_x.to_hex_string(),
-            next_cmt_y: result.next_cmt_y.to_hex_string(),
-            next_cmt_r: result.next_cmt_r.to_hex_string(),
-        }
-    }
+#[derive(Debug)]
+pub struct EEProofResult {
+    /// The proof with public inputs
+    pub proof_with_public_inputs: ProofWithPublicInputs,
+    /// The pseudonym generated with the proof
+    pub nym: Fr,
 }
 
-pub fn prove(
+pub fn prove_ca(
     circuit_meta: &CircuitMeta,
     cert: &[u8],
     now: Option<i64>,
@@ -147,19 +144,21 @@ pub fn prove(
     prev_cmt_x: &String,
     prev_cmt_y: &String,
     prev_cmt_r: &String,
-) -> Result<ProofResult, String> {
+) -> Result<CAProofResult, String> {
     let parsed_cert =
         ParsedCert::from_der(&cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
 
     let now_datetime = match now {
-        Some(ts) => chrono::DateTime::from_timestamp_secs(ts)
+        Some(ts) => DateTime::from_timestamp_secs(ts)
             .ok_or_else(|| "Invalid timestamp".to_string())?
-            .with_timezone(&chrono::Utc),
-        None => chrono::Utc::now(),
+            .with_timezone(&Utc),
+        None => Utc::now(),
     };
 
-    prove_single(
-        circuit_meta,
+    let circuit = Circuit::new(circuit_meta)?;
+
+    let (proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r) = crate::prove::prove_ca(
+        &circuit,
         &parsed_cert,
         &now_datetime,
         authority_key_id,
@@ -168,53 +167,60 @@ pub fn prove(
         &Fr::from_hex_string(prev_cmt_x)?,
         &Fr::from_hex_string(prev_cmt_y)?,
         &Fr::from_hex_string(prev_cmt_r)?,
-    )
-    .map(ProofResult::from)
-}
-
-#[derive(Debug)]
-pub struct SingleProofResult {
-    /// The proof with public inputs
-    pub proof_with_public_inputs: ProofWithPublicInputs,
-    /// The next commitment x-coordinate
-    pub next_cmt_x: Fr,
-    /// The next commitment y-coordinate
-    pub next_cmt_y: Fr,
-    /// The random value used for the next commitment
-    pub next_cmt_r: Fr,
-}
-
-fn prove_single(
-    circuit_meta: &CircuitMeta,
-    parsed_cert: &ParsedCert,
-    now: &DateTime<Utc>,
-    authority_key_id: &[u8],
-    issuer_pk_x: &[u8],
-    issuer_pk_y: &[u8],
-    prev_cmt_x: &Fr,
-    prev_cmt_y: &Fr,
-    prev_cmt_r: &Fr,
-) -> Result<SingleProofResult, String> {
-    let circuit = Circuit::new(circuit_meta)?;
-
-    let (proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r) = crate::prove::prove_ca(
-        &circuit,
-        parsed_cert,
-        now,
-        authority_key_id,
-        issuer_pk_x,
-        issuer_pk_y,
-        prev_cmt_x,
-        prev_cmt_y,
-        prev_cmt_r,
         circuit.max_extra_extension_len,
     )?;
 
-    Ok(SingleProofResult {
-        proof_with_public_inputs,
-        next_cmt_x,
-        next_cmt_y,
-        next_cmt_r,
+    Ok(CAProofResult {
+        proof_with_public_inputs: proof_with_public_inputs,
+        next_cmt_x: next_cmt_x.to_hex_string(),
+        next_cmt_y: next_cmt_y.to_hex_string(),
+        next_cmt_r: next_cmt_r.to_hex_string(),
+    })
+}
+
+pub fn prove_ee(
+    circuit_meta: &CircuitMeta,
+    cert: &[u8],
+    now: Option<i64>,
+    authority_key_id: &[u8],
+    issuer_pk_x: &[u8],
+    issuer_pk_y: &[u8],
+    prev_cmt_x: &String,
+    prev_cmt_y: &String,
+    prev_cmt_r: &String,
+    user_sk: &Fr,
+    context: &str,
+) -> Result<EEProofResult, String> {
+    let parsed_cert =
+        ParsedCert::from_der(&cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
+
+    let now_datetime = match now {
+        Some(ts) => DateTime::from_timestamp_secs(ts)
+            .ok_or_else(|| "Invalid timestamp".to_string())?
+            .with_timezone(&Utc),
+        None => Utc::now(),
+    };
+
+    let circuit = Circuit::new(circuit_meta)?;
+
+    let (proof_with_public_inputs, nym) = crate::prove::prove_ee(
+        &circuit,
+        &parsed_cert,
+        &now_datetime,
+        authority_key_id,
+        issuer_pk_x,
+        issuer_pk_y,
+        &Fr::from_hex_string(prev_cmt_x)?,
+        &Fr::from_hex_string(prev_cmt_y)?,
+        &Fr::from_hex_string(prev_cmt_r)?,
+        user_sk,
+        context,
+        circuit.max_extra_extension_len,
+    )?;
+
+    Ok(EEProofResult {
+        proof_with_public_inputs: proof_with_public_inputs,
+        nym,
     })
 }
 
@@ -646,12 +652,12 @@ mod tests {
         .unwrap();
 
         // Generate proof
-        let ProofResult {
+        let CAProofResult {
             proof_with_public_inputs,
             next_cmt_x,
             next_cmt_y,
             next_cmt_r,
-        } = prove(
+        } = prove_ca(
             &meta,
             &cert,
             Some(now),
@@ -723,6 +729,9 @@ mod tests {
         let cert = std::fs::read("test_data/es256_ee.der").unwrap();
 
         let now = 1757808000; // 2025-09-14T00:00:00Z
+        let user_sk = "deadbeef";
+        let user_sk_field = Fr::from_hex_string(user_sk).unwrap();
+        let context = "https://credential-issuer.example.com";
 
         // Generate previous commitment
         let issuer = vec![
@@ -761,12 +770,10 @@ mod tests {
         .unwrap();
 
         // Generate proof
-        let ProofResult {
+        let EEProofResult {
             proof_with_public_inputs,
-            next_cmt_x,
-            next_cmt_y,
-            next_cmt_r,
-        } = prove(
+            nym,
+        } = prove_ee(
             &meta,
             &cert,
             Some(now),
@@ -776,52 +783,20 @@ mod tests {
             &prev_cmt_x,
             &prev_cmt_y,
             &prev_cmt_r.to_string(),
+            &user_sk_field,
+            context,
         )
         .unwrap();
 
         assert!(!proof_with_public_inputs.proof.is_empty());
-        assert_eq!(next_cmt_x.len(), 64); // 32 bytes in hex
-        assert_eq!(next_cmt_y.len(), 64); // 32 bytes in hex
-        assert_eq!(next_cmt_r.len(), 64); // 32 bytes in hex
         assert_eq!(
             proof_with_public_inputs.num_public_inputs,
             11 // Number of public inputs expected for es256_ca
         );
-
-        // Generate next commitment and check it matches
-        let subject = vec![
-            0x30, 0x1f, 0x31, 0x1d, 0x30, 0x1b, 0x06, 0x03, 0x55, 0x04, 0x03, 0x13, 0x14, 0x41,
-            0x6e, 0x64, 0x72, 0x6f, 0x69, 0x64, 0x20, 0x4b, 0x65, 0x79, 0x73, 0x74, 0x6f, 0x72,
-            0x65, 0x20, 0x4b, 0x65, 0x79,
-        ]; // CN=Android Keystore Key
-        let subject_key_id = vec![
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ]; // Empty key identifier
-        let subject_pk_x = vec![
-            0xb4, 0x46, 0x2b, 0xe1, 0x47, 0x16, 0x55, 0x9d, 0x26, 0xf1, 0x2e, 0x60, 0x4f, 0xed,
-            0xe1, 0x53, 0x39, 0xd2, 0x5a, 0xa4, 0xf5, 0xdb, 0xda, 0x49, 0x6e, 0x1f, 0x30, 0x43,
-            0x36, 0x01, 0xed, 0x74,
-        ];
-        let subject_pk_y = vec![
-            0xf6, 0x39, 0x6f, 0x87, 0xe8, 0xe7, 0x20, 0x55, 0x3d, 0x86, 0x22, 0xa1, 0xbb, 0xd7,
-            0xab, 0xf5, 0x01, 0x19, 0x1b, 0xae, 0x74, 0x94, 0x97, 0x86, 0x76, 0x47, 0x6b, 0x00,
-            0xfb, 0xd6, 0xda, 0x90,
-        ];
-        let CommitResult {
-            cmt_x: next_cmt_x_generated,
-            cmt_y: next_cmt_y_generated,
-            r: _,
-        } = commit_attrs(
-            &subject,
-            &subject_key_id,
-            &subject_pk_x,
-            &subject_pk_y,
-            Some(&next_cmt_r),
-        )
-        .unwrap();
-        assert_eq!(next_cmt_x, next_cmt_x_generated);
-        assert_eq!(next_cmt_y, next_cmt_y_generated);
+        assert_eq!(
+            nym.to_base64_url_string(),
+            "KHpTfbNadhyuSx_s9GMIiFZRPHfl0slN289Nhd0K6hg".to_string()
+        );
     }
 
     #[test]
@@ -834,9 +809,9 @@ mod tests {
             "data/common.srs".to_string(),
         );
         let meta_ee = CircuitMeta::new(
-            "es256_nym_ee".to_string(),
-            "data/es256_nym_ee.json".to_string(),
-            "data/es256_nym_ee.vk".to_string(),
+            "es256_ee".to_string(),
+            "data/es256_ee.json".to_string(),
+            "data/es256_ee.vk".to_string(),
             "data/common.srs".to_string(),
         );
 
@@ -875,9 +850,9 @@ mod tests {
             "data/common.srs".to_string(),
         );
         let meta_ee = CircuitMeta::new(
-            "es256_nym_ee".to_string(),
-            "data/es256_nym_ee.json".to_string(),
-            "data/es256_nym_ee.vk".to_string(),
+            "es256_ee".to_string(),
+            "data/es256_ee.json".to_string(),
+            "data/es256_ee.vk".to_string(),
             "data/common.srs".to_string(),
         );
 

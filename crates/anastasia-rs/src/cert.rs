@@ -23,7 +23,6 @@ pub struct ParsedCert {
     pub authority_key_identifier_index: u32,
     pub basic_constraints_ca_index: u32,
     pub key_usage_key_cert_sign_index: u32,
-    pub key_usage_digital_signature_index: u32,
     pub extra_extension: Vec<u8>,
     pub extra_extension_len: u32,
 }
@@ -72,7 +71,6 @@ impl ParsedCert {
         let mut authority_key_identifier_index = 0;
         let mut basic_constraints_ca_index = 0;
         let mut key_usage_key_cert_sign_index = 0;
-        let mut key_usage_digital_signature_index = 0;
         let mut extra_extension: Vec<u8> = Vec::new();
         let mut extra_extension_len = 0;
         for (i, ext) in parsed_cert.extensions().iter().enumerate() {
@@ -80,8 +78,6 @@ impl ParsedCert {
                 ParsedExtension::KeyUsage(ku) => {
                     if ku.key_cert_sign() {
                         key_usage_key_cert_sign_index = i + 1;
-                    } else if ku.digital_signature() {
-                        key_usage_digital_signature_index = i + 1;
                     }
                 }
                 ParsedExtension::BasicConstraints(bc) => {
@@ -200,7 +196,6 @@ impl ParsedCert {
             authority_key_identifier_index: authority_key_identifier_index as u32,
             basic_constraints_ca_index: basic_constraints_ca_index as u32,
             key_usage_key_cert_sign_index: key_usage_key_cert_sign_index as u32,
-            key_usage_digital_signature_index: key_usage_digital_signature_index as u32,
             extra_extension,
             extra_extension_len: extra_extension_len as u32,
         })
@@ -365,7 +360,6 @@ mod tests {
         assert_eq!(parsed_cert.authority_key_identifier_index, 2);
         assert_eq!(parsed_cert.basic_constraints_ca_index, 3);
         assert_eq!(parsed_cert.key_usage_key_cert_sign_index, 4);
-        assert_eq!(parsed_cert.key_usage_digital_signature_index, 0);
         assert_eq!(
             parsed_cert.extra_extension,
             [
@@ -457,7 +451,6 @@ mod tests {
         assert_eq!(parsed_cert.authority_key_identifier_index, 0);
         assert_eq!(parsed_cert.basic_constraints_ca_index, 0);
         assert_eq!(parsed_cert.key_usage_key_cert_sign_index, 0);
-        assert_eq!(parsed_cert.key_usage_digital_signature_index, 1);
         assert_eq!(
             parsed_cert.extra_extension,
             [
