@@ -76,7 +76,7 @@ impl From<CommitResult> for anastasia_rs::CommitResult {
 }
 
 #[derive(Clone, Debug, Record)]
-pub struct ProofResult {
+pub struct CAProofResult {
     /// The proof without public inputs
     pub proof: String,
     /// The public inputs as an array of 32-byte hex values
@@ -91,9 +91,9 @@ pub struct ProofResult {
     pub next_cmt_r: String,
 }
 
-impl From<anastasia_rs::ProofResult> for ProofResult {
-    fn from(result: anastasia_rs::ProofResult) -> Self {
-        ProofResult {
+impl From<anastasia_rs::CAProofResult> for CAProofResult {
+    fn from(result: anastasia_rs::CAProofResult) -> Self {
+        CAProofResult {
             proof: hex::encode(result.proof_with_public_inputs.proof),
             public_inputs: result
                 .proof_with_public_inputs
@@ -109,17 +109,17 @@ impl From<anastasia_rs::ProofResult> for ProofResult {
     }
 }
 
-impl TryFrom<ProofResult> for anastasia_rs::ProofResult {
+impl TryFrom<CAProofResult> for anastasia_rs::CAProofResult {
     type Error = hex::FromHexError;
 
-    fn try_from(result: ProofResult) -> Result<Self, Self::Error> {
+    fn try_from(result: CAProofResult) -> Result<Self, Self::Error> {
         let proof = hex::decode(&result.proof)?;
         let public_inputs = result
             .public_inputs
             .iter()
             .map(|input| hex::decode(input))
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(anastasia_rs::ProofResult {
+        Ok(anastasia_rs::CAProofResult {
             proof_with_public_inputs: anastasia_rs::ProofWithPublicInputs {
                 proof,
                 public_inputs,
@@ -128,6 +128,55 @@ impl TryFrom<ProofResult> for anastasia_rs::ProofResult {
             next_cmt_x: result.next_cmt_x,
             next_cmt_y: result.next_cmt_y,
             next_cmt_r: result.next_cmt_r,
+        })
+    }
+}
+
+#[derive(Clone, Debug, Record)]
+pub struct EEProofResult {
+    /// The proof without public inputs
+    pub proof: String,
+    /// The public inputs as an array of 32-byte hex values
+    pub public_inputs: Vec<String>,
+    /// The number of public inputs
+    pub num_public_inputs: u32,
+    /// The pseudonym generated with the proof
+    pub nym: String,
+}
+
+impl From<anastasia_rs::EEProofResult> for EEProofResult {
+    fn from(result: anastasia_rs::EEProofResult) -> Self {
+        EEProofResult {
+            proof: hex::encode(result.proof_with_public_inputs.proof),
+            public_inputs: result
+                .proof_with_public_inputs
+                .public_inputs
+                .iter()
+                .map(|input| hex::encode(input))
+                .collect(),
+            num_public_inputs: result.proof_with_public_inputs.num_public_inputs as u32,
+            nym: result.nym,
+        }
+    }
+}
+
+impl TryFrom<EEProofResult> for anastasia_rs::EEProofResult {
+    type Error = hex::FromHexError;
+
+    fn try_from(result: EEProofResult) -> Result<Self, Self::Error> {
+        let proof = hex::decode(&result.proof)?;
+        let public_inputs = result
+            .public_inputs
+            .iter()
+            .map(|input| hex::decode(input))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(anastasia_rs::EEProofResult {
+            proof_with_public_inputs: anastasia_rs::ProofWithPublicInputs {
+                proof,
+                public_inputs,
+                num_public_inputs: result.num_public_inputs as usize,
+            },
+            nym: result.nym,
         })
     }
 }

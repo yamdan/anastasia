@@ -11,7 +11,9 @@ mopro_ffi::app!();
 
 mod ffi_types;
 
-use crate::ffi_types::{ChainProofResultBase64, CircuitMeta, CommitResult, ProofResult};
+use crate::ffi_types::{
+    CAProofResult, ChainProofResultBase64, CircuitMeta, CommitResult, EEProofResult,
+};
 
 #[uniffi::export]
 fn generate_user_sk() -> String {
@@ -50,7 +52,7 @@ fn commit_attrs(
 }
 
 #[uniffi::export]
-fn prove(
+fn prove_ca(
     circuit_meta: CircuitMeta,
     cert: Vec<u8>,
     authority_key_id: Vec<u8>,
@@ -60,8 +62,8 @@ fn prove(
     prev_cmt_y: String,
     prev_cmt_r: String,
     now: Option<i64>,
-) -> Result<ProofResult, MoproError> {
-    let proof = anastasia_rs::prove(
+) -> Result<CAProofResult, MoproError> {
+    let proof = anastasia_rs::prove_ca(
         &circuit_meta.into(),
         &cert,
         now,
@@ -71,6 +73,38 @@ fn prove(
         &prev_cmt_x,
         &prev_cmt_y,
         &prev_cmt_r,
+    )
+    .map_err(|e| MoproError::NoirError(e.to_string()))?;
+
+    Ok(proof.into())
+}
+
+#[uniffi::export]
+fn prove_ee(
+    circuit_meta: CircuitMeta,
+    cert: Vec<u8>,
+    authority_key_id: Vec<u8>,
+    issuer_pk_x: Vec<u8>,
+    issuer_pk_y: Vec<u8>,
+    prev_cmt_x: String,
+    prev_cmt_y: String,
+    prev_cmt_r: String,
+    now: Option<i64>,
+    user_sk: &str,
+    context: &str,
+) -> Result<EEProofResult, MoproError> {
+    let proof = anastasia_rs::prove_ee(
+        &circuit_meta.into(),
+        &cert,
+        now,
+        &authority_key_id,
+        &issuer_pk_x,
+        &issuer_pk_y,
+        &prev_cmt_x,
+        &prev_cmt_y,
+        &prev_cmt_r,
+        user_sk,
+        context,
     )
     .map_err(|e| MoproError::NoirError(e.to_string()))?;
 
@@ -310,14 +344,14 @@ mod tests {
         .unwrap();
 
         // Generate proof
-        let ProofResult {
+        let CAProofResult {
             proof,
             public_inputs,
             num_public_inputs,
             next_cmt_x,
             next_cmt_y,
             next_cmt_r,
-        } = prove(
+        } = prove_ca(
             meta,
             cert,
             authority_key_id,
@@ -391,9 +425,9 @@ mod tests {
             "../anastasia-rs/data/common.srs".to_string(),
         );
         let meta_ee = CircuitMeta::new(
-            "es256_nym_ee".to_string(),
-            "../anastasia-rs/data/es256_nym_ee.json".to_string(),
-            "../anastasia-rs/data/es256_nym_ee.vk".to_string(),
+            "es256_ee".to_string(),
+            "../anastasia-rs/data/es256_ee.json".to_string(),
+            "../anastasia-rs/data/es256_ee.vk".to_string(),
             "../anastasia-rs/data/common.srs".to_string(),
         );
 
