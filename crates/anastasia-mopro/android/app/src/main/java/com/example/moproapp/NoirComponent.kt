@@ -21,12 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.io.File
 import uniffi.mopro.CircuitMeta
-import uniffi.mopro.commitAttrs
 import uniffi.mopro.generateUserSk
 import uniffi.mopro.verifyNoirProof
-import uniffi.mopro.prove
 import uniffi.mopro.proveChainBase64
-import uniffi.mopro.proveChainJwt
 
 fun bytes(vararg ints: Int): ByteArray = ints.map { it.toByte() }.toByteArray()
 
@@ -48,8 +45,8 @@ fun NoirComponent() {
     val srsFile = getFilePathFromAssets("common.srs")
     val caCircuitFile = getFilePathFromAssets("es256_ca.json")
     val caVkFile = getFilePathFromAssets("es256_ca.vk")
-    val eeCircuitFile = getFilePathFromAssets("es256_nym_ee.json")
-    val eeVkFile = getFilePathFromAssets("es256_nym_ee.vk")
+    val eeCircuitFile = getFilePathFromAssets("es256_ee.json")
+    val eeVkFile = getFilePathFromAssets("es256_ee.vk")
 
     val rootCertFile = getFilePathFromAssets("es256_ca_droidca3.der")
     val caCertFile = getFilePathFromAssets("es256_ca_strongbox.der")
@@ -128,7 +125,7 @@ fun NoirComponent() {
                                             srsFile,
                                         )
                                     ), CircuitMeta(
-                                        "ES256-NYM-EE",
+                                        "ES256-EE",
                                         eeCircuitFile,
                                         eeVkFile,
                                         srsFile,
