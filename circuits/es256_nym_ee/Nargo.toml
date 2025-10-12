@@ -1,8 +1,0 @@
-[package]
-name = "es256_nym_ee"
-version = "0.1.0"
-type = "bin"
-authors = ["yamdan"]
-
-[dependencies]
-es256_nym_core = { path = "../es256_nym_core" }

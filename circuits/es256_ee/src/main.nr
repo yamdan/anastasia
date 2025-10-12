@@ -1,7 +1,10 @@
-use es256_core::{verify, models};
+pub mod nym;
+mod verify;
+
+use es256_common::models;
 
 global MAX_TBS_LEN: u32 = 700;
-global MAX_EXTRA_EXT_LEN: u32 = 300;
+global MAX_EXTRA_EXT_LEN: u32 = 500;
 
 fn main(
     issuer_pk_x: [u8; 32],
@@ -23,15 +26,9 @@ fn main(
     now: pub [u8; 7],
     prev_cmt: pub (Field, Field),
     prev_cmt_r: Field,
-    next_cmt: pub (Field, Field),
-    next_cmt_r: Field,
-    subject_key_identifier: [u8; 20],
-    authority_key_identifier: [u8; 20],
-    subject_key_identifier_index: u32,
-    authority_key_identifier_index: u32,
-    basic_constraints_ca_index: u32,
-    key_usage_key_cert_sign_index: u32,
-    key_usage_digital_signature_index: u32,
+    user_sk: Field,
+    context: pub Field,
+    nym: pub Field,
 ) {
     let not_before = models::UtcTime::from_bytes(not_before);
     let not_after = models::UtcTime::from_bytes(not_after);
@@ -52,19 +49,13 @@ fn main(
         subject_len,
         subject_pk_x,
         subject_pk_y,
-        subject_key_identifier,
-        authority_key_identifier,
         given_authority_key_identifier,
-        subject_key_identifier_index,
-        authority_key_identifier_index,
-        basic_constraints_ca_index,
-        key_usage_key_cert_sign_index,
-        key_usage_digital_signature_index,
         extra_extension,
         extra_extension_len,
         prev_cmt,
         prev_cmt_r,
-        next_cmt,
-        next_cmt_r,
+        user_sk,
+        context,
+        nym,
     )
 }

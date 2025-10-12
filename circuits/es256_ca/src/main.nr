@@ -1,4 +1,6 @@
-use es256_core::{verify, models};
+mod verify;
+
+use es256_common::models;
 
 global MAX_TBS_LEN: u32 = 500;
 global MAX_EXTRA_EXT_LEN: u32 = 30;
@@ -31,7 +33,6 @@ fn main(
     authority_key_identifier_index: u32,
     basic_constraints_ca_index: u32,
     key_usage_key_cert_sign_index: u32,
-    key_usage_digital_signature_index: u32,
 ) {
     let not_before = models::UtcTime::from_bytes(not_before);
     let not_after = models::UtcTime::from_bytes(not_after);
@@ -59,7 +60,6 @@ fn main(
         authority_key_identifier_index,
         basic_constraints_ca_index,
         key_usage_key_cert_sign_index,
-        key_usage_digital_signature_index,
         extra_extension,
         extra_extension_len,
         prev_cmt,

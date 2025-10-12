@@ -2,11 +2,13 @@ use std::ecdsa_secp256r1::verify_signature;
 
 use sha256::sha256_var;
 
-use crate::{
+use es256_common::{
     commit::commit_attrs,
-    models::{encode_length, key_usage_digital_signature_extension, UtcTime},
+    models::{
+        authority_key_identifier_extension, basic_constraints_ca_extension, encode_length,
+        key_usage_key_cert_sign_extension, subject_key_identifier_extension, UtcTime,
+    },
 };
-use super::nym::generate_nym;
 
 pub fn verify<let MAX_TBS_LEN: u32, let MAX_EXT_LEN: u32>(
     issuer_pk_x: [u8; 32],
@@ -23,14 +25,19 @@ pub fn verify<let MAX_TBS_LEN: u32, let MAX_EXT_LEN: u32>(
     subject_len: u32,
     subject_pk_x: [u8; 32],
     subject_pk_y: [u8; 32],
+    subject_key_identifier: [u8; 20],
+    authority_key_identifier: [u8; 20],
     given_authority_key_identifier: [u8; 20],
+    subject_key_identifier_index: u32,
+    authority_key_identifier_index: u32,
+    basic_constraints_ca_index: u32,
+    key_usage_key_cert_sign_index: u32,
     extra_extension: [u8; MAX_EXT_LEN],
     extra_extension_len: u32,
     prev_cmt: (Field, Field),
     prev_cmt_r: Field,
-    user_sk: Field,
-    context: Field,
-    nym: Field,
+    next_cmt: (Field, Field),
+    next_cmt_r: Field,
 ) {
     let mut buf: [u8; MAX_TBS_LEN] = [0; MAX_TBS_LEN];
 
@@ -39,12 +46,12 @@ pub fn verify<let MAX_TBS_LEN: u32, let MAX_EXT_LEN: u32>(
     // expected to contain long integers.  Certificate users MUST be able to
     // handle serialNumber values up to 20 octets.  Conforming CAs MUST NOT
     // use serialNumber values longer than 20 octets"
-    assert(serial_number_len <= 20, "Serial number length exceeds 20 bytes");
+    assert(serial_number_len <= 20);
     let serial_number_len_bytes: [u8; 1] = (serial_number_len as Field).to_be_bytes();
 
     // Time validity checks
-    assert(not_before.isBefore(now), "Not before time is not before now");
-    assert(now.isBefore(not_after), "Now is not before not after time");
+    assert(not_before.isBefore(now));
+    assert(now.isBefore(not_after));
     let validity_header = [0x30, 0x1e];
     let validity = validity_header.concat(not_before.to_bytes()).concat(not_after.to_bytes());
     let validity_len = validity.len();
@@ -52,19 +59,72 @@ pub fn verify<let MAX_TBS_LEN: u32, let MAX_EXT_LEN: u32>(
     // subject public key
     let subject_public_key = [0x03, 0x42, 0x00, 0x04].concat(subject_pk_x).concat(subject_pk_y);
 
-    // Standard extensions
-    // Note: This circuit only handles `Key Usage = digitalSignature`
-    let mut std_extensions = key_usage_digital_signature_extension();
-    let mut std_extensions_len: u32 = 16;
+    // standard extensions
+    //   check that sum of indices must be 10 and product of indices must be 24
+    //   to ensure that the indices are unique and cover all 4 extensions
+    assert(
+        subject_key_identifier_index
+            + authority_key_identifier_index
+            + basic_constraints_ca_index
+            + key_usage_key_cert_sign_index
+            == 10,
+        "Sum of standard extension indices must be 10",
+    );
+    assert(
+        subject_key_identifier_index
+            * authority_key_identifier_index
+            * basic_constraints_ca_index
+            * key_usage_key_cert_sign_index
+            == 24,
+        "Product of standard extension indices must be 24",
+    );
+    let mut index = 0;
+    let mut std_extensions = [0; 97]; // = 31 + 33 + 17 + 16
+    let std_extensions_len = 97;
+    for i in 1..5 {
+        if i == subject_key_identifier_index {
+            let ext = subject_key_identifier_extension(subject_key_identifier);
+            for j in 0..31 {
+                std_extensions[index] = ext[j];
+                index += 1;
+            }
+        } else if i == authority_key_identifier_index {
+            let ext = authority_key_identifier_extension(authority_key_identifier);
+            for j in 0..33 {
+                std_extensions[index] = ext[j];
+                index += 1;
+            }
+        } else if i == basic_constraints_ca_index {
+            let ext = basic_constraints_ca_extension();
+            for j in 0..17 {
+                std_extensions[index] = ext[j];
+                index += 1;
+            }
+        } else if i == key_usage_key_cert_sign_index {
+            let ext = key_usage_key_cert_sign_extension();
+            for j in 0..16 {
+                std_extensions[index] = ext[j];
+                index += 1;
+            }
+        }
+    }
 
     // generate chain commitment and check
-    let aki = given_authority_key_identifier;
+    let aki = if authority_key_identifier_index == 0 {
+        given_authority_key_identifier
+    } else {
+        authority_key_identifier
+    };
     let prev_cmt_generated = commit_attrs(issuer, aki, issuer_pk_x, issuer_pk_y, prev_cmt_r);
-    assert(prev_cmt_generated == prev_cmt, "Previous commitment does not match");
-
-    // Generate pseudonym and check
-    let nym_generated = generate_nym(subject_pk_x, subject_pk_y, user_sk, context);
-    assert(nym_generated == nym, "Pseudonym does not match");
+    assert(prev_cmt_generated == prev_cmt);
+    let next_cmt_generated = commit_attrs(
+        subject,
+        subject_key_identifier,
+        subject_pk_x,
+        subject_pk_y,
+        next_cmt_r,
+    );
+    assert(next_cmt_generated == next_cmt);
 
     let extensions_len = std_extensions_len + extra_extension_len;
     let (extensions_seq_encoded_len, extensions_seq_encoded_len_size) =
@@ -109,8 +169,8 @@ pub fn verify<let MAX_TBS_LEN: u32, let MAX_EXT_LEN: u32>(
 
     // Length of the TBSCertificate
     let tbs_len = total_len - 4;
-    assert(tbs_len >= 256, "TBSCertificate length must be at least 256 bytes");
-    assert(tbs_len <= MAX_TBS_LEN, "TBSCertificate length exceeds maximum limit");
+    assert(tbs_len >= 256);
+    assert(tbs_len <= MAX_TBS_LEN);
     let tbs_len_bytes: [u8; 2] = (tbs_len as Field).to_be_bytes();
 
     // header

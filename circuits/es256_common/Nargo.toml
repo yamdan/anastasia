@@ -1,5 +1,5 @@
 [package]
-name = "es256_core"
+name = "es256_common"
 version = "0.1.0"
 type = "lib"
 authors = ["yamdan"]
