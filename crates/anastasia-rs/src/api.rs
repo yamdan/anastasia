@@ -126,14 +126,6 @@ pub struct CAProofResult {
     pub next_cmt_r: String,
 }
 
-#[derive(Debug)]
-pub struct EEProofResult {
-    /// The proof with public inputs
-    pub proof_with_public_inputs: ProofWithPublicInputs,
-    /// The pseudonym generated with the proof
-    pub nym: Fr,
-}
-
 pub fn prove_ca(
     circuit_meta: &CircuitMeta,
     cert: &[u8],
@@ -178,6 +170,14 @@ pub fn prove_ca(
     })
 }
 
+#[derive(Debug)]
+pub struct EEProofResult {
+    /// The proof with public inputs
+    pub proof_with_public_inputs: ProofWithPublicInputs,
+    /// The pseudonym generated with the proof
+    pub nym: String,
+}
+
 pub fn prove_ee(
     circuit_meta: &CircuitMeta,
     cert: &[u8],
@@ -188,9 +188,11 @@ pub fn prove_ee(
     prev_cmt_x: &String,
     prev_cmt_y: &String,
     prev_cmt_r: &String,
-    user_sk: &Fr,
+    user_sk: &str,
     context: &str,
 ) -> Result<EEProofResult, String> {
+    let user_sk = Fr::from_hex_string(user_sk)?;
+
     let parsed_cert =
         ParsedCert::from_der(&cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
 
@@ -213,14 +215,14 @@ pub fn prove_ee(
         &Fr::from_hex_string(prev_cmt_x)?,
         &Fr::from_hex_string(prev_cmt_y)?,
         &Fr::from_hex_string(prev_cmt_r)?,
-        user_sk,
+        &user_sk,
         context,
         circuit.max_extra_extension_len,
     )?;
 
     Ok(EEProofResult {
-        proof_with_public_inputs: proof_with_public_inputs,
-        nym,
+        proof_with_public_inputs,
+        nym: nym.to_base64_url_string(),
     })
 }
 
@@ -730,7 +732,6 @@ mod tests {
 
         let now = 1757808000; // 2025-09-14T00:00:00Z
         let user_sk = "deadbeef";
-        let user_sk_field = Fr::from_hex_string(user_sk).unwrap();
         let context = "https://credential-issuer.example.com";
 
         // Generate previous commitment
@@ -783,7 +784,7 @@ mod tests {
             &prev_cmt_x,
             &prev_cmt_y,
             &prev_cmt_r.to_string(),
-            &user_sk_field,
+            user_sk,
             context,
         )
         .unwrap();
@@ -794,7 +795,7 @@ mod tests {
             11 // Number of public inputs expected for es256_ca
         );
         assert_eq!(
-            nym.to_base64_url_string(),
+            nym,
             "KHpTfbNadhyuSx_s9GMIiFZRPHfl0slN289Nhd0K6hg".to_string()
         );
     }

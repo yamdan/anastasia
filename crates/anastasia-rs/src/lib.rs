@@ -15,3 +15,4 @@ pub use api::{
 };
 pub use circuit::{Circuit, CircuitMeta};
 pub use noir::utils::ProofWithPublicInputs;
+pub use utils::{FromHexString, ToBase64UrlString, ToHexString};
