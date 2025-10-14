@@ -482,6 +482,12 @@ mod tests {
     use serial_test::serial;
 
     #[test]
+    fn test_setup() {
+        let result = setup("../anastasia-rs/data/common.srs");
+        assert!(result.is_ok());
+    }
+
+    #[test]
     fn test_generate_user_sk() {
         let sk = generate_user_sk();
         assert!(sk != Fr::ZERO);
