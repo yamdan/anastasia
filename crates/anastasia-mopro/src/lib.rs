@@ -60,7 +60,6 @@ fn commit_attrs(
 fn prove_ca(
     circuit_meta: CircuitMeta,
     cert: Vec<u8>,
-    authority_key_id: Vec<u8>,
     issuer_pk_x: Vec<u8>,
     issuer_pk_y: Vec<u8>,
     prev_cmt_x: String,
@@ -72,7 +71,6 @@ fn prove_ca(
         &circuit_meta.into(),
         &cert,
         now,
-        &authority_key_id,
         &issuer_pk_x,
         &issuer_pk_y,
         &prev_cmt_x,
@@ -88,13 +86,13 @@ fn prove_ca(
 fn prove_ee(
     circuit_meta: CircuitMeta,
     cert: Vec<u8>,
-    authority_key_id: Vec<u8>,
     issuer_pk_x: Vec<u8>,
     issuer_pk_y: Vec<u8>,
     prev_cmt_x: String,
     prev_cmt_y: String,
     prev_cmt_r: String,
     now: Option<i64>,
+    authority_key_id: Vec<u8>,
     user_sk: &str,
     context: &str,
 ) -> Result<EEProofResult, MoproError> {
@@ -102,12 +100,12 @@ fn prove_ee(
         &circuit_meta.into(),
         &cert,
         now,
-        &authority_key_id,
         &issuer_pk_x,
         &issuer_pk_y,
         &prev_cmt_x,
         &prev_cmt_y,
         &prev_cmt_r,
+        &authority_key_id,
         user_sk,
         context,
     )
@@ -365,7 +363,6 @@ mod tests {
         } = prove_ca(
             meta,
             cert,
-            authority_key_id,
             issuer_pk_x,
             issuer_pk_y,
             prev_cmt_x.to_string(),
