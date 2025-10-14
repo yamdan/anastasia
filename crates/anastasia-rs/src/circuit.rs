@@ -13,6 +13,7 @@ pub struct CircuitMeta {
     pub id: String,
     pub circuit_path: String,
     pub verification_key_path: String,
+    pub verification_key_keccak_mode_path: String,
     pub srs_path: String,
 }
 
@@ -21,12 +22,14 @@ impl CircuitMeta {
         id: String,
         circuit_path: String,
         verification_key_path: String,
+        verification_key_keccak_mode_path: String,
         srs_path: String,
     ) -> Self {
         Self {
             id,
             circuit_path,
             verification_key_path,
+            verification_key_keccak_mode_path,
             srs_path,
         }
     }
@@ -36,6 +39,7 @@ pub struct Circuit {
     pub id: String,
     pub bytecode: String,
     pub verification_key: Vec<u8>,
+    pub verification_key_keccak_mode: Vec<u8>,
     pub circuit_size: u32,
 }
 
@@ -68,11 +72,19 @@ impl Circuit {
             .read_to_end(&mut vk_contents)
             .expect("Failed to read VK file");
 
+        let mut vk_file_keccak_mode = File::open(&circuit_meta.verification_key_keccak_mode_path)
+            .expect("Failed to open VK file for keccak mode");
+        let mut vk_contents_keccak_mode = Vec::new();
+        vk_file_keccak_mode
+            .read_to_end(&mut vk_contents_keccak_mode)
+            .expect("Failed to read VK file for keccak mode");
+
         Ok(Self {
             id: circuit_meta.id.clone(),
             bytecode,
             circuit_size,
             verification_key: vk_contents,
+            verification_key_keccak_mode: vk_contents_keccak_mode,
         })
     }
 }
@@ -112,6 +124,7 @@ mod tests {
             "es256_ca".to_string(),
             "data/es256_ca.json".to_string(),
             "data/es256_ca.vk".to_string(),
+            "data/es256_ca.keccak.vk".to_string(),
             "data/common.srs".to_string(),
         );
         assert_eq!(meta.id, "es256_ca");
@@ -126,6 +139,7 @@ mod tests {
             "es256_ca".to_string(),
             "data/es256_ca.json".to_string(),
             "data/es256_ca.vk".to_string(),
+            "data/es256_ca.keccak.vk".to_string(),
             "data/common.srs".to_string(),
         );
         let circuit = Circuit::new(&meta).unwrap();

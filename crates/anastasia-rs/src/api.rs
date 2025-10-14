@@ -1,8 +1,7 @@
 use std::io::Write;
 
 use ark_bn254::Fr;
-use ark_ff::{PrimeField, UniformRand};
-use ark_serialize::CanonicalSerialize;
+use ark_ff::{BigInteger, PrimeField, UniformRand};
 use ark_std::rand::rngs::OsRng;
 use base64::{
     Engine as _,
@@ -139,6 +138,7 @@ pub fn prove_ca(
     prev_cmt_x: &String,
     prev_cmt_y: &String,
     prev_cmt_r: &String,
+    is_keccak_mode: bool,
 ) -> Result<CAProofResult, String> {
     let parsed_cert =
         ParsedCert::from_der(&cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
@@ -161,6 +161,7 @@ pub fn prove_ca(
         &Fr::from_hex_string(prev_cmt_x)?,
         &Fr::from_hex_string(prev_cmt_y)?,
         &Fr::from_hex_string(prev_cmt_r)?,
+        is_keccak_mode,
     )?;
 
     Ok(CAProofResult {
@@ -191,6 +192,7 @@ pub fn prove_ee(
     authority_key_id: &[u8],
     user_sk: &str,
     context: &str,
+    is_keccak_mode: bool,
 ) -> Result<EEProofResult, String> {
     let user_sk = Fr::from_hex_string(user_sk)?;
 
@@ -218,6 +220,7 @@ pub fn prove_ee(
         authority_key_id,
         &user_sk,
         context,
+        is_keccak_mode,
     )?;
 
     Ok(EEProofResult {
@@ -255,6 +258,7 @@ pub fn prove_chain(
     now: Option<i64>,
     user_sk: &Fr,
     context: &str,
+    is_keccak_mode: bool,
 ) -> Result<ChainProofResult, String> {
     if intermediate_circuits_meta.len() != intermediate_certs.len() {
         return Err(
@@ -290,17 +294,12 @@ pub fn prove_chain(
             &now_datetime,
             &issuer_pk_x.to_vec(),
             &issuer_pk_y.to_vec(),
+            is_keccak_mode,
         )?;
     proofs.push(subroot_proof_with_public_inputs.proof);
 
-    let mut next_cmt_x_bytes = Vec::new();
-    next_cmt_x
-        .serialize_uncompressed(&mut next_cmt_x_bytes)
-        .map_err(|e| format!("Failed to serialize next_cmt_x: {}", e))?;
-    let mut next_cmt_y_bytes = Vec::new();
-    next_cmt_y
-        .serialize_uncompressed(&mut next_cmt_y_bytes)
-        .map_err(|e| format!("Failed to serialize next_cmt_y: {}", e))?;
+    let next_cmt_x_bytes = next_cmt_x.into_bigint().to_bytes_be();
+    let next_cmt_y_bytes = next_cmt_y.into_bigint().to_bytes_be();
     commitments.push((next_cmt_x_bytes, next_cmt_y_bytes));
 
     let mut prev_cmt_x = next_cmt_x;
@@ -325,17 +324,12 @@ pub fn prove_chain(
                 &prev_cmt_x,
                 &prev_cmt_y,
                 &prev_cmt_r,
+                is_keccak_mode,
             )?;
         proofs.push(ca_proof_with_public_inputs.proof);
 
-        let mut next_cmt_x_bytes = Vec::new();
-        next_cmt_x
-            .serialize_uncompressed(&mut next_cmt_x_bytes)
-            .map_err(|e| format!("Failed to serialize next_cmt_x: {}", e))?;
-        let mut next_cmt_y_bytes = Vec::new();
-        next_cmt_y
-            .serialize_uncompressed(&mut next_cmt_y_bytes)
-            .map_err(|e| format!("Failed to serialize next_cmt_y: {}", e))?;
+        let next_cmt_x_bytes = next_cmt_x.into_bigint().to_bytes_be();
+        let next_cmt_y_bytes = next_cmt_y.into_bigint().to_bytes_be();
         commitments.push((next_cmt_x_bytes, next_cmt_y_bytes));
 
         prev_cmt_x = next_cmt_x;
@@ -362,6 +356,7 @@ pub fn prove_chain(
         &authority_key_id.to_vec(),
         user_sk,
         context,
+        is_keccak_mode,
     )?;
     proofs.push(ee_proof_with_public_inputs.proof);
 
@@ -414,6 +409,7 @@ pub fn prove_chain_base64(
     now: Option<i64>,
     user_sk: &str,
     context: &str,
+    is_keccak_mode: bool,
 ) -> Result<ChainProofResultBase64, String> {
     let user_sk_bytes =
         hex::decode(user_sk).map_err(|e| format!("Failed to decode user_sk: {}", e))?;
@@ -430,6 +426,7 @@ pub fn prove_chain_base64(
         now,
         &user_sk,
         context,
+        is_keccak_mode,
     )?;
     let proofs_and_commitments = URL_SAFE_NO_PAD.encode(result.proofs_and_commitments);
 
@@ -451,6 +448,7 @@ pub fn prove_chain_as_key_attestation_jwt(
     now: Option<i64>,
     user_sk: &str,
     context: &str,
+    is_keccak_mode: bool,
 ) -> Result<String, String> {
     let result = prove_chain_base64(
         subroot_circuits_meta,
@@ -463,6 +461,7 @@ pub fn prove_chain_as_key_attestation_jwt(
         now,
         user_sk,
         context,
+        is_keccak_mode,
     )?;
 
     let mut x5c = Vec::new();
@@ -656,6 +655,7 @@ mod tests {
             "es256_ca".to_string(),
             "data/es256_ca.json".to_string(),
             "data/es256_ca.vk".to_string(),
+            "data/es256_ca.keccak.vk".to_string(),
             "data/common.srs".to_string(),
         );
         let cert = std::fs::read("test_data/es256_ca_strongbox.der").unwrap();
@@ -712,6 +712,7 @@ mod tests {
             &prev_cmt_x,
             &prev_cmt_y,
             &prev_cmt_r.to_string(),
+            false,
         )
         .unwrap();
 
@@ -760,6 +761,34 @@ mod tests {
         .unwrap();
         assert_eq!(next_cmt_x, next_cmt_x_generated);
         assert_eq!(next_cmt_y, next_cmt_y_generated);
+
+        // Generate proof in keccak mode
+        let CAProofResult {
+            proof_with_public_inputs,
+            next_cmt_x,
+            next_cmt_y,
+            next_cmt_r,
+        } = prove_ca(
+            &meta,
+            &cert,
+            Some(now),
+            &issuer_pk_x,
+            &issuer_pk_y,
+            &prev_cmt_x,
+            &prev_cmt_y,
+            &prev_cmt_r.to_string(),
+            true,
+        )
+        .unwrap();
+
+        assert!(!proof_with_public_inputs.proof.is_empty());
+        assert_eq!(next_cmt_x.len(), 64); // 32 bytes in hex
+        assert_eq!(next_cmt_y.len(), 64); // 32 bytes in hex
+        assert_eq!(next_cmt_r.len(), 64); // 32 bytes in hex
+        assert_eq!(
+            proof_with_public_inputs.num_public_inputs,
+            11 // Number of public inputs expected for es256_ca
+        );
     }
 
     #[test]
@@ -769,6 +798,7 @@ mod tests {
             "es256_ee".to_string(),
             "data/es256_ee.json".to_string(),
             "data/es256_ee.vk".to_string(),
+            "data/es256_ee.keccak.vk".to_string(),
             "data/common.srs".to_string(),
         );
         let cert = std::fs::read("test_data/es256_ee.der").unwrap();
@@ -829,6 +859,37 @@ mod tests {
             &authority_key_id,
             user_sk,
             context,
+            false,
+        )
+        .unwrap();
+
+        assert!(!proof_with_public_inputs.proof.is_empty());
+        assert_eq!(
+            proof_with_public_inputs.num_public_inputs,
+            11 // Number of public inputs expected for es256_ca
+        );
+        assert_eq!(
+            nym,
+            "KHpTfbNadhyuSx_s9GMIiFZRPHfl0slN289Nhd0K6hg".to_string()
+        );
+
+        // Generate proof in keccak mode
+        let EEProofResult {
+            proof_with_public_inputs,
+            nym,
+        } = prove_ee(
+            &meta,
+            &cert,
+            Some(now),
+            &issuer_pk_x,
+            &issuer_pk_y,
+            &prev_cmt_x,
+            &prev_cmt_y,
+            &prev_cmt_r.to_string(),
+            &authority_key_id,
+            user_sk,
+            context,
+            true,
         )
         .unwrap();
 
@@ -850,12 +911,14 @@ mod tests {
             "es256_subroot".to_string(),
             "data/es256_subroot.json".to_string(),
             "data/es256_subroot.vk".to_string(),
+            "data/es256_subroot.keccak.vk".to_string(),
             "data/common.srs".to_string(),
         );
         let meta_ee = CircuitMeta::new(
             "es256_ee".to_string(),
             "data/es256_ee.json".to_string(),
             "data/es256_ee.vk".to_string(),
+            "data/es256_ee.keccak.vk".to_string(),
             "data/common.srs".to_string(),
         );
 
@@ -878,6 +941,7 @@ mod tests {
             Some(now),
             &user_sk,
             context,
+            false,
         )
         .unwrap();
 
@@ -893,12 +957,14 @@ mod tests {
             "es256_subroot".to_string(),
             "data/es256_subroot.json".to_string(),
             "data/es256_subroot.vk".to_string(),
+            "data/es256_subroot.keccak.vk".to_string(),
             "data/common.srs".to_string(),
         );
         let meta_ee = CircuitMeta::new(
             "es256_ee".to_string(),
             "data/es256_ee.json".to_string(),
             "data/es256_ee.vk".to_string(),
+            "data/es256_ee.keccak.vk".to_string(),
             "data/common.srs".to_string(),
         );
 
@@ -921,6 +987,7 @@ mod tests {
             Some(now),
             &user_sk,
             context,
+            false,
         )
         .unwrap();
         assert!(!result.is_empty());
@@ -928,6 +995,24 @@ mod tests {
         let header_b64 = result.split('.').next().unwrap();
         let header_bytes = URL_SAFE_NO_PAD.decode(header_b64).unwrap();
         let expected_header = r#"{"alg":"ANASTASIA-AKA","typ":"key-attestation+jwt","x5c":["es256_ee","es256_subroot","MIIB1jCCAV2gAwIBAgIUAKPaleRujkV60qOYNtfCM5xBWw8wCgYIKoZIzj0EAwMwKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EyMB4XDTI1MDgyMjE2MjM0NloXDTI1MTAzMTE2MjM0NVowKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKcLvJKS+if1RNYkksy440ltknk6W/wtva+IShxv1JieanWtWaCm/Ovj+4FCUP7twq/Wxs1rB47iV7i7AqFr70qNjMGEwDgYDVR0PAQH/BAQDAgIEMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFP5ibNwq5YDnGWrKI90j8TkCRqilMB8GA1UdIwQYMBaAFLv4Nq2Jrmzi5Z6U8NWy19J65HxBMAoGCCqGSM49BAMDA2cAMGQCMAF1II8ktm7BKU6mvr0sh7hL4sbU/3cDI80eIpiC32RYUA1dKPDNGxw5YFrhGQ/yaQIwV/5uJxy0dvZVx2GWfHKWDghfSNmIeeJ5dpPkIaDinCUAGoR0k70+xyBjdzH1K3yY"]}"#;
+        assert_eq!(String::from_utf8_lossy(&header_bytes), expected_header);
+
+        // Generate proof in keccak mode
+        let result = prove_chain_as_key_attestation_jwt(
+            &meta_subroot,
+            &[],
+            &meta_ee,
+            &cert_root,
+            &cert_subroot,
+            &[],
+            &cert_ee,
+            Some(now),
+            &user_sk,
+            context,
+            true,
+        )
+        .unwrap();
+        assert!(!result.is_empty());
         assert_eq!(String::from_utf8_lossy(&header_bytes), expected_header);
     }
 }

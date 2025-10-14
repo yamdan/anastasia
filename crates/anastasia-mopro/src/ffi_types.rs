@@ -7,6 +7,7 @@ pub struct CircuitMeta {
     pub id: String,
     pub circuit_path: String,
     pub verification_key_path: String,
+    pub verification_key_keccak_mode_path: String,
     pub srs_path: String,
 }
 
@@ -15,12 +16,14 @@ impl CircuitMeta {
         id: String,
         circuit_path: String,
         verification_key_path: String,
+        verification_key_keccak_mode_path: String,
         srs_path: String,
     ) -> Self {
         Self {
             id,
             circuit_path,
             verification_key_path,
+            verification_key_keccak_mode_path,
             srs_path,
         }
     }
@@ -32,6 +35,7 @@ impl From<anastasia_rs::CircuitMeta> for CircuitMeta {
             id: meta.id,
             circuit_path: meta.circuit_path,
             verification_key_path: meta.verification_key_path,
+            verification_key_keccak_mode_path: meta.verification_key_keccak_mode_path,
             srs_path: meta.srs_path,
         }
     }
@@ -43,6 +47,7 @@ impl From<CircuitMeta> for anastasia_rs::CircuitMeta {
             id: meta.id,
             circuit_path: meta.circuit_path,
             verification_key_path: meta.verification_key_path,
+            verification_key_keccak_mode_path: meta.verification_key_keccak_mode_path,
             srs_path: meta.srs_path,
         }
     }

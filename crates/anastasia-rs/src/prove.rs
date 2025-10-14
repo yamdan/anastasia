@@ -5,7 +5,7 @@ use chrono::{DateTime, Datelike, Timelike, Utc};
 use noir::{
     FieldElement,
     acir_field::GenericFieldElement,
-    barretenberg::prove::prove_ultra_honk_keccak,
+    barretenberg::prove::{prove_ultra_honk, prove_ultra_honk_keccak},
     native_types::{Witness, WitnessMap},
     utils::{
         ProofWithPublicInputs, get_num_public_inputs_from_circuit, parse_proof_with_public_inputs,
@@ -30,6 +30,7 @@ pub fn prove_subroot_ca(
     now: &DateTime<Utc>,
     issuer_pk_x: &[u8],
     issuer_pk_y: &[u8],
+    is_keccak_mode: bool,
 ) -> Result<(ProofWithPublicInputs, Fr, Fr, Fr), String> {
     let mut rng = OsRng;
     let next_cmt_r = Fr::rand(&mut rng);
@@ -56,13 +57,22 @@ pub fn prove_subroot_ca(
         MAX_EXTRA_EXTENSION_LEN_CA,
     )?;
 
-    let proof = prove_ultra_honk_keccak(
-        &circuit.bytecode,
-        initial_witness,
-        circuit.verification_key.clone(),
-        false,
-        false,
-    )?;
+    let proof = if is_keccak_mode {
+        prove_ultra_honk_keccak(
+            &circuit.bytecode,
+            initial_witness,
+            circuit.verification_key_keccak_mode.clone(),
+            false,
+            false,
+        )?
+    } else {
+        prove_ultra_honk(
+            &circuit.bytecode,
+            initial_witness,
+            circuit.verification_key.clone(),
+            false,
+        )?
+    };
 
     let num_public_inputs = get_num_public_inputs_from_circuit(&circuit.bytecode).map_err(|e| {
         format!(
@@ -86,6 +96,7 @@ pub fn prove_ca(
     prev_cmt_x: &Fr,
     prev_cmt_y: &Fr,
     prev_cmt_r: &Fr,
+    is_keccak_mode: bool,
 ) -> Result<(ProofWithPublicInputs, Fr, Fr, Fr), String> {
     let mut rng = OsRng;
     let next_cmt_r = Fr::rand(&mut rng);
@@ -115,13 +126,22 @@ pub fn prove_ca(
         MAX_EXTRA_EXTENSION_LEN_CA,
     )?;
 
-    let proof = prove_ultra_honk_keccak(
-        &circuit.bytecode,
-        initial_witness,
-        circuit.verification_key.clone(),
-        false,
-        false,
-    )?;
+    let proof = if is_keccak_mode {
+        prove_ultra_honk_keccak(
+            &circuit.bytecode,
+            initial_witness,
+            circuit.verification_key_keccak_mode.clone(),
+            false,
+            false,
+        )?
+    } else {
+        prove_ultra_honk(
+            &circuit.bytecode,
+            initial_witness,
+            circuit.verification_key.clone(),
+            false,
+        )?
+    };
 
     let num_public_inputs = get_num_public_inputs_from_circuit(&circuit.bytecode).map_err(|e| {
         format!(
@@ -148,6 +168,7 @@ pub fn prove_ee(
     authority_key_id: &[u8],
     user_sk: &Fr,
     context: &str,
+    is_keccak_mode: bool,
 ) -> Result<(ProofWithPublicInputs, Fr), String> {
     if context.is_empty() {
         return Err("Context cannot be empty".to_string());
@@ -182,13 +203,22 @@ pub fn prove_ee(
         MAX_EXTRA_EXTENSION_LEN_EE,
     )?;
 
-    let proof = prove_ultra_honk_keccak(
-        &circuit.bytecode,
-        initial_witness,
-        circuit.verification_key.clone(),
-        false,
-        false,
-    )?;
+    let proof = if is_keccak_mode {
+        prove_ultra_honk_keccak(
+            &circuit.bytecode,
+            initial_witness,
+            circuit.verification_key_keccak_mode.clone(),
+            false,
+            false,
+        )?
+    } else {
+        prove_ultra_honk(
+            &circuit.bytecode,
+            initial_witness,
+            circuit.verification_key.clone(),
+            false,
+        )?
+    };
 
     let num_public_inputs = get_num_public_inputs_from_circuit(&circuit.bytecode).map_err(|e| {
         format!(

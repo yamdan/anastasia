@@ -66,6 +66,7 @@ fn prove_ca(
     prev_cmt_y: String,
     prev_cmt_r: String,
     now: Option<i64>,
+    is_keccak_mode: Option<bool>,
 ) -> Result<CAProofResult, MoproError> {
     let proof = anastasia_rs::prove_ca(
         &circuit_meta.into(),
@@ -76,6 +77,7 @@ fn prove_ca(
         &prev_cmt_x,
         &prev_cmt_y,
         &prev_cmt_r,
+        is_keccak_mode.unwrap_or(false),
     )
     .map_err(|e| MoproError::NoirError(e.to_string()))?;
 
@@ -95,6 +97,7 @@ fn prove_ee(
     authority_key_id: Vec<u8>,
     user_sk: &str,
     context: &str,
+    is_keccak_mode: Option<bool>,
 ) -> Result<EEProofResult, MoproError> {
     let proof = anastasia_rs::prove_ee(
         &circuit_meta.into(),
@@ -108,6 +111,7 @@ fn prove_ee(
         &authority_key_id,
         user_sk,
         context,
+        is_keccak_mode.unwrap_or(false),
     )
     .map_err(|e| MoproError::NoirError(e.to_string()))?;
 
@@ -126,6 +130,7 @@ fn prove_chain_base64(
     now: Option<i64>,
     user_sk: &str,
     context: &str,
+    is_keccak_mode: Option<bool>,
 ) -> Result<ChainProofResultBase64, MoproError> {
     let intermediate_circuits_meta_converted: Vec<anastasia_rs::CircuitMeta> =
         intermediate_circuits_meta
@@ -149,6 +154,7 @@ fn prove_chain_base64(
         now,
         user_sk,
         context,
+        is_keccak_mode.unwrap_or(false),
     )
     .map_err(|e| MoproError::NoirError(e.to_string()))?;
 
@@ -167,6 +173,7 @@ fn prove_chain_jwt(
     now: Option<i64>,
     user_sk: &str,
     context: &str,
+    is_keccak_mode: Option<bool>,
 ) -> Result<String, MoproError> {
     let intermediate_circuits_meta_converted: Vec<anastasia_rs::CircuitMeta> =
         intermediate_circuits_meta
@@ -190,6 +197,7 @@ fn prove_chain_jwt(
         now,
         user_sk,
         context,
+        is_keccak_mode.unwrap_or(false),
     )
     .map_err(|e| MoproError::NoirError(e.to_string()))?;
 
@@ -320,6 +328,7 @@ mod tests {
             "es256_ca".to_string(),
             "../anastasia-rs/data/es256_ca.json".to_string(),
             "../anastasia-rs/data/es256_ca.vk".to_string(),
+            "../anastasia-rs/data/es256_ca.keccak.vk".to_string(),
             "../anastasia-rs/data/common.srs".to_string(),
         );
 
@@ -377,6 +386,7 @@ mod tests {
             prev_cmt_y.to_string(),
             prev_cmt_r.to_string(),
             Some(1757808000), // 2025-09-14T00:00:00Z
+            None,
         )
         .unwrap();
 
@@ -438,12 +448,14 @@ mod tests {
             "es256_subroot".to_string(),
             "../anastasia-rs/data/es256_subroot.json".to_string(),
             "../anastasia-rs/data/es256_subroot.vk".to_string(),
+            "../anastasia-rs/data/es256_subroot.keccak.vk".to_string(),
             "../anastasia-rs/data/common.srs".to_string(),
         );
         let meta_ee = CircuitMeta::new(
             "es256_ee".to_string(),
             "../anastasia-rs/data/es256_ee.json".to_string(),
             "../anastasia-rs/data/es256_ee.vk".to_string(),
+            "../anastasia-rs/data/es256_ee.keccak.vk".to_string(),
             "../anastasia-rs/data/common.srs".to_string(),
         );
 
@@ -467,9 +479,99 @@ mod tests {
             Some(now),
             user_sk,
             context,
+            None,
         )
         .unwrap();
+        assert!(!result.is_empty());
+    }
 
+    #[test]
+    #[serial]
+    fn test_prove_es256_chain_jwt_keccak_true() {
+        let meta_subroot = CircuitMeta::new(
+            "es256_subroot".to_string(),
+            "../anastasia-rs/data/es256_subroot.json".to_string(),
+            "../anastasia-rs/data/es256_subroot.vk".to_string(),
+            "../anastasia-rs/data/es256_subroot.keccak.vk".to_string(),
+            "../anastasia-rs/data/common.srs".to_string(),
+        );
+        let meta_ee = CircuitMeta::new(
+            "es256_ee".to_string(),
+            "../anastasia-rs/data/es256_ee.json".to_string(),
+            "../anastasia-rs/data/es256_ee.vk".to_string(),
+            "../anastasia-rs/data/es256_ee.keccak.vk".to_string(),
+            "../anastasia-rs/data/common.srs".to_string(),
+        );
+
+        let cert_root = std::fs::read("../anastasia-rs/test_data/es256_ca_droidca3.der").unwrap();
+        let cert_subroot =
+            std::fs::read("../anastasia-rs/test_data/es256_ca_strongbox.der").unwrap();
+        let cert_ee = std::fs::read("../anastasia-rs/test_data/es256_ee.der").unwrap();
+
+        let now = 1757808000; // 2025-09-14T00:00:00Z
+        let user_sk = "deadbeef";
+        let context = "https://credential-issuer.example.com";
+
+        // keccak mode == true
+        let result = prove_chain_jwt(
+            meta_subroot,
+            vec![],
+            meta_ee,
+            cert_root,
+            cert_subroot,
+            vec![],
+            cert_ee,
+            Some(now),
+            user_sk,
+            context,
+            Some(true),
+        )
+        .unwrap();
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    #[serial]
+    fn test_prove_es256_chain_jwt_keccak_false() {
+        let meta_subroot = CircuitMeta::new(
+            "es256_subroot".to_string(),
+            "../anastasia-rs/data/es256_subroot.json".to_string(),
+            "../anastasia-rs/data/es256_subroot.vk".to_string(),
+            "../anastasia-rs/data/es256_subroot.keccak.vk".to_string(),
+            "../anastasia-rs/data/common.srs".to_string(),
+        );
+        let meta_ee = CircuitMeta::new(
+            "es256_ee".to_string(),
+            "../anastasia-rs/data/es256_ee.json".to_string(),
+            "../anastasia-rs/data/es256_ee.vk".to_string(),
+            "../anastasia-rs/data/es256_ee.keccak.vk".to_string(),
+            "../anastasia-rs/data/common.srs".to_string(),
+        );
+
+        let cert_root = std::fs::read("../anastasia-rs/test_data/es256_ca_droidca3.der").unwrap();
+        let cert_subroot =
+            std::fs::read("../anastasia-rs/test_data/es256_ca_strongbox.der").unwrap();
+        let cert_ee = std::fs::read("../anastasia-rs/test_data/es256_ee.der").unwrap();
+
+        let now = 1757808000; // 2025-09-14T00:00:00Z
+        let user_sk = "deadbeef";
+        let context = "https://credential-issuer.example.com";
+
+        // keccak mode == true
+        let result = prove_chain_jwt(
+            meta_subroot,
+            vec![],
+            meta_ee,
+            cert_root,
+            cert_subroot,
+            vec![],
+            cert_ee,
+            Some(now),
+            user_sk,
+            context,
+            Some(false),
+        )
+        .unwrap();
         assert!(!result.is_empty());
     }
 }

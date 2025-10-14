@@ -845,13 +845,13 @@ fun uniffi_anastasia_mopro_fn_func_generate_user_sk(uniffi_out_err: UniffiRustCa
 ): RustBuffer.ByValue
 fun uniffi_anastasia_mopro_fn_func_get_noir_verification_key(`circuitPath`: RustBuffer.ByValue,`srsPath`: RustBuffer.ByValue,`onChain`: Byte,`lowMemoryMode`: Byte,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
-fun uniffi_anastasia_mopro_fn_func_prove_ca(`circuitMeta`: RustBuffer.ByValue,`cert`: RustBuffer.ByValue,`issuerPkX`: RustBuffer.ByValue,`issuerPkY`: RustBuffer.ByValue,`prevCmtX`: RustBuffer.ByValue,`prevCmtY`: RustBuffer.ByValue,`prevCmtR`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+fun uniffi_anastasia_mopro_fn_func_prove_ca(`circuitMeta`: RustBuffer.ByValue,`cert`: RustBuffer.ByValue,`issuerPkX`: RustBuffer.ByValue,`issuerPkY`: RustBuffer.ByValue,`prevCmtX`: RustBuffer.ByValue,`prevCmtY`: RustBuffer.ByValue,`prevCmtR`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`isKeccakMode`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
-fun uniffi_anastasia_mopro_fn_func_prove_chain_base64(`subrootCircuitMeta`: RustBuffer.ByValue,`intermediateCircuitsMeta`: RustBuffer.ByValue,`leafCircuitMeta`: RustBuffer.ByValue,`rootCert`: RustBuffer.ByValue,`subrootCert`: RustBuffer.ByValue,`intermediateCerts`: RustBuffer.ByValue,`leafCert`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`userSk`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+fun uniffi_anastasia_mopro_fn_func_prove_chain_base64(`subrootCircuitMeta`: RustBuffer.ByValue,`intermediateCircuitsMeta`: RustBuffer.ByValue,`leafCircuitMeta`: RustBuffer.ByValue,`rootCert`: RustBuffer.ByValue,`subrootCert`: RustBuffer.ByValue,`intermediateCerts`: RustBuffer.ByValue,`leafCert`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`userSk`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,`isKeccakMode`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
-fun uniffi_anastasia_mopro_fn_func_prove_chain_jwt(`subrootCircuitMeta`: RustBuffer.ByValue,`intermediateCircuitsMeta`: RustBuffer.ByValue,`leafCircuitMeta`: RustBuffer.ByValue,`rootCert`: RustBuffer.ByValue,`subrootCert`: RustBuffer.ByValue,`intermediateCerts`: RustBuffer.ByValue,`leafCert`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`userSk`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+fun uniffi_anastasia_mopro_fn_func_prove_chain_jwt(`subrootCircuitMeta`: RustBuffer.ByValue,`intermediateCircuitsMeta`: RustBuffer.ByValue,`leafCircuitMeta`: RustBuffer.ByValue,`rootCert`: RustBuffer.ByValue,`subrootCert`: RustBuffer.ByValue,`intermediateCerts`: RustBuffer.ByValue,`leafCert`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`userSk`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,`isKeccakMode`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
-fun uniffi_anastasia_mopro_fn_func_prove_ee(`circuitMeta`: RustBuffer.ByValue,`cert`: RustBuffer.ByValue,`issuerPkX`: RustBuffer.ByValue,`issuerPkY`: RustBuffer.ByValue,`prevCmtX`: RustBuffer.ByValue,`prevCmtY`: RustBuffer.ByValue,`prevCmtR`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`authorityKeyId`: RustBuffer.ByValue,`userSk`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+fun uniffi_anastasia_mopro_fn_func_prove_ee(`circuitMeta`: RustBuffer.ByValue,`cert`: RustBuffer.ByValue,`issuerPkX`: RustBuffer.ByValue,`issuerPkY`: RustBuffer.ByValue,`prevCmtX`: RustBuffer.ByValue,`prevCmtY`: RustBuffer.ByValue,`prevCmtR`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`authorityKeyId`: RustBuffer.ByValue,`userSk`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,`isKeccakMode`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 fun uniffi_anastasia_mopro_fn_func_setup(`srsPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): Unit
@@ -1008,16 +1008,16 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_anastasia_mopro_checksum_func_get_noir_verification_key() != 7183.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_anastasia_mopro_checksum_func_prove_ca() != 55654.toShort()) {
+    if (lib.uniffi_anastasia_mopro_checksum_func_prove_ca() != 48246.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_anastasia_mopro_checksum_func_prove_chain_base64() != 24279.toShort()) {
+    if (lib.uniffi_anastasia_mopro_checksum_func_prove_chain_base64() != 29885.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_anastasia_mopro_checksum_func_prove_chain_jwt() != 6822.toShort()) {
+    if (lib.uniffi_anastasia_mopro_checksum_func_prove_chain_jwt() != 8045.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_anastasia_mopro_checksum_func_prove_ee() != 29929.toShort()) {
+    if (lib.uniffi_anastasia_mopro_checksum_func_prove_ee() != 7286.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_anastasia_mopro_checksum_func_setup() != 22788.toShort()) {
@@ -1424,6 +1424,7 @@ data class CircuitMeta (
     var `id`: kotlin.String, 
     var `circuitPath`: kotlin.String, 
     var `verificationKeyPath`: kotlin.String, 
+    var `verificationKeyKeccakModePath`: kotlin.String, 
     var `srsPath`: kotlin.String
 ) {
     
@@ -1440,6 +1441,7 @@ public object FfiConverterTypeCircuitMeta: FfiConverterRustBuffer<CircuitMeta> {
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
         )
     }
 
@@ -1447,6 +1449,7 @@ public object FfiConverterTypeCircuitMeta: FfiConverterRustBuffer<CircuitMeta> {
             FfiConverterString.allocationSize(value.`id`) +
             FfiConverterString.allocationSize(value.`circuitPath`) +
             FfiConverterString.allocationSize(value.`verificationKeyPath`) +
+            FfiConverterString.allocationSize(value.`verificationKeyKeccakModePath`) +
             FfiConverterString.allocationSize(value.`srsPath`)
     )
 
@@ -1454,6 +1457,7 @@ public object FfiConverterTypeCircuitMeta: FfiConverterRustBuffer<CircuitMeta> {
             FfiConverterString.write(value.`id`, buf)
             FfiConverterString.write(value.`circuitPath`, buf)
             FfiConverterString.write(value.`verificationKeyPath`, buf)
+            FfiConverterString.write(value.`verificationKeyKeccakModePath`, buf)
             FfiConverterString.write(value.`srsPath`, buf)
     }
 }
@@ -1819,6 +1823,38 @@ public object FfiConverterOptionalLong: FfiConverterRustBuffer<kotlin.Long?> {
 /**
  * @suppress
  */
+public object FfiConverterOptionalBoolean: FfiConverterRustBuffer<kotlin.Boolean?> {
+    override fun read(buf: ByteBuffer): kotlin.Boolean? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterBoolean.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.Boolean?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterBoolean.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.Boolean?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterBoolean.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?> {
     override fun read(buf: ByteBuffer): kotlin.String? {
         if (buf.get().toInt() == 0) {
@@ -2036,41 +2072,41 @@ public object FfiConverterMapStringSequenceString: FfiConverterRustBuffer<Map<ko
     }
     
 
-    @Throws(MoproException::class) fun `proveCa`(`circuitMeta`: CircuitMeta, `cert`: kotlin.ByteArray, `issuerPkX`: kotlin.ByteArray, `issuerPkY`: kotlin.ByteArray, `prevCmtX`: kotlin.String, `prevCmtY`: kotlin.String, `prevCmtR`: kotlin.String, `now`: kotlin.Long?): CaProofResult {
+    @Throws(MoproException::class) fun `proveCa`(`circuitMeta`: CircuitMeta, `cert`: kotlin.ByteArray, `issuerPkX`: kotlin.ByteArray, `issuerPkY`: kotlin.ByteArray, `prevCmtX`: kotlin.String, `prevCmtY`: kotlin.String, `prevCmtR`: kotlin.String, `now`: kotlin.Long?, `isKeccakMode`: kotlin.Boolean?): CaProofResult {
             return FfiConverterTypeCAProofResult.lift(
     uniffiRustCallWithError(MoproException) { _status ->
     UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_prove_ca(
-        FfiConverterTypeCircuitMeta.lower(`circuitMeta`),FfiConverterByteArray.lower(`cert`),FfiConverterByteArray.lower(`issuerPkX`),FfiConverterByteArray.lower(`issuerPkY`),FfiConverterString.lower(`prevCmtX`),FfiConverterString.lower(`prevCmtY`),FfiConverterString.lower(`prevCmtR`),FfiConverterOptionalLong.lower(`now`),_status)
+        FfiConverterTypeCircuitMeta.lower(`circuitMeta`),FfiConverterByteArray.lower(`cert`),FfiConverterByteArray.lower(`issuerPkX`),FfiConverterByteArray.lower(`issuerPkY`),FfiConverterString.lower(`prevCmtX`),FfiConverterString.lower(`prevCmtY`),FfiConverterString.lower(`prevCmtR`),FfiConverterOptionalLong.lower(`now`),FfiConverterOptionalBoolean.lower(`isKeccakMode`),_status)
 }
     )
     }
     
 
-    @Throws(MoproException::class) fun `proveChainBase64`(`subrootCircuitMeta`: CircuitMeta, `intermediateCircuitsMeta`: List<CircuitMeta>, `leafCircuitMeta`: CircuitMeta, `rootCert`: kotlin.ByteArray, `subrootCert`: kotlin.ByteArray, `intermediateCerts`: List<kotlin.ByteArray>, `leafCert`: kotlin.ByteArray, `now`: kotlin.Long?, `userSk`: kotlin.String, `context`: kotlin.String): ChainProofResultBase64 {
+    @Throws(MoproException::class) fun `proveChainBase64`(`subrootCircuitMeta`: CircuitMeta, `intermediateCircuitsMeta`: List<CircuitMeta>, `leafCircuitMeta`: CircuitMeta, `rootCert`: kotlin.ByteArray, `subrootCert`: kotlin.ByteArray, `intermediateCerts`: List<kotlin.ByteArray>, `leafCert`: kotlin.ByteArray, `now`: kotlin.Long?, `userSk`: kotlin.String, `context`: kotlin.String, `isKeccakMode`: kotlin.Boolean?): ChainProofResultBase64 {
             return FfiConverterTypeChainProofResultBase64.lift(
     uniffiRustCallWithError(MoproException) { _status ->
     UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_prove_chain_base64(
-        FfiConverterTypeCircuitMeta.lower(`subrootCircuitMeta`),FfiConverterSequenceTypeCircuitMeta.lower(`intermediateCircuitsMeta`),FfiConverterTypeCircuitMeta.lower(`leafCircuitMeta`),FfiConverterByteArray.lower(`rootCert`),FfiConverterByteArray.lower(`subrootCert`),FfiConverterSequenceByteArray.lower(`intermediateCerts`),FfiConverterByteArray.lower(`leafCert`),FfiConverterOptionalLong.lower(`now`),FfiConverterString.lower(`userSk`),FfiConverterString.lower(`context`),_status)
+        FfiConverterTypeCircuitMeta.lower(`subrootCircuitMeta`),FfiConverterSequenceTypeCircuitMeta.lower(`intermediateCircuitsMeta`),FfiConverterTypeCircuitMeta.lower(`leafCircuitMeta`),FfiConverterByteArray.lower(`rootCert`),FfiConverterByteArray.lower(`subrootCert`),FfiConverterSequenceByteArray.lower(`intermediateCerts`),FfiConverterByteArray.lower(`leafCert`),FfiConverterOptionalLong.lower(`now`),FfiConverterString.lower(`userSk`),FfiConverterString.lower(`context`),FfiConverterOptionalBoolean.lower(`isKeccakMode`),_status)
 }
     )
     }
     
 
-    @Throws(MoproException::class) fun `proveChainJwt`(`subrootCircuitMeta`: CircuitMeta, `intermediateCircuitsMeta`: List<CircuitMeta>, `leafCircuitMeta`: CircuitMeta, `rootCert`: kotlin.ByteArray, `subrootCert`: kotlin.ByteArray, `intermediateCerts`: List<kotlin.ByteArray>, `leafCert`: kotlin.ByteArray, `now`: kotlin.Long?, `userSk`: kotlin.String, `context`: kotlin.String): kotlin.String {
+    @Throws(MoproException::class) fun `proveChainJwt`(`subrootCircuitMeta`: CircuitMeta, `intermediateCircuitsMeta`: List<CircuitMeta>, `leafCircuitMeta`: CircuitMeta, `rootCert`: kotlin.ByteArray, `subrootCert`: kotlin.ByteArray, `intermediateCerts`: List<kotlin.ByteArray>, `leafCert`: kotlin.ByteArray, `now`: kotlin.Long?, `userSk`: kotlin.String, `context`: kotlin.String, `isKeccakMode`: kotlin.Boolean?): kotlin.String {
             return FfiConverterString.lift(
     uniffiRustCallWithError(MoproException) { _status ->
     UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_prove_chain_jwt(
-        FfiConverterTypeCircuitMeta.lower(`subrootCircuitMeta`),FfiConverterSequenceTypeCircuitMeta.lower(`intermediateCircuitsMeta`),FfiConverterTypeCircuitMeta.lower(`leafCircuitMeta`),FfiConverterByteArray.lower(`rootCert`),FfiConverterByteArray.lower(`subrootCert`),FfiConverterSequenceByteArray.lower(`intermediateCerts`),FfiConverterByteArray.lower(`leafCert`),FfiConverterOptionalLong.lower(`now`),FfiConverterString.lower(`userSk`),FfiConverterString.lower(`context`),_status)
+        FfiConverterTypeCircuitMeta.lower(`subrootCircuitMeta`),FfiConverterSequenceTypeCircuitMeta.lower(`intermediateCircuitsMeta`),FfiConverterTypeCircuitMeta.lower(`leafCircuitMeta`),FfiConverterByteArray.lower(`rootCert`),FfiConverterByteArray.lower(`subrootCert`),FfiConverterSequenceByteArray.lower(`intermediateCerts`),FfiConverterByteArray.lower(`leafCert`),FfiConverterOptionalLong.lower(`now`),FfiConverterString.lower(`userSk`),FfiConverterString.lower(`context`),FfiConverterOptionalBoolean.lower(`isKeccakMode`),_status)
 }
     )
     }
     
 
-    @Throws(MoproException::class) fun `proveEe`(`circuitMeta`: CircuitMeta, `cert`: kotlin.ByteArray, `issuerPkX`: kotlin.ByteArray, `issuerPkY`: kotlin.ByteArray, `prevCmtX`: kotlin.String, `prevCmtY`: kotlin.String, `prevCmtR`: kotlin.String, `now`: kotlin.Long?, `authorityKeyId`: kotlin.ByteArray, `userSk`: kotlin.String, `context`: kotlin.String): EeProofResult {
+    @Throws(MoproException::class) fun `proveEe`(`circuitMeta`: CircuitMeta, `cert`: kotlin.ByteArray, `issuerPkX`: kotlin.ByteArray, `issuerPkY`: kotlin.ByteArray, `prevCmtX`: kotlin.String, `prevCmtY`: kotlin.String, `prevCmtR`: kotlin.String, `now`: kotlin.Long?, `authorityKeyId`: kotlin.ByteArray, `userSk`: kotlin.String, `context`: kotlin.String, `isKeccakMode`: kotlin.Boolean?): EeProofResult {
             return FfiConverterTypeEEProofResult.lift(
     uniffiRustCallWithError(MoproException) { _status ->
     UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_prove_ee(
-        FfiConverterTypeCircuitMeta.lower(`circuitMeta`),FfiConverterByteArray.lower(`cert`),FfiConverterByteArray.lower(`issuerPkX`),FfiConverterByteArray.lower(`issuerPkY`),FfiConverterString.lower(`prevCmtX`),FfiConverterString.lower(`prevCmtY`),FfiConverterString.lower(`prevCmtR`),FfiConverterOptionalLong.lower(`now`),FfiConverterByteArray.lower(`authorityKeyId`),FfiConverterString.lower(`userSk`),FfiConverterString.lower(`context`),_status)
+        FfiConverterTypeCircuitMeta.lower(`circuitMeta`),FfiConverterByteArray.lower(`cert`),FfiConverterByteArray.lower(`issuerPkX`),FfiConverterByteArray.lower(`issuerPkY`),FfiConverterString.lower(`prevCmtX`),FfiConverterString.lower(`prevCmtY`),FfiConverterString.lower(`prevCmtR`),FfiConverterOptionalLong.lower(`now`),FfiConverterByteArray.lower(`authorityKeyId`),FfiConverterString.lower(`userSk`),FfiConverterString.lower(`context`),FfiConverterOptionalBoolean.lower(`isKeccakMode`),_status)
 }
     )
     }
