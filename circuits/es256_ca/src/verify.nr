@@ -18,26 +18,25 @@ pub fn verify<let MAX_TBS_LEN: u32, let MAX_EXT_LEN: u32>(
     serial_number_len: u32,
     issuer: [u8; 124],
     issuer_len: u32,
-    not_before: UtcTime,
-    not_after: UtcTime,
-    now: UtcTime,
     subject: [u8; 124],
     subject_len: u32,
     subject_pk_x: [u8; 32],
     subject_pk_y: [u8; 32],
-    subject_key_identifier: [u8; 20],
-    authority_key_identifier: [u8; 20],
-    given_authority_key_identifier: [u8; 20],
-    subject_key_identifier_index: u32,
-    authority_key_identifier_index: u32,
-    basic_constraints_ca_index: u32,
-    key_usage_key_cert_sign_index: u32,
     extra_extension: [u8; MAX_EXT_LEN],
     extra_extension_len: u32,
+    not_before: UtcTime,
+    not_after: UtcTime,
+    now: UtcTime,
     prev_cmt: (Field, Field),
     prev_cmt_r: Field,
     next_cmt: (Field, Field),
     next_cmt_r: Field,
+    subject_key_identifier: [u8; 20],
+    authority_key_identifier: [u8; 20],
+    subject_key_identifier_index: u32,
+    authority_key_identifier_index: u32,
+    basic_constraints_ca_index: u32,
+    key_usage_key_cert_sign_index: u32,
 ) {
     let mut buf: [u8; MAX_TBS_LEN] = [0; MAX_TBS_LEN];
 
@@ -110,12 +109,13 @@ pub fn verify<let MAX_TBS_LEN: u32, let MAX_EXT_LEN: u32>(
     }
 
     // generate chain commitment and check
-    let aki = if authority_key_identifier_index == 0 {
-        given_authority_key_identifier
-    } else {
-        authority_key_identifier
-    };
-    let prev_cmt_generated = commit_attrs(issuer, aki, issuer_pk_x, issuer_pk_y, prev_cmt_r);
+    let prev_cmt_generated = commit_attrs(
+        issuer,
+        authority_key_identifier,
+        issuer_pk_x,
+        issuer_pk_y,
+        prev_cmt_r,
+    );
     assert(prev_cmt_generated == prev_cmt);
     let next_cmt_generated = commit_attrs(
         subject,
