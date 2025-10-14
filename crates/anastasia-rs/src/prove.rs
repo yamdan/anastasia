@@ -24,6 +24,59 @@ use crate::{
 pub const MAX_EXTRA_EXTENSION_LEN_CA: usize = 30;
 pub const MAX_EXTRA_EXTENSION_LEN_EE: usize = 500;
 
+pub fn prove_subroot_ca(
+    circuit: &Circuit,
+    parsed_cert: &ParsedCert,
+    now: &DateTime<Utc>,
+    issuer_pk_x: &[u8],
+    issuer_pk_y: &[u8],
+) -> Result<(ProofWithPublicInputs, Fr, Fr, Fr), String> {
+    let mut rng = OsRng;
+    let next_cmt_r = Fr::rand(&mut rng);
+    let (next_cmt_x, next_cmt_y) = commit_attrs(
+        parsed_cert.subject,
+        parsed_cert.subject_key_identifier,
+        parsed_cert.subject_pk_x,
+        parsed_cert.subject_pk_y,
+        next_cmt_r,
+    )?;
+
+    let initial_witness = generate_witness_subroot_ca(
+        parsed_cert,
+        now,
+        issuer_pk_x
+            .try_into()
+            .map_err(|_| "issuer_pk_x must be 32 bytes")?,
+        issuer_pk_y
+            .try_into()
+            .map_err(|_| "issuer_pk_y must be 32 bytes")?,
+        &next_cmt_x,
+        &next_cmt_y,
+        &next_cmt_r,
+        MAX_EXTRA_EXTENSION_LEN_CA,
+    )?;
+
+    let proof = prove_ultra_honk_keccak(
+        &circuit.bytecode,
+        initial_witness,
+        circuit.verification_key.clone(),
+        false,
+        false,
+    )?;
+
+    let num_public_inputs = get_num_public_inputs_from_circuit(&circuit.bytecode).map_err(|e| {
+        format!(
+            "Failed to get number of public inputs from circuit bytecode: {}",
+            e
+        )
+    })?;
+
+    let proof_with_public_inputs = parse_proof_with_public_inputs(&proof, num_public_inputs)
+        .map_err(|e| format!("Failed to parse proof with public inputs: {}", e))?;
+
+    Ok((proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r))
+}
+
 pub fn prove_ca(
     circuit: &Circuit,
     parsed_cert: &ParsedCert,
@@ -150,6 +203,45 @@ pub fn prove_ee(
     Ok((proof_with_public_inputs, nym))
 }
 
+fn generate_witness_subroot_ca(
+    parsed_cert: &ParsedCert,
+    now: &DateTime<Utc>,
+    issuer_pk_x: &[u8; 32],
+    issuer_pk_y: &[u8; 32],
+    next_cmt_x: &Fr,
+    next_cmt_y: &Fr,
+    next_cmt_r: &Fr, // TODO: change to lo and hi parts as GrumpkinFr
+    max_extra_extension_len: usize,
+) -> Result<WitnessMap<GenericFieldElement<Fr>>, String> {
+    let mut witness = generate_witness_common(
+        parsed_cert,
+        now,
+        issuer_pk_x,
+        issuer_pk_y,
+        max_extra_extension_len,
+    )?;
+
+    witness.push(*next_cmt_x);
+    witness.push(*next_cmt_y);
+    witness.push(*next_cmt_r);
+
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.subject_key_identifier));
+    witness.extend(from_u8_array_to_fr_vec(
+        &parsed_cert.authority_key_identifier,
+    ));
+    witness.push(parsed_cert.subject_key_identifier_index.into());
+    witness.push(parsed_cert.authority_key_identifier_index.into());
+    witness.push(parsed_cert.basic_constraints_ca_index.into());
+    witness.push(parsed_cert.key_usage_key_cert_sign_index.into());
+
+    let mut witness_map = WitnessMap::new();
+    for (i, witness) in witness.iter().enumerate() {
+        witness_map.insert(Witness(i as u32), FieldElement::from_repr(*witness));
+    }
+
+    Ok(witness_map)
+}
+
 fn generate_witness_ca(
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
@@ -168,12 +260,12 @@ fn generate_witness_ca(
         now,
         issuer_pk_x,
         issuer_pk_y,
-        prev_cmt_x,
-        prev_cmt_y,
-        prev_cmt_r,
         max_extra_extension_len,
     )?;
 
+    witness.push(*prev_cmt_x);
+    witness.push(*prev_cmt_y);
+    witness.push(*prev_cmt_r);
     witness.push(*next_cmt_x);
     witness.push(*next_cmt_y);
     witness.push(*next_cmt_r);
@@ -214,12 +306,12 @@ fn generate_witness_ee(
         now,
         issuer_pk_x,
         issuer_pk_y,
-        prev_cmt_x,
-        prev_cmt_y,
-        prev_cmt_r,
         max_extra_extension_len,
     )?;
 
+    witness.push(*prev_cmt_x);
+    witness.push(*prev_cmt_y);
+    witness.push(*prev_cmt_r);
     witness.extend(from_u8_array_to_fr_vec(authority_key_id));
     witness.push(*user_sk);
     witness.push(*context);
@@ -238,9 +330,6 @@ fn generate_witness_common(
     now: &DateTime<Utc>,
     issuer_pk_x: &[u8; 32],
     issuer_pk_y: &[u8; 32],
-    prev_cmt_x: &Fr,
-    prev_cmt_y: &Fr,
-    prev_cmt_r: &Fr, // TODO: change to lo and hi parts as GrumpkinFr
     max_extra_extension_len: usize,
 ) -> Result<Vec<Fr>, String> {
     let mut witness: Vec<Fr> = Vec::new();
@@ -279,10 +368,6 @@ fn generate_witness_common(
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.not_before));
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.not_after));
     witness.extend(from_u8_array_to_fr_vec(&now.to_bytes()));
-
-    witness.push(*prev_cmt_x);
-    witness.push(*prev_cmt_y);
-    witness.push(*prev_cmt_r);
 
     Ok(witness)
 }

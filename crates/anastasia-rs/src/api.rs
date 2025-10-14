@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use ark_bn254::Fr;
-use ark_ff::{AdditiveGroup, PrimeField, UniformRand};
+use ark_ff::{PrimeField, UniformRand};
 use ark_serialize::CanonicalSerialize;
 use ark_std::rand::rngs::OsRng;
 use base64::{
@@ -22,7 +22,6 @@ use crate::{
     utils::{FromHexString, ToBase64UrlString, ToHexString},
 };
 
-pub const ROOT_COMMITMENT_R: Fr = Fr::ZERO;
 pub const DEFAULT_CIRCUIT_SIZE_LIMIT: u32 = 524_288; // == 2^19 (max supported by data/common.srs)
 
 pub fn setup(srs_path: &str) -> Result<(), String> {
@@ -246,9 +245,11 @@ pub struct ProofsAndCommitments {
 }
 
 pub fn prove_chain(
+    subroot_circuit_meta: &CircuitMeta,
     intermediate_circuits_meta: &[CircuitMeta],
     leaf_circuit_meta: &CircuitMeta,
     root_cert: &[u8],
+    subroot_cert: &[u8],
     intermediate_certs: &[&[u8]],
     leaf_cert: &[u8],
     now: Option<i64>,
@@ -269,23 +270,45 @@ pub fn prove_chain(
         None => chrono::Utc::now(),
     };
 
-    let mut proofs = Vec::with_capacity(intermediate_certs.len() + 1);
-    let mut commitments = Vec::with_capacity(intermediate_certs.len());
+    let mut proofs = Vec::with_capacity(intermediate_certs.len() + 2);
+    let mut commitments = Vec::with_capacity(intermediate_certs.len() + 1);
 
-    // Generate initial commitment from root certificate
+    // Parse the root certificate to get the initial issuer public key and authority key identifier
     let parsed_root_cert = ParsedCert::from_der(&root_cert)
         .map_err(|e| format!("Failed to parse root cert: {}", e))?;
-    let mut authority_key_id = parsed_root_cert.subject_key_identifier;
     let mut issuer_pk_x = parsed_root_cert.subject_pk_x;
     let mut issuer_pk_y = parsed_root_cert.subject_pk_y;
-    let mut prev_cmt_r = ROOT_COMMITMENT_R;
-    let (mut prev_cmt_x, mut prev_cmt_y) = crate::commit::commit_attrs(
-        parsed_root_cert.subject,
-        authority_key_id,
-        issuer_pk_x,
-        issuer_pk_y,
-        prev_cmt_r,
-    )?;
+
+    // Prove for the subroot CA certificate
+    let parsed_subroot_cert =
+        ParsedCert::from_der(&subroot_cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
+    let subroot_circuit = Circuit::new(&subroot_circuit_meta)?;
+    let (subroot_proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r) =
+        crate::prove::prove_subroot_ca(
+            &subroot_circuit,
+            &parsed_subroot_cert,
+            &now_datetime,
+            &issuer_pk_x.to_vec(),
+            &issuer_pk_y.to_vec(),
+        )?;
+    proofs.push(subroot_proof_with_public_inputs.proof);
+
+    let mut next_cmt_x_bytes = Vec::new();
+    next_cmt_x
+        .serialize_uncompressed(&mut next_cmt_x_bytes)
+        .map_err(|e| format!("Failed to serialize next_cmt_x: {}", e))?;
+    let mut next_cmt_y_bytes = Vec::new();
+    next_cmt_y
+        .serialize_uncompressed(&mut next_cmt_y_bytes)
+        .map_err(|e| format!("Failed to serialize next_cmt_y: {}", e))?;
+    commitments.push((next_cmt_x_bytes, next_cmt_y_bytes));
+
+    let mut prev_cmt_x = next_cmt_x;
+    let mut prev_cmt_y = next_cmt_y;
+    let mut prev_cmt_r = next_cmt_r;
+    let mut authority_key_id = parsed_subroot_cert.subject_key_identifier;
+    issuer_pk_x = parsed_subroot_cert.subject_pk_x;
+    issuer_pk_y = parsed_subroot_cert.subject_pk_y;
 
     // Prove for each intermediate certificate in the chain
     for (circuit_meta, cert) in intermediate_circuits_meta.iter().zip(intermediate_certs) {
@@ -381,9 +404,11 @@ pub struct ChainProofResultBase64 {
 }
 
 pub fn prove_chain_base64(
+    subroot_circuits_meta: &CircuitMeta,
     intermediate_circuits_meta: &[CircuitMeta],
     leaf_circuit_meta: &CircuitMeta,
     root_cert: &[u8],
+    subroot_cert: &[u8],
     intermediate_certs: &[&[u8]],
     leaf_cert: &[u8],
     now: Option<i64>,
@@ -395,9 +420,11 @@ pub fn prove_chain_base64(
     let user_sk = Fr::from_be_bytes_mod_order(&user_sk_bytes);
 
     let result = prove_chain(
+        subroot_circuits_meta,
         intermediate_circuits_meta,
         leaf_circuit_meta,
         root_cert,
+        subroot_cert,
         intermediate_certs,
         leaf_cert,
         now,
@@ -414,9 +441,11 @@ pub fn prove_chain_base64(
 }
 
 pub fn prove_chain_as_key_attestation_jwt(
+    subroot_circuits_meta: &CircuitMeta,
     intermediate_circuits_meta: &[CircuitMeta],
     leaf_circuit_meta: &CircuitMeta,
     root_cert: &[u8],
+    subroot_cert: &[u8],
     intermediate_certs: &[&[u8]],
     leaf_cert: &[u8],
     now: Option<i64>,
@@ -424,9 +453,11 @@ pub fn prove_chain_as_key_attestation_jwt(
     context: &str,
 ) -> Result<String, String> {
     let result = prove_chain_base64(
+        subroot_circuits_meta,
         intermediate_circuits_meta,
         leaf_circuit_meta,
         root_cert,
+        subroot_cert,
         intermediate_certs,
         leaf_cert,
         now,
@@ -439,6 +470,7 @@ pub fn prove_chain_as_key_attestation_jwt(
     for circuit_meta in intermediate_circuits_meta.iter().rev() {
         x5c.push(circuit_meta.id.clone());
     }
+    x5c.push(subroot_circuits_meta.id.clone());
     x5c.push(STANDARD.encode(root_cert));
 
     let header = serde_json::json!({
@@ -476,6 +508,7 @@ pub fn prove_chain_as_key_attestation_jwt(
 mod tests {
     use super::*;
 
+    use ark_ff::AdditiveGroup;
     use serial_test::serial;
 
     #[test]
@@ -813,10 +846,10 @@ mod tests {
     #[test]
     #[serial]
     fn test_prove_es256_chain_ca_ee_b64() {
-        let meta_ca = CircuitMeta::new(
-            "es256_ca".to_string(),
-            "data/es256_ca.json".to_string(),
-            "data/es256_ca.vk".to_string(),
+        let meta_subroot = CircuitMeta::new(
+            "es256_subroot".to_string(),
+            "data/es256_subroot.json".to_string(),
+            "data/es256_subroot.vk".to_string(),
             "data/common.srs".to_string(),
         );
         let meta_ee = CircuitMeta::new(
@@ -827,7 +860,7 @@ mod tests {
         );
 
         let cert_root = std::fs::read("test_data/es256_ca_droidca3.der").unwrap();
-        let cert_ca = std::fs::read("test_data/es256_ca_strongbox.der").unwrap();
+        let cert_subroot = std::fs::read("test_data/es256_ca_strongbox.der").unwrap();
         let cert_ee = std::fs::read("test_data/es256_ee.der").unwrap();
 
         let now = 1757808000; // 2025-09-14T00:00:00Z
@@ -835,10 +868,12 @@ mod tests {
         let context = "https://credential-issuer.example.com";
 
         let result = prove_chain_base64(
-            &[meta_ca],
+            &meta_subroot,
+            &[],
             &meta_ee,
             &cert_root,
-            &[&cert_ca],
+            &cert_subroot,
+            &[],
             &cert_ee,
             Some(now),
             &user_sk,
@@ -854,10 +889,10 @@ mod tests {
     #[test]
     #[serial]
     fn test_prove_es256_chain_ca_ee_key_attestation_jwt() {
-        let meta_ca = CircuitMeta::new(
-            "es256_ca".to_string(),
-            "data/es256_ca.json".to_string(),
-            "data/es256_ca.vk".to_string(),
+        let meta_subroot = CircuitMeta::new(
+            "es256_subroot".to_string(),
+            "data/es256_subroot.json".to_string(),
+            "data/es256_subroot.vk".to_string(),
             "data/common.srs".to_string(),
         );
         let meta_ee = CircuitMeta::new(
@@ -868,7 +903,7 @@ mod tests {
         );
 
         let cert_root = std::fs::read("test_data/es256_ca_droidca3.der").unwrap();
-        let cert_ca = std::fs::read("test_data/es256_ca_strongbox.der").unwrap();
+        let cert_subroot = std::fs::read("test_data/es256_ca_strongbox.der").unwrap();
         let cert_ee = std::fs::read("test_data/es256_ee.der").unwrap();
 
         let now = 1757808000; // 2025-09-14T00:00:00Z
@@ -876,10 +911,12 @@ mod tests {
         let context = "https://credential-issuer.example.com";
 
         let result = prove_chain_as_key_attestation_jwt(
-            &[meta_ca],
+            &meta_subroot,
+            &[],
             &meta_ee,
             &cert_root,
-            &[&cert_ca],
+            &cert_subroot,
+            &[],
             &cert_ee,
             Some(now),
             &user_sk,
@@ -890,7 +927,7 @@ mod tests {
 
         let header_b64 = result.split('.').next().unwrap();
         let header_bytes = URL_SAFE_NO_PAD.decode(header_b64).unwrap();
-        let expected_header = r#"{"alg":"ANASTASIA-AKA","typ":"key-attestation+jwt","x5c":["es256_ee","es256_ca","MIIB1jCCAV2gAwIBAgIUAKPaleRujkV60qOYNtfCM5xBWw8wCgYIKoZIzj0EAwMwKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EyMB4XDTI1MDgyMjE2MjM0NloXDTI1MTAzMTE2MjM0NVowKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKcLvJKS+if1RNYkksy440ltknk6W/wtva+IShxv1JieanWtWaCm/Ovj+4FCUP7twq/Wxs1rB47iV7i7AqFr70qNjMGEwDgYDVR0PAQH/BAQDAgIEMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFP5ibNwq5YDnGWrKI90j8TkCRqilMB8GA1UdIwQYMBaAFLv4Nq2Jrmzi5Z6U8NWy19J65HxBMAoGCCqGSM49BAMDA2cAMGQCMAF1II8ktm7BKU6mvr0sh7hL4sbU/3cDI80eIpiC32RYUA1dKPDNGxw5YFrhGQ/yaQIwV/5uJxy0dvZVx2GWfHKWDghfSNmIeeJ5dpPkIaDinCUAGoR0k70+xyBjdzH1K3yY"]}"#;
+        let expected_header = r#"{"alg":"ANASTASIA-AKA","typ":"key-attestation+jwt","x5c":["es256_ee","es256_subroot","MIIB1jCCAV2gAwIBAgIUAKPaleRujkV60qOYNtfCM5xBWw8wCgYIKoZIzj0EAwMwKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EyMB4XDTI1MDgyMjE2MjM0NloXDTI1MTAzMTE2MjM0NVowKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKcLvJKS+if1RNYkksy440ltknk6W/wtva+IShxv1JieanWtWaCm/Ovj+4FCUP7twq/Wxs1rB47iV7i7AqFr70qNjMGEwDgYDVR0PAQH/BAQDAgIEMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFP5ibNwq5YDnGWrKI90j8TkCRqilMB8GA1UdIwQYMBaAFLv4Nq2Jrmzi5Z6U8NWy19J65HxBMAoGCCqGSM49BAMDA2cAMGQCMAF1II8ktm7BKU6mvr0sh7hL4sbU/3cDI80eIpiC32RYUA1dKPDNGxw5YFrhGQ/yaQIwV/5uJxy0dvZVx2GWfHKWDghfSNmIeeJ5dpPkIaDinCUAGoR0k70+xyBjdzH1K3yY"]}"#;
         assert_eq!(String::from_utf8_lossy(&header_bytes), expected_header);
     }
 }
