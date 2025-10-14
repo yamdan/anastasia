@@ -437,10 +437,17 @@ pub fn prove_chain_as_key_attestation_jwt(
         context,
     )?;
 
+    let mut x5c = Vec::new();
+    x5c.push(leaf_circuit_meta.id.clone());
+    for circuit_meta in intermediate_circuits_meta.iter().rev() {
+        x5c.push(circuit_meta.id.clone());
+    }
+    x5c.push(STANDARD.encode(root_cert));
+
     let header = serde_json::json!({
         "typ": "key-attestation+jwt",
         "alg": "ANASTASIA-AKA",
-        "x5c": [STANDARD.encode(root_cert)],
+        "x5c": x5c,
     });
 
     let payload = serde_json::json!({
@@ -877,7 +884,11 @@ mod tests {
             context,
         )
         .unwrap();
-
         assert!(!result.is_empty());
+
+        let header_b64 = result.split('.').next().unwrap();
+        let header_bytes = URL_SAFE_NO_PAD.decode(header_b64).unwrap();
+        let expected_header = r#"{"alg":"ANASTASIA-AKA","typ":"key-attestation+jwt","x5c":["es256_ee","es256_ca","MIIB1jCCAV2gAwIBAgIUAKPaleRujkV60qOYNtfCM5xBWw8wCgYIKoZIzj0EAwMwKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EyMB4XDTI1MDgyMjE2MjM0NloXDTI1MTAzMTE2MjM0NVowKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKcLvJKS+if1RNYkksy440ltknk6W/wtva+IShxv1JieanWtWaCm/Ovj+4FCUP7twq/Wxs1rB47iV7i7AqFr70qNjMGEwDgYDVR0PAQH/BAQDAgIEMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFP5ibNwq5YDnGWrKI90j8TkCRqilMB8GA1UdIwQYMBaAFLv4Nq2Jrmzi5Z6U8NWy19J65HxBMAoGCCqGSM49BAMDA2cAMGQCMAF1II8ktm7BKU6mvr0sh7hL4sbU/3cDI80eIpiC32RYUA1dKPDNGxw5YFrhGQ/yaQIwV/5uJxy0dvZVx2GWfHKWDghfSNmIeeJ5dpPkIaDinCUAGoR0k70+xyBjdzH1K3yY"]}"#;
+        assert_eq!(String::from_utf8_lossy(&header_bytes), expected_header);
     }
 }
