@@ -116,9 +116,11 @@ fn prove_ee(
 
 #[uniffi::export]
 fn prove_chain_base64(
+    subroot_circuit_meta: CircuitMeta,
     intermediate_circuits_meta: Vec<CircuitMeta>,
     leaf_circuit_meta: CircuitMeta,
     root_cert: Vec<u8>,
+    subroot_cert: Vec<u8>,
     intermediate_certs: Vec<Vec<u8>>,
     leaf_cert: Vec<u8>,
     now: Option<i64>,
@@ -137,9 +139,11 @@ fn prove_chain_base64(
         .collect();
 
     let chain_proof = anastasia_rs::prove_chain_base64(
+        &subroot_circuit_meta.into(),
         &intermediate_circuits_meta_converted,
         &leaf_circuit_meta.into(),
         &root_cert,
+        &subroot_cert,
         &intermediate_certs_converted,
         &leaf_cert,
         now,
@@ -153,9 +157,11 @@ fn prove_chain_base64(
 
 #[uniffi::export]
 fn prove_chain_jwt(
+    subroot_circuit_meta: CircuitMeta,
     intermediate_circuits_meta: Vec<CircuitMeta>,
     leaf_circuit_meta: CircuitMeta,
     root_cert: Vec<u8>,
+    subroot_cert: Vec<u8>,
     intermediate_certs: Vec<Vec<u8>>,
     leaf_cert: Vec<u8>,
     now: Option<i64>,
@@ -174,9 +180,11 @@ fn prove_chain_jwt(
         .collect();
 
     let chain_proof = anastasia_rs::prove_chain_as_key_attestation_jwt(
+        &subroot_circuit_meta.into(),
         &intermediate_circuits_meta_converted,
         &leaf_circuit_meta.into(),
         &root_cert,
+        &subroot_cert,
         &intermediate_certs_converted,
         &leaf_cert,
         now,
@@ -426,10 +434,10 @@ mod tests {
     #[test]
     #[serial]
     fn test_prove_es256_chain_jwt() {
-        let meta_ca = CircuitMeta::new(
-            "es256_ca".to_string(),
-            "../anastasia-rs/data/es256_ca.json".to_string(),
-            "../anastasia-rs/data/es256_ca.vk".to_string(),
+        let meta_subroot = CircuitMeta::new(
+            "es256_subroot".to_string(),
+            "../anastasia-rs/data/es256_subroot.json".to_string(),
+            "../anastasia-rs/data/es256_subroot.vk".to_string(),
             "../anastasia-rs/data/common.srs".to_string(),
         );
         let meta_ee = CircuitMeta::new(
@@ -440,7 +448,8 @@ mod tests {
         );
 
         let cert_root = std::fs::read("../anastasia-rs/test_data/es256_ca_droidca3.der").unwrap();
-        let cert_ca = std::fs::read("../anastasia-rs/test_data/es256_ca_strongbox.der").unwrap();
+        let cert_subroot =
+            std::fs::read("../anastasia-rs/test_data/es256_ca_strongbox.der").unwrap();
         let cert_ee = std::fs::read("../anastasia-rs/test_data/es256_ee.der").unwrap();
 
         let now = 1757808000; // 2025-09-14T00:00:00Z
@@ -448,10 +457,12 @@ mod tests {
         let context = "https://credential-issuer.example.com";
 
         let result = prove_chain_jwt(
-            vec![meta_ca],
+            meta_subroot,
+            vec![],
             meta_ee,
             cert_root,
-            vec![cert_ca],
+            cert_subroot,
+            vec![],
             cert_ee,
             Some(now),
             user_sk,
