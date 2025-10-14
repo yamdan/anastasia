@@ -4,8 +4,10 @@ use std::{
     sync::{LazyLock, Mutex},
 };
 
-use noir::barretenberg::{srs::setup_srs, utils::get_circuit_size};
+use noir::barretenberg::srs::setup_srs;
 use serde_json::Value;
+
+pub const DEFAULT_CIRCUIT_SIZE_LIMIT: u32 = 524_288; // == 2^19 (max supported by data/common.srs)
 
 pub struct CircuitMeta {
     pub id: String,
@@ -35,8 +37,6 @@ pub struct Circuit {
     pub bytecode: String,
     pub verification_key: Vec<u8>,
     pub circuit_size: u32,
-    pub public_input_size: Option<u64>,
-    pub max_extra_extension_len: usize,
 }
 
 impl Circuit {
@@ -57,14 +57,7 @@ impl Circuit {
         let circuit_size = v["circuit_size"]
             .as_u64()
             .map(|v| v as u32)
-            .unwrap_or_else(|| get_circuit_size(&bytecode, false));
-
-        let public_input_size = v["public_input_size"].as_u64();
-
-        let max_extra_extension_len = v["max_extra_extension_len"]
-            .as_u64()
-            .map(|v| v as usize)
-            .unwrap_or(128);
+            .unwrap_or(DEFAULT_CIRCUIT_SIZE_LIMIT);
 
         setup_srs_from_bytecode_cached(circuit_size, &circuit_meta.srs_path)?;
 
@@ -79,20 +72,22 @@ impl Circuit {
             id: circuit_meta.id.clone(),
             bytecode,
             circuit_size,
-            public_input_size,
-            max_extra_extension_len,
             verification_key: vk_contents,
         })
     }
 }
 
-pub static GLOBAL_SRS: LazyLock<Mutex<Option<u32>>> = LazyLock::new(|| Mutex::new(None));
+pub static GLOBAL_SRS: LazyLock<Mutex<Option<(u32, String)>>> = LazyLock::new(|| Mutex::new(None));
 
-fn setup_srs_from_bytecode_cached(circuit_size: u32, srs_path: &str) -> Result<(), String> {
+pub fn setup_srs_from_bytecode_cached(circuit_size: u32, srs_path: &str) -> Result<(), String> {
     let mut cache = GLOBAL_SRS.lock().unwrap();
 
     let need_reinit = match &*cache {
-        Some(cached_size) if *cached_size >= circuit_size => false,
+        Some((cached_size, cached_path))
+            if *cached_size >= circuit_size && *cached_path == srs_path =>
+        {
+            false
+        }
         _ => true,
     };
 
@@ -102,7 +97,7 @@ fn setup_srs_from_bytecode_cached(circuit_size: u32, srs_path: &str) -> Result<(
             circuit_size, srs_path
         );
         setup_srs(circuit_size, Some(srs_path)).map(|_| ())?;
-        *cache = Some(circuit_size);
+        *cache = Some((circuit_size, srs_path.to_string()));
     }
     Ok(())
 }
@@ -138,7 +133,5 @@ mod tests {
         assert!(!circuit.bytecode.is_empty());
         assert!(!circuit.verification_key.is_empty());
         assert!(circuit.circuit_size > 0);
-        //assert!(circuit.public_input_size.is_some());
-        assert!(circuit.max_extra_extension_len > 0);
     }
 }

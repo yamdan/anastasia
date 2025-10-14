@@ -17,12 +17,17 @@ use serde_bytes::ByteBuf;
 
 use crate::{
     cert::ParsedCert,
-    circuit::{Circuit, CircuitMeta},
+    circuit::{Circuit, CircuitMeta, setup_srs_from_bytecode_cached},
     hash_to_field::{HASH_TO_SCALAR, HashToScalar},
     utils::{FromHexString, ToBase64UrlString, ToHexString},
 };
 
 pub const ROOT_COMMITMENT_R: Fr = Fr::ZERO;
+pub const DEFAULT_CIRCUIT_SIZE_LIMIT: u32 = 524_288; // == 2^19 (max supported by data/common.srs)
+
+pub fn setup(srs_path: &str) -> Result<(), String> {
+    setup_srs_from_bytecode_cached(DEFAULT_CIRCUIT_SIZE_LIMIT, srs_path)
+}
 
 pub fn generate_user_sk() -> Fr {
     let mut rng = OsRng;
@@ -159,7 +164,6 @@ pub fn prove_ca(
         &Fr::from_hex_string(prev_cmt_x)?,
         &Fr::from_hex_string(prev_cmt_y)?,
         &Fr::from_hex_string(prev_cmt_r)?,
-        circuit.max_extra_extension_len,
     )?;
 
     Ok(CAProofResult {
@@ -217,7 +221,6 @@ pub fn prove_ee(
         &Fr::from_hex_string(prev_cmt_r)?,
         &user_sk,
         context,
-        circuit.max_extra_extension_len,
     )?;
 
     Ok(EEProofResult {
@@ -302,7 +305,6 @@ pub fn prove_chain(
                 &prev_cmt_x,
                 &prev_cmt_y,
                 &prev_cmt_r,
-                circuit.max_extra_extension_len,
             )?;
         proofs.push(ca_proof_with_public_inputs.proof);
 
@@ -340,7 +342,6 @@ pub fn prove_chain(
         &prev_cmt_r,
         user_sk,
         context,
-        leaf_circuit.max_extra_extension_len,
     )?;
     proofs.push(ee_proof_with_public_inputs.proof);
 

@@ -21,6 +21,9 @@ use crate::{
     utils::{UtcTime, from_u8_array_to_fr_vec},
 };
 
+pub const MAX_EXTRA_EXTENSION_LEN_CA: usize = 30;
+pub const MAX_EXTRA_EXTENSION_LEN_EE: usize = 500;
+
 pub fn prove_ca(
     circuit: &Circuit,
     parsed_cert: &ParsedCert,
@@ -31,13 +34,7 @@ pub fn prove_ca(
     prev_cmt_x: &Fr,
     prev_cmt_y: &Fr,
     prev_cmt_r: &Fr,
-    max_extra_extension_len: usize,
 ) -> Result<(ProofWithPublicInputs, Fr, Fr, Fr), String> {
-    println!(
-        "Debug: max_extra_extension_len = {}",
-        max_extra_extension_len
-    );
-
     let mut rng = OsRng;
     let next_cmt_r = Fr::rand(&mut rng);
     let (next_cmt_x, next_cmt_y) = commit_attrs(
@@ -66,7 +63,7 @@ pub fn prove_ca(
         &next_cmt_x,
         &next_cmt_y,
         &next_cmt_r,
-        max_extra_extension_len,
+        MAX_EXTRA_EXTENSION_LEN_CA,
     )?;
 
     let proof = prove_ultra_honk_keccak(
@@ -102,13 +99,7 @@ pub fn prove_ee(
     prev_cmt_r: &Fr,
     user_sk: &Fr,
     context: &str,
-    max_extra_extension_len: usize,
 ) -> Result<(ProofWithPublicInputs, Fr), String> {
-    println!(
-        "Debug: max_extra_extension_len = {}",
-        max_extra_extension_len
-    );
-
     if context.is_empty() {
         return Err("Context cannot be empty".to_string());
     }
@@ -139,7 +130,7 @@ pub fn prove_ee(
         user_sk,
         &context_field,
         &nym,
-        max_extra_extension_len,
+        MAX_EXTRA_EXTENSION_LEN_EE,
     )?;
 
     let proof = prove_ultra_honk_keccak(
