@@ -28,7 +28,6 @@ pub fn prove_ca(
     circuit: &Circuit,
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
-    authority_key_id: &[u8],
     issuer_pk_x: &[u8],
     issuer_pk_y: &[u8],
     prev_cmt_x: &Fr,
@@ -48,9 +47,6 @@ pub fn prove_ca(
     let initial_witness = generate_witness_ca(
         parsed_cert,
         now,
-        authority_key_id
-            .try_into()
-            .map_err(|_| "authority_key_id must be 20 bytes")?,
         issuer_pk_x
             .try_into()
             .map_err(|_| "issuer_pk_x must be 32 bytes")?,
@@ -91,12 +87,12 @@ pub fn prove_ee(
     circuit: &Circuit,
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
-    authority_key_id: &[u8],
     issuer_pk_x: &[u8],
     issuer_pk_y: &[u8],
     prev_cmt_x: &Fr,
     prev_cmt_y: &Fr,
     prev_cmt_r: &Fr,
+    authority_key_id: &[u8],
     user_sk: &Fr,
     context: &str,
 ) -> Result<(ProofWithPublicInputs, Fr), String> {
@@ -115,9 +111,6 @@ pub fn prove_ee(
     let initial_witness = generate_witness_ee(
         parsed_cert,
         now,
-        authority_key_id
-            .try_into()
-            .map_err(|_| "authority_key_id must be 20 bytes")?,
         issuer_pk_x
             .try_into()
             .map_err(|_| "issuer_pk_x must be 32 bytes")?,
@@ -127,6 +120,9 @@ pub fn prove_ee(
         prev_cmt_x,
         prev_cmt_y,
         prev_cmt_r,
+        authority_key_id
+            .try_into()
+            .map_err(|_| "authority_key_id must be 20 bytes")?,
         user_sk,
         &context_field,
         &nym,
@@ -157,7 +153,6 @@ pub fn prove_ee(
 fn generate_witness_ca(
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
-    authority_key_id: &[u8; 20],
     issuer_pk_x: &[u8; 32],
     issuer_pk_y: &[u8; 32],
     prev_cmt_x: &Fr,
@@ -171,7 +166,6 @@ fn generate_witness_ca(
     let mut witness = generate_witness_common(
         parsed_cert,
         now,
-        authority_key_id,
         issuer_pk_x,
         issuer_pk_y,
         prev_cmt_x,
@@ -204,12 +198,12 @@ fn generate_witness_ca(
 fn generate_witness_ee(
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
-    authority_key_id: &[u8; 20],
     issuer_pk_x: &[u8; 32],
     issuer_pk_y: &[u8; 32],
     prev_cmt_x: &Fr,
     prev_cmt_y: &Fr,
     prev_cmt_r: &Fr, // TODO: change to lo and hi parts as GrumpkinFr
+    authority_key_id: &[u8; 20],
     user_sk: &Fr,
     context: &Fr,
     nym: &Fr,
@@ -218,7 +212,6 @@ fn generate_witness_ee(
     let mut witness = generate_witness_common(
         parsed_cert,
         now,
-        authority_key_id,
         issuer_pk_x,
         issuer_pk_y,
         prev_cmt_x,
@@ -227,6 +220,7 @@ fn generate_witness_ee(
         max_extra_extension_len,
     )?;
 
+    witness.extend(from_u8_array_to_fr_vec(authority_key_id));
     witness.push(*user_sk);
     witness.push(*context);
     witness.push(*nym);
@@ -242,7 +236,6 @@ fn generate_witness_ee(
 fn generate_witness_common(
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
-    authority_key_id: &[u8; 20],
     issuer_pk_x: &[u8; 32],
     issuer_pk_y: &[u8; 32],
     prev_cmt_x: &Fr,
@@ -276,7 +269,6 @@ fn generate_witness_common(
     witness.push(parsed_cert.subject_len.into());
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.subject_pk_x));
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.subject_pk_y));
-    witness.extend(from_u8_array_to_fr_vec(authority_key_id));
 
     let mut extra_extension_array = vec![0u8; max_extra_extension_len];
     let copy_len = std::cmp::min(parsed_cert.extra_extension.len(), max_extra_extension_len);
