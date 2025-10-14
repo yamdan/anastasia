@@ -16,6 +16,11 @@ use crate::ffi_types::{
 };
 
 #[uniffi::export]
+fn setup(srs_path: &str) -> Result<(), MoproError> {
+    anastasia_rs::setup(srs_path).map_err(|e| MoproError::NoirError(e.to_string()))
+}
+
+#[uniffi::export]
 fn generate_user_sk() -> String {
     anastasia_rs::generate_user_sk_hex()
 }
@@ -190,6 +195,12 @@ mod tests {
     use super::*;
 
     use serial_test::serial;
+
+    #[test]
+    fn test_setup() {
+        let result = setup("../anastasia-rs/data/common.srs");
+        assert!(result.is_ok());
+    }
 
     #[test]
     fn test_generate_user_sk() {

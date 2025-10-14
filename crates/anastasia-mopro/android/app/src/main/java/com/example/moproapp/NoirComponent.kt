@@ -24,6 +24,7 @@ import uniffi.mopro.CircuitMeta
 import uniffi.mopro.generateUserSk
 import uniffi.mopro.verifyNoirProof
 import uniffi.mopro.proveChainBase64
+import uniffi.mopro.setup
 
 fun bytes(vararg ints: Int): ByteArray = ints.map { it.toByte() }.toByteArray()
 
@@ -53,6 +54,10 @@ fun NoirComponent() {
     val eeCertFile = getFilePathFromAssets("es256_ee.der")
 
     val userSk by remember { mutableStateOf(generateUserSk()) }
+
+    LaunchedEffect(Unit) {
+        setup(srsFile);
+    }
 
     Box(
         modifier = Modifier

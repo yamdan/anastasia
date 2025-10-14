@@ -739,6 +739,8 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
 // For large crates we prevent `MethodTooLargeException` (see #2340)
 // N.B. the name of the extension is very misleading, since it is 
 // rather `InterfaceTooLargeException`, caused by too many methods 
@@ -775,6 +777,8 @@ fun uniffi_anastasia_mopro_checksum_func_prove_chain_base64(
 fun uniffi_anastasia_mopro_checksum_func_prove_chain_jwt(
 ): Short
 fun uniffi_anastasia_mopro_checksum_func_prove_ee(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_setup(
 ): Short
 fun uniffi_anastasia_mopro_checksum_func_verify_circom_proof(
 ): Short
@@ -849,6 +853,8 @@ fun uniffi_anastasia_mopro_fn_func_prove_chain_jwt(`intermediateCircuitsMeta`: R
 ): RustBuffer.ByValue
 fun uniffi_anastasia_mopro_fn_func_prove_ee(`circuitMeta`: RustBuffer.ByValue,`cert`: RustBuffer.ByValue,`authorityKeyId`: RustBuffer.ByValue,`issuerPkX`: RustBuffer.ByValue,`issuerPkY`: RustBuffer.ByValue,`prevCmtX`: RustBuffer.ByValue,`prevCmtY`: RustBuffer.ByValue,`prevCmtR`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`userSk`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_setup(`srsPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
 fun uniffi_anastasia_mopro_fn_func_verify_circom_proof(`zkeyPath`: RustBuffer.ByValue,`proofResult`: RustBuffer.ByValue,`proofLib`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): Byte
 fun uniffi_anastasia_mopro_fn_func_verify_halo2_proof(`srsPath`: RustBuffer.ByValue,`vkPath`: RustBuffer.ByValue,`proof`: RustBuffer.ByValue,`publicInput`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -1012,6 +1018,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_anastasia_mopro_checksum_func_prove_ee() != 49082.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_anastasia_mopro_checksum_func_setup() != 22788.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_anastasia_mopro_checksum_func_verify_circom_proof() != 13928.toShort()) {
@@ -2065,6 +2074,15 @@ public object FfiConverterMapStringSequenceString: FfiConverterRustBuffer<Map<ko
 }
     )
     }
+    
+
+    @Throws(MoproException::class) fun `setup`(`srsPath`: kotlin.String)
+        = 
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_setup(
+        FfiConverterString.lower(`srsPath`),_status)
+}
+    
     
 
     @Throws(MoproException::class) fun `verifyCircomProof`(`zkeyPath`: kotlin.String, `proofResult`: CircomProofResult, `proofLib`: ProofLib): kotlin.Boolean {
