@@ -44,13 +44,15 @@ fun NoirComponent() {
     var statusMessage by remember { mutableStateOf("Ready to generate proof") }
 
     val srsFile = getFilePathFromAssets("common.srs")
-    val caCircuitFile = getFilePathFromAssets("es256_ca.json")
-    val caVkFile = getFilePathFromAssets("es256_ca.vk")
+    val subrootCircuitFile = getFilePathFromAssets("es256_subroot.json")
+    val subrootVkFile = getFilePathFromAssets("es256_subroot.vk")
+    val subrootVkKeccakFile = getFilePathFromAssets("es256_subroot.keccak.vk")
     val eeCircuitFile = getFilePathFromAssets("es256_ee.json")
     val eeVkFile = getFilePathFromAssets("es256_ee.vk")
+    val eeVkKeccakFile = getFilePathFromAssets("es256_ee.keccak.vk")
 
     val rootCertFile = getFilePathFromAssets("es256_ca_droidca3.der")
-    val caCertFile = getFilePathFromAssets("es256_ca_strongbox.der")
+    val subrootCertFile = getFilePathFromAssets("es256_ca_strongbox.der")
     val eeCertFile = getFilePathFromAssets("es256_ee.der")
 
     val userSk by remember { mutableStateOf(generateUserSk()) }
@@ -93,52 +95,33 @@ fun NoirComponent() {
                             try {
                                 fun readBytes(path: String): ByteArray = File(path).readBytes()
                                 val rootCert = readBytes(rootCertFile)
-                                val caCert = readBytes(caCertFile)
+                                val subrootCert = readBytes(subrootCertFile)
                                 val eeCert = readBytes(eeCertFile)
-
-                                val caAuthorityKeyId = bytes(
-                                    0xfe, 0x62, 0x6c, 0xdc, 0x2a, 0xe5, 0x80, 0xe7, 0x19, 0x6a, 0xca, 0x23, 0xdd, 0x23, 0xf1, 0x39, 0x02, 0x46, 0xa8, 0xa5
-                                )
-                                val caIssuerPkX = bytes(
-                                    0x29, 0xc2, 0xef, 0x24, 0xa4, 0xbe, 0x89, 0xfd, 0x51, 0x35, 0x89, 0x24, 0xb3, 0x2e, 0x38, 0xd2, 0x5b, 0x64, 0x9e, 0x4e, 0x96, 0xff, 0x0b, 0x6f, 0x6b, 0xe2, 0x12, 0x87, 0x1b, 0xf5, 0x26, 0x27
-                                )
-                                val caIssuerPkY = bytes(
-                                    0x9a, 0x9d, 0x6b, 0x56, 0x68, 0x29, 0xbf, 0x3a, 0xf8, 0xfe, 0xe0, 0x50, 0x94, 0x3f, 0xbb, 0x70, 0xab, 0xf5, 0xb1, 0xb3, 0x5a, 0xc1, 0xe3, 0xb8, 0x95, 0xee, 0x2e, 0xc0, 0xa8, 0x5a, 0xfb, 0xd2
-                                )
-                                val caIssuer = bytes(
-                                    0x30, 0x29, 0x31, 0x13, 0x30, 0x11, 0x06, 0x03, 0x55, 0x04, 0x0a, 0x13, 0x0a, 0x47, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x20, 0x4c, 0x4c, 0x43, 0x31, 0x12, 0x30, 0x10, 0x06, 0x03, 0x55, 0x04, 0x03, 0x13, 0x09, 0x44, 0x72, 0x6f, 0x69, 0x64, 0x20, 0x43, 0x41, 0x33
-                                )
-
-                                val eeAuthorityKeyId = bytes(
-                                    0x83, 0x29, 0xbe, 0xbb, 0x68, 0xbc, 0x24, 0xed, 0x89, 0x38, 0x4d, 0xb4, 0xf1, 0x94, 0x6c, 0x20, 0xd7, 0x95, 0x9a, 0x05
-                                )
-                                val eeIssuerPkX = bytes(
-                                    0xa3, 0x30, 0xd2, 0x88, 0x45, 0xc2, 0xf4, 0xb1, 0x60, 0xa7, 0xa5, 0xa8, 0xec, 0x1e, 0x46, 0x21, 0x31, 0x18, 0x5e, 0x25, 0xba, 0x48, 0x7e, 0xba, 0x2f, 0xbb, 0x41, 0xd7, 0x18, 0xa7, 0xa6, 0xbf
-                                )
-                                val eeIssuerPkY = bytes(
-                                    0xd7, 0x87, 0x8d, 0xc6, 0x36, 0xe4, 0x1e, 0xa4, 0xe2, 0x51, 0x6a, 0xa9, 0xc4, 0xf7, 0x1f, 0xce, 0x15, 0xf5, 0xd2, 0x48, 0x34, 0x05, 0x82, 0x56, 0x99, 0x72, 0x5c, 0xb1, 0x3c, 0xeb, 0x47, 0xcd
-                                )
 
                                 val startTime = System.currentTimeMillis()
                                 statusMessage = "Generating proof..."
                                 val result = proveChainBase64(
-                                    listOf(
-                                        CircuitMeta(
-                                            "ES256-CA",
-                                            caCircuitFile,
-                                            caVkFile,
-                                            srsFile,
-                                        )
-                                    ), CircuitMeta(
+                                    CircuitMeta(
+                                        "ES256-SUBROOT",
+                                        subrootCircuitFile,
+                                        subrootVkFile,
+                                        subrootVkKeccakFile,
+                                        srsFile,
+                                    ), listOf(), CircuitMeta(
                                         "ES256-EE",
                                         eeCircuitFile,
                                         eeVkFile,
+                                        eeVkKeccakFile,
                                         srsFile,
-                                    ), rootCert, listOf(
-                                        caCert,
-                                    ), eeCert, 1757808000, // 2025-09-14T00:00:00Z
+                                    ),
+                                    rootCert,
+                                    subrootCert,
+                                    listOf(),
+                                    eeCert,
+                                    1757808000, // 2025-09-14T00:00:00Z
                                     userSk,
-                                    "https://credential-issuer.example.com"
+                                    "https://credential-issuer.example.com",
+                                    null
                                 )
 
                                 val endTime = System.currentTimeMillis()
@@ -185,7 +168,7 @@ fun NoirComponent() {
 
                                         val startTime = System.currentTimeMillis()
                                         val result = verifyNoirProof(
-                                            caCircuitFile, proof, onChain, vk, lowMemoryMode
+                                            subrootCircuitFile, proof, onChain, vk, lowMemoryMode
                                         )
                                         val endTime = System.currentTimeMillis()
                                         val duration = endTime - startTime
