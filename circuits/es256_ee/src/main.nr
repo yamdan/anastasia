@@ -1,7 +1,8 @@
-pub mod nym;
-mod verify;
-
-use es256_common::models;
+use es256_common::{
+    models::prepare_std_ee_extensions,
+    utils::{check_commitments, check_nyms},
+    verify::verify_signature_es256,
+};
 
 global MAX_TBS_LEN: u32 = 700;
 global MAX_EXTRA_EXT_LEN: u32 = 500;
@@ -30,11 +31,24 @@ fn main(
     context: pub Field,
     nym: pub Field,
 ) {
-    let not_before = models::UtcTime::from_bytes(not_before);
-    let not_after = models::UtcTime::from_bytes(not_after);
-    let now = models::UtcTime::from_bytes(now);
+    // Verify previous chain commitment
+    check_commitments(
+        issuer,
+        given_authority_key_identifier,
+        issuer_pk_x,
+        issuer_pk_y,
+        prev_cmt,
+        prev_cmt_r,
+    );
 
-    verify::verify::<MAX_TBS_LEN, _>(
+    // Verify pseudonym
+    check_nyms(subject_pk_x, subject_pk_y, user_sk, context, nym);
+
+    // Prepare standard extensions
+    let (std_extensions, std_extensions_len) = prepare_std_ee_extensions();
+
+    // Verify signature
+    verify_signature_es256::<MAX_TBS_LEN, _, _>(
         issuer_pk_x,
         issuer_pk_y,
         sig,
@@ -46,16 +60,12 @@ fn main(
         subject_len,
         subject_pk_x,
         subject_pk_y,
+        std_extensions,
+        std_extensions_len,
         extra_extension,
         extra_extension_len,
         not_before,
         not_after,
         now,
-        prev_cmt,
-        prev_cmt_r,
-        given_authority_key_identifier,
-        user_sk,
-        context,
-        nym,
     )
 }
