@@ -729,6 +729,18 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 // For large crates we prevent `MethodTooLargeException` (see #2340)
 // N.B. the name of the extension is very misleading, since it is 
 // rather `InterfaceTooLargeException`, caused by too many methods 
@@ -752,9 +764,21 @@ fun uniffi_anastasia_mopro_checksum_func_generate_halo2_proof(
 ): Short
 fun uniffi_anastasia_mopro_checksum_func_generate_noir_proof(
 ): Short
+fun uniffi_anastasia_mopro_checksum_func_generate_nym(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_generate_user_sk(
+): Short
 fun uniffi_anastasia_mopro_checksum_func_get_noir_verification_key(
 ): Short
-fun uniffi_anastasia_mopro_checksum_func_prove(
+fun uniffi_anastasia_mopro_checksum_func_prove_ca(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_prove_chain_base64(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_prove_chain_jwt(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_prove_ee(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_setup(
 ): Short
 fun uniffi_anastasia_mopro_checksum_func_verify_circom_proof(
 ): Short
@@ -815,10 +839,22 @@ fun uniffi_anastasia_mopro_fn_func_generate_halo2_proof(`srsPath`: RustBuffer.By
 ): RustBuffer.ByValue
 fun uniffi_anastasia_mopro_fn_func_generate_noir_proof(`circuitPath`: RustBuffer.ByValue,`srsPath`: RustBuffer.ByValue,`inputs`: RustBuffer.ByValue,`onChain`: Byte,`vk`: RustBuffer.ByValue,`lowMemoryMode`: Byte,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_generate_nym(`userSk`: RustBuffer.ByValue,`devicePkX`: RustBuffer.ByValue,`devicePkY`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_generate_user_sk(uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
 fun uniffi_anastasia_mopro_fn_func_get_noir_verification_key(`circuitPath`: RustBuffer.ByValue,`srsPath`: RustBuffer.ByValue,`onChain`: Byte,`lowMemoryMode`: Byte,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
-fun uniffi_anastasia_mopro_fn_func_prove(`circuitMeta`: RustBuffer.ByValue,`cert`: RustBuffer.ByValue,`authorityKeyId`: RustBuffer.ByValue,`issuerPkX`: RustBuffer.ByValue,`issuerPkY`: RustBuffer.ByValue,`prevCmtX`: RustBuffer.ByValue,`prevCmtY`: RustBuffer.ByValue,`prevCmtR`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+fun uniffi_anastasia_mopro_fn_func_prove_ca(`circuitMeta`: RustBuffer.ByValue,`cert`: RustBuffer.ByValue,`issuerPkX`: RustBuffer.ByValue,`issuerPkY`: RustBuffer.ByValue,`prevCmtX`: RustBuffer.ByValue,`prevCmtY`: RustBuffer.ByValue,`prevCmtR`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`isKeccakMode`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_prove_chain_base64(`subrootCircuitMeta`: RustBuffer.ByValue,`intermediateCircuitsMeta`: RustBuffer.ByValue,`leafCircuitMeta`: RustBuffer.ByValue,`rootCert`: RustBuffer.ByValue,`subrootCert`: RustBuffer.ByValue,`intermediateCerts`: RustBuffer.ByValue,`leafCert`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`userSk`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,`isKeccakMode`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_prove_chain_jwt(`subrootCircuitMeta`: RustBuffer.ByValue,`intermediateCircuitsMeta`: RustBuffer.ByValue,`leafCircuitMeta`: RustBuffer.ByValue,`rootCert`: RustBuffer.ByValue,`subrootCert`: RustBuffer.ByValue,`intermediateCerts`: RustBuffer.ByValue,`leafCert`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`userSk`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,`isKeccakMode`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_prove_ee(`circuitMeta`: RustBuffer.ByValue,`cert`: RustBuffer.ByValue,`issuerPkX`: RustBuffer.ByValue,`issuerPkY`: RustBuffer.ByValue,`prevCmtX`: RustBuffer.ByValue,`prevCmtY`: RustBuffer.ByValue,`prevCmtR`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`authorityKeyId`: RustBuffer.ByValue,`userSk`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,`isKeccakMode`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_setup(`srsPath`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
 fun uniffi_anastasia_mopro_fn_func_verify_circom_proof(`zkeyPath`: RustBuffer.ByValue,`proofResult`: RustBuffer.ByValue,`proofLib`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): Byte
 fun uniffi_anastasia_mopro_fn_func_verify_halo2_proof(`srsPath`: RustBuffer.ByValue,`vkPath`: RustBuffer.ByValue,`proof`: RustBuffer.ByValue,`publicInput`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -963,10 +999,28 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_anastasia_mopro_checksum_func_generate_noir_proof() != 5696.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_anastasia_mopro_checksum_func_generate_nym() != 58234.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_anastasia_mopro_checksum_func_generate_user_sk() != 47375.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_anastasia_mopro_checksum_func_get_noir_verification_key() != 7183.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_anastasia_mopro_checksum_func_prove() != 27369.toShort()) {
+    if (lib.uniffi_anastasia_mopro_checksum_func_prove_ca() != 48246.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_anastasia_mopro_checksum_func_prove_chain_base64() != 29885.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_anastasia_mopro_checksum_func_prove_chain_jwt() != 8045.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_anastasia_mopro_checksum_func_prove_ee() != 7286.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_anastasia_mopro_checksum_func_setup() != 22788.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_anastasia_mopro_checksum_func_verify_circom_proof() != 13928.toShort()) {
@@ -1179,6 +1233,117 @@ public object FfiConverterByteArray: FfiConverterRustBuffer<ByteArray> {
 
 
 
+data class CaProofResult (
+    /**
+     * The proof without public inputs
+     */
+    var `proof`: kotlin.String, 
+    /**
+     * The public inputs as an array of 32-byte hex values
+     */
+    var `publicInputs`: List<kotlin.String>, 
+    /**
+     * The number of public inputs
+     */
+    var `numPublicInputs`: kotlin.UInt, 
+    /**
+     * The next commitment x-coordinate
+     */
+    var `nextCmtX`: kotlin.String, 
+    /**
+     * The next commitment y-coordinate
+     */
+    var `nextCmtY`: kotlin.String, 
+    /**
+     * The random value used for the next commitment
+     */
+    var `nextCmtR`: kotlin.String
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeCAProofResult: FfiConverterRustBuffer<CaProofResult> {
+    override fun read(buf: ByteBuffer): CaProofResult {
+        return CaProofResult(
+            FfiConverterString.read(buf),
+            FfiConverterSequenceString.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: CaProofResult) = (
+            FfiConverterString.allocationSize(value.`proof`) +
+            FfiConverterSequenceString.allocationSize(value.`publicInputs`) +
+            FfiConverterUInt.allocationSize(value.`numPublicInputs`) +
+            FfiConverterString.allocationSize(value.`nextCmtX`) +
+            FfiConverterString.allocationSize(value.`nextCmtY`) +
+            FfiConverterString.allocationSize(value.`nextCmtR`)
+    )
+
+    override fun write(value: CaProofResult, buf: ByteBuffer) {
+            FfiConverterString.write(value.`proof`, buf)
+            FfiConverterSequenceString.write(value.`publicInputs`, buf)
+            FfiConverterUInt.write(value.`numPublicInputs`, buf)
+            FfiConverterString.write(value.`nextCmtX`, buf)
+            FfiConverterString.write(value.`nextCmtY`, buf)
+            FfiConverterString.write(value.`nextCmtR`, buf)
+    }
+}
+
+
+
+data class ChainProofResultBase64 (
+    /**
+     * The timestamp of the proof
+     */
+    var `now`: kotlin.Long, 
+    /**
+     * The pseudonym generated with the proof
+     */
+    var `nym`: kotlin.String, 
+    /**
+     * The CBOR-encoded proofs and commitments used in the proof chain
+     */
+    var `proofsAndCommitments`: kotlin.String
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeChainProofResultBase64: FfiConverterRustBuffer<ChainProofResultBase64> {
+    override fun read(buf: ByteBuffer): ChainProofResultBase64 {
+        return ChainProofResultBase64(
+            FfiConverterLong.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ChainProofResultBase64) = (
+            FfiConverterLong.allocationSize(value.`now`) +
+            FfiConverterString.allocationSize(value.`nym`) +
+            FfiConverterString.allocationSize(value.`proofsAndCommitments`)
+    )
+
+    override fun write(value: ChainProofResultBase64, buf: ByteBuffer) {
+            FfiConverterLong.write(value.`now`, buf)
+            FfiConverterString.write(value.`nym`, buf)
+            FfiConverterString.write(value.`proofsAndCommitments`, buf)
+    }
+}
+
+
+
 data class CircomProof (
     var `a`: G1, 
     var `b`: G2, 
@@ -1259,6 +1424,7 @@ data class CircuitMeta (
     var `id`: kotlin.String, 
     var `circuitPath`: kotlin.String, 
     var `verificationKeyPath`: kotlin.String, 
+    var `verificationKeyKeccakModePath`: kotlin.String, 
     var `srsPath`: kotlin.String
 ) {
     
@@ -1275,6 +1441,7 @@ public object FfiConverterTypeCircuitMeta: FfiConverterRustBuffer<CircuitMeta> {
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
         )
     }
 
@@ -1282,6 +1449,7 @@ public object FfiConverterTypeCircuitMeta: FfiConverterRustBuffer<CircuitMeta> {
             FfiConverterString.allocationSize(value.`id`) +
             FfiConverterString.allocationSize(value.`circuitPath`) +
             FfiConverterString.allocationSize(value.`verificationKeyPath`) +
+            FfiConverterString.allocationSize(value.`verificationKeyKeccakModePath`) +
             FfiConverterString.allocationSize(value.`srsPath`)
     )
 
@@ -1289,6 +1457,7 @@ public object FfiConverterTypeCircuitMeta: FfiConverterRustBuffer<CircuitMeta> {
             FfiConverterString.write(value.`id`, buf)
             FfiConverterString.write(value.`circuitPath`, buf)
             FfiConverterString.write(value.`verificationKeyPath`, buf)
+            FfiConverterString.write(value.`verificationKeyKeccakModePath`, buf)
             FfiConverterString.write(value.`srsPath`, buf)
     }
 }
@@ -1326,6 +1495,58 @@ public object FfiConverterTypeCommitResult: FfiConverterRustBuffer<CommitResult>
             FfiConverterString.write(value.`cmtX`, buf)
             FfiConverterString.write(value.`cmtY`, buf)
             FfiConverterString.write(value.`r`, buf)
+    }
+}
+
+
+
+data class EeProofResult (
+    /**
+     * The proof without public inputs
+     */
+    var `proof`: kotlin.String, 
+    /**
+     * The public inputs as an array of 32-byte hex values
+     */
+    var `publicInputs`: List<kotlin.String>, 
+    /**
+     * The number of public inputs
+     */
+    var `numPublicInputs`: kotlin.UInt, 
+    /**
+     * The pseudonym generated with the proof
+     */
+    var `nym`: kotlin.String
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeEEProofResult: FfiConverterRustBuffer<EeProofResult> {
+    override fun read(buf: ByteBuffer): EeProofResult {
+        return EeProofResult(
+            FfiConverterString.read(buf),
+            FfiConverterSequenceString.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: EeProofResult) = (
+            FfiConverterString.allocationSize(value.`proof`) +
+            FfiConverterSequenceString.allocationSize(value.`publicInputs`) +
+            FfiConverterUInt.allocationSize(value.`numPublicInputs`) +
+            FfiConverterString.allocationSize(value.`nym`)
+    )
+
+    override fun write(value: EeProofResult, buf: ByteBuffer) {
+            FfiConverterString.write(value.`proof`, buf)
+            FfiConverterSequenceString.write(value.`publicInputs`, buf)
+            FfiConverterUInt.write(value.`numPublicInputs`, buf)
+            FfiConverterString.write(value.`nym`, buf)
     }
 }
 
@@ -1430,72 +1651,6 @@ public object FfiConverterTypeHalo2ProofResult: FfiConverterRustBuffer<Halo2Proo
     override fun write(value: Halo2ProofResult, buf: ByteBuffer) {
             FfiConverterByteArray.write(value.`proof`, buf)
             FfiConverterByteArray.write(value.`inputs`, buf)
-    }
-}
-
-
-
-data class ProofResult (
-    /**
-     * The proof without public inputs
-     */
-    var `proof`: kotlin.String, 
-    /**
-     * The public inputs as an array of 32-byte hex values
-     */
-    var `publicInputs`: List<kotlin.String>, 
-    /**
-     * The number of public inputs
-     */
-    var `numPublicInputs`: kotlin.UInt, 
-    /**
-     * The next commitment x-coordinate
-     */
-    var `nextCmtX`: kotlin.String, 
-    /**
-     * The next commitment y-coordinate
-     */
-    var `nextCmtY`: kotlin.String, 
-    /**
-     * The random value used for the next commitment
-     */
-    var `nextCmtR`: kotlin.String
-) {
-    
-    companion object
-}
-
-/**
- * @suppress
- */
-public object FfiConverterTypeProofResult: FfiConverterRustBuffer<ProofResult> {
-    override fun read(buf: ByteBuffer): ProofResult {
-        return ProofResult(
-            FfiConverterString.read(buf),
-            FfiConverterSequenceString.read(buf),
-            FfiConverterUInt.read(buf),
-            FfiConverterString.read(buf),
-            FfiConverterString.read(buf),
-            FfiConverterString.read(buf),
-        )
-    }
-
-    override fun allocationSize(value: ProofResult) = (
-            FfiConverterString.allocationSize(value.`proof`) +
-            FfiConverterSequenceString.allocationSize(value.`publicInputs`) +
-            FfiConverterUInt.allocationSize(value.`numPublicInputs`) +
-            FfiConverterString.allocationSize(value.`nextCmtX`) +
-            FfiConverterString.allocationSize(value.`nextCmtY`) +
-            FfiConverterString.allocationSize(value.`nextCmtR`)
-    )
-
-    override fun write(value: ProofResult, buf: ByteBuffer) {
-            FfiConverterString.write(value.`proof`, buf)
-            FfiConverterSequenceString.write(value.`publicInputs`, buf)
-            FfiConverterUInt.write(value.`numPublicInputs`, buf)
-            FfiConverterString.write(value.`nextCmtX`, buf)
-            FfiConverterString.write(value.`nextCmtY`, buf)
-            FfiConverterString.write(value.`nextCmtR`, buf)
     }
 }
 
@@ -1668,6 +1823,38 @@ public object FfiConverterOptionalLong: FfiConverterRustBuffer<kotlin.Long?> {
 /**
  * @suppress
  */
+public object FfiConverterOptionalBoolean: FfiConverterRustBuffer<kotlin.Boolean?> {
+    override fun read(buf: ByteBuffer): kotlin.Boolean? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterBoolean.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.Boolean?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterBoolean.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.Boolean?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterBoolean.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?> {
     override fun read(buf: ByteBuffer): kotlin.String? {
         if (buf.get().toInt() == 0) {
@@ -1718,6 +1905,62 @@ public object FfiConverterSequenceString: FfiConverterRustBuffer<List<kotlin.Str
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterString.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceByteArray: FfiConverterRustBuffer<List<kotlin.ByteArray>> {
+    override fun read(buf: ByteBuffer): List<kotlin.ByteArray> {
+        val len = buf.getInt()
+        return List<kotlin.ByteArray>(len) {
+            FfiConverterByteArray.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<kotlin.ByteArray>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterByteArray.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<kotlin.ByteArray>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterByteArray.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeCircuitMeta: FfiConverterRustBuffer<List<CircuitMeta>> {
+    override fun read(buf: ByteBuffer): List<CircuitMeta> {
+        val len = buf.getInt()
+        return List<CircuitMeta>(len) {
+            FfiConverterTypeCircuitMeta.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<CircuitMeta>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeCircuitMeta.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<CircuitMeta>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeCircuitMeta.write(it, buf)
         }
     }
 }
@@ -1800,6 +2043,25 @@ public object FfiConverterMapStringSequenceString: FfiConverterRustBuffer<Map<ko
     }
     
 
+    @Throws(MoproException::class) fun `generateNym`(`userSk`: kotlin.String, `devicePkX`: kotlin.ByteArray, `devicePkY`: kotlin.ByteArray, `context`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_generate_nym(
+        FfiConverterString.lower(`userSk`),FfiConverterByteArray.lower(`devicePkX`),FfiConverterByteArray.lower(`devicePkY`),FfiConverterString.lower(`context`),_status)
+}
+    )
+    }
+    
+ fun `generateUserSk`(): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_generate_user_sk(
+        _status)
+}
+    )
+    }
+    
+
     @Throws(MoproException::class) fun `getNoirVerificationKey`(`circuitPath`: kotlin.String, `srsPath`: kotlin.String?, `onChain`: kotlin.Boolean, `lowMemoryMode`: kotlin.Boolean): kotlin.ByteArray {
             return FfiConverterByteArray.lift(
     uniffiRustCallWithError(MoproException) { _status ->
@@ -1810,14 +2072,53 @@ public object FfiConverterMapStringSequenceString: FfiConverterRustBuffer<Map<ko
     }
     
 
-    @Throws(MoproException::class) fun `prove`(`circuitMeta`: CircuitMeta, `cert`: kotlin.ByteArray, `authorityKeyId`: kotlin.ByteArray, `issuerPkX`: kotlin.ByteArray, `issuerPkY`: kotlin.ByteArray, `prevCmtX`: kotlin.String, `prevCmtY`: kotlin.String, `prevCmtR`: kotlin.String, `now`: kotlin.Long?): ProofResult {
-            return FfiConverterTypeProofResult.lift(
+    @Throws(MoproException::class) fun `proveCa`(`circuitMeta`: CircuitMeta, `cert`: kotlin.ByteArray, `issuerPkX`: kotlin.ByteArray, `issuerPkY`: kotlin.ByteArray, `prevCmtX`: kotlin.String, `prevCmtY`: kotlin.String, `prevCmtR`: kotlin.String, `now`: kotlin.Long?, `isKeccakMode`: kotlin.Boolean?): CaProofResult {
+            return FfiConverterTypeCAProofResult.lift(
     uniffiRustCallWithError(MoproException) { _status ->
-    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_prove(
-        FfiConverterTypeCircuitMeta.lower(`circuitMeta`),FfiConverterByteArray.lower(`cert`),FfiConverterByteArray.lower(`authorityKeyId`),FfiConverterByteArray.lower(`issuerPkX`),FfiConverterByteArray.lower(`issuerPkY`),FfiConverterString.lower(`prevCmtX`),FfiConverterString.lower(`prevCmtY`),FfiConverterString.lower(`prevCmtR`),FfiConverterOptionalLong.lower(`now`),_status)
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_prove_ca(
+        FfiConverterTypeCircuitMeta.lower(`circuitMeta`),FfiConverterByteArray.lower(`cert`),FfiConverterByteArray.lower(`issuerPkX`),FfiConverterByteArray.lower(`issuerPkY`),FfiConverterString.lower(`prevCmtX`),FfiConverterString.lower(`prevCmtY`),FfiConverterString.lower(`prevCmtR`),FfiConverterOptionalLong.lower(`now`),FfiConverterOptionalBoolean.lower(`isKeccakMode`),_status)
 }
     )
     }
+    
+
+    @Throws(MoproException::class) fun `proveChainBase64`(`subrootCircuitMeta`: CircuitMeta, `intermediateCircuitsMeta`: List<CircuitMeta>, `leafCircuitMeta`: CircuitMeta, `rootCert`: kotlin.ByteArray, `subrootCert`: kotlin.ByteArray, `intermediateCerts`: List<kotlin.ByteArray>, `leafCert`: kotlin.ByteArray, `now`: kotlin.Long?, `userSk`: kotlin.String, `context`: kotlin.String, `isKeccakMode`: kotlin.Boolean?): ChainProofResultBase64 {
+            return FfiConverterTypeChainProofResultBase64.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_prove_chain_base64(
+        FfiConverterTypeCircuitMeta.lower(`subrootCircuitMeta`),FfiConverterSequenceTypeCircuitMeta.lower(`intermediateCircuitsMeta`),FfiConverterTypeCircuitMeta.lower(`leafCircuitMeta`),FfiConverterByteArray.lower(`rootCert`),FfiConverterByteArray.lower(`subrootCert`),FfiConverterSequenceByteArray.lower(`intermediateCerts`),FfiConverterByteArray.lower(`leafCert`),FfiConverterOptionalLong.lower(`now`),FfiConverterString.lower(`userSk`),FfiConverterString.lower(`context`),FfiConverterOptionalBoolean.lower(`isKeccakMode`),_status)
+}
+    )
+    }
+    
+
+    @Throws(MoproException::class) fun `proveChainJwt`(`subrootCircuitMeta`: CircuitMeta, `intermediateCircuitsMeta`: List<CircuitMeta>, `leafCircuitMeta`: CircuitMeta, `rootCert`: kotlin.ByteArray, `subrootCert`: kotlin.ByteArray, `intermediateCerts`: List<kotlin.ByteArray>, `leafCert`: kotlin.ByteArray, `now`: kotlin.Long?, `userSk`: kotlin.String, `context`: kotlin.String, `isKeccakMode`: kotlin.Boolean?): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_prove_chain_jwt(
+        FfiConverterTypeCircuitMeta.lower(`subrootCircuitMeta`),FfiConverterSequenceTypeCircuitMeta.lower(`intermediateCircuitsMeta`),FfiConverterTypeCircuitMeta.lower(`leafCircuitMeta`),FfiConverterByteArray.lower(`rootCert`),FfiConverterByteArray.lower(`subrootCert`),FfiConverterSequenceByteArray.lower(`intermediateCerts`),FfiConverterByteArray.lower(`leafCert`),FfiConverterOptionalLong.lower(`now`),FfiConverterString.lower(`userSk`),FfiConverterString.lower(`context`),FfiConverterOptionalBoolean.lower(`isKeccakMode`),_status)
+}
+    )
+    }
+    
+
+    @Throws(MoproException::class) fun `proveEe`(`circuitMeta`: CircuitMeta, `cert`: kotlin.ByteArray, `issuerPkX`: kotlin.ByteArray, `issuerPkY`: kotlin.ByteArray, `prevCmtX`: kotlin.String, `prevCmtY`: kotlin.String, `prevCmtR`: kotlin.String, `now`: kotlin.Long?, `authorityKeyId`: kotlin.ByteArray, `userSk`: kotlin.String, `context`: kotlin.String, `isKeccakMode`: kotlin.Boolean?): EeProofResult {
+            return FfiConverterTypeEEProofResult.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_prove_ee(
+        FfiConverterTypeCircuitMeta.lower(`circuitMeta`),FfiConverterByteArray.lower(`cert`),FfiConverterByteArray.lower(`issuerPkX`),FfiConverterByteArray.lower(`issuerPkY`),FfiConverterString.lower(`prevCmtX`),FfiConverterString.lower(`prevCmtY`),FfiConverterString.lower(`prevCmtR`),FfiConverterOptionalLong.lower(`now`),FfiConverterByteArray.lower(`authorityKeyId`),FfiConverterString.lower(`userSk`),FfiConverterString.lower(`context`),FfiConverterOptionalBoolean.lower(`isKeccakMode`),_status)
+}
+    )
+    }
+    
+
+    @Throws(MoproException::class) fun `setup`(`srsPath`: kotlin.String)
+        = 
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_setup(
+        FfiConverterString.lower(`srsPath`),_status)
+}
+    
     
 
     @Throws(MoproException::class) fun `verifyCircomProof`(`zkeyPath`: kotlin.String, `proofResult`: CircomProofResult, `proofLib`: ProofLib): kotlin.Boolean {

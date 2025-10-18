@@ -4,54 +4,9 @@ use x509_parser::prelude::*;
 
 use crate::utils::to_fixed_array;
 
-fn extract_ecdsa_der(signature_value: &[u8]) -> Result<Vec<u8>, String> {
-    let (_, seq) =
-        parse_der_sequence(signature_value).map_err(|e| format!("parse error: {e:?}"))?;
-    let items = match seq.content {
-        DerObjectContent::Sequence(ref v) => v,
-        _ => return Err("not a sequence".to_string()),
-    };
-    if items.len() != 2 {
-        return Err("sequence does not have 2 elements".to_string());
-    }
-    let r = match items[0].content {
-        DerObjectContent::Integer(ref data) => {
-            let d = data.to_vec();
-            if d.len() == 33 && d[0] == 0 {
-                d[1..].to_vec()
-            } else {
-                d
-            }
-        }
-        _ => return Err("first element is not integer".to_string()),
-    };
-
-    // normalize s to low-s form
-    let s_uint = items[1]
-        .as_biguint()
-        .map_err(|e| format!("Failed to convert s to BigUint: {e}"))?;
-    let n = BigUint::parse_bytes(
-        b"FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551",
-        16,
-    )
-    .ok_or("Failed to parse secp256r1 order")?; // TODO: optimize $n$ for secp256r1
-    let n_half = &n >> 1;
-    let s_norm = if s_uint > n_half {
-        &n - &s_uint
-    } else {
-        s_uint
-    };
-    let s = s_norm.to_bytes_be();
-
-    let mut res = Vec::with_capacity(64);
-    res.extend_from_slice(&r);
-    res.extend_from_slice(&s);
-    Ok(res)
-}
-
 #[derive(Debug)]
 pub struct ParsedCert {
-    pub signature: [u8; 64],
+    pub signature: Vec<u8>,
     pub serial_number: [u8; 20],
     pub serial_number_len: u32,
     pub issuer: [u8; 124],
@@ -68,7 +23,6 @@ pub struct ParsedCert {
     pub authority_key_identifier_index: u32,
     pub basic_constraints_ca_index: u32,
     pub key_usage_key_cert_sign_index: u32,
-    pub key_usage_digital_signature_index: u32,
     pub extra_extension: Vec<u8>,
     pub extra_extension_len: u32,
 }
@@ -80,8 +34,6 @@ impl ParsedCert {
 
         // parse signature value
         let signature_value = parsed_cert.signature_value.as_ref();
-        let signature = extract_ecdsa_der(signature_value)
-            .map_err(|e| format!("Failed to extract signature value: {e}"))?;
 
         // parse serial number
         let serial = parsed_cert.tbs_certificate.raw_serial();
@@ -119,7 +71,6 @@ impl ParsedCert {
         let mut authority_key_identifier_index = 0;
         let mut basic_constraints_ca_index = 0;
         let mut key_usage_key_cert_sign_index = 0;
-        let mut key_usage_digital_signature_index = 0;
         let mut extra_extension: Vec<u8> = Vec::new();
         let mut extra_extension_len = 0;
         for (i, ext) in parsed_cert.extensions().iter().enumerate() {
@@ -127,8 +78,6 @@ impl ParsedCert {
                 ParsedExtension::KeyUsage(ku) => {
                     if ku.key_cert_sign() {
                         key_usage_key_cert_sign_index = i + 1;
-                    } else if ku.digital_signature() {
-                        key_usage_digital_signature_index = i + 1;
                     }
                 }
                 ParsedExtension::BasicConstraints(bc) => {
@@ -191,9 +140,7 @@ impl ParsedCert {
         }
 
         Ok(ParsedCert {
-            signature: signature
-                .try_into()
-                .map_err(|_| "Signature length is not 64 bytes".to_string())?,
+            signature: signature_value.to_vec(),
             serial_number: {
                 let mut buf = [0u8; 20];
                 if serial_number_len > 20 {
@@ -249,10 +196,54 @@ impl ParsedCert {
             authority_key_identifier_index: authority_key_identifier_index as u32,
             basic_constraints_ca_index: basic_constraints_ca_index as u32,
             key_usage_key_cert_sign_index: key_usage_key_cert_sign_index as u32,
-            key_usage_digital_signature_index: key_usage_digital_signature_index as u32,
             extra_extension,
             extra_extension_len: extra_extension_len as u32,
         })
+    }
+
+    pub fn extract_normalized_es256_sig(&self) -> Result<Vec<u8>, String> {
+        let (_, seq) =
+            parse_der_sequence(&self.signature).map_err(|e| format!("parse error: {e:?}"))?;
+        let items = match seq.content {
+            DerObjectContent::Sequence(ref v) => v,
+            _ => return Err("not a sequence".to_string()),
+        };
+        if items.len() != 2 {
+            return Err("sequence does not have 2 elements".to_string());
+        }
+        let r = match items[0].content {
+            DerObjectContent::Integer(ref data) => {
+                let d = data.to_vec();
+                if d.len() == 33 && d[0] == 0 {
+                    d[1..].to_vec()
+                } else {
+                    d
+                }
+            }
+            _ => return Err("first element is not integer".to_string()),
+        };
+
+        // normalize s to low-s form
+        let s_uint = items[1]
+            .as_biguint()
+            .map_err(|e| format!("Failed to convert s to BigUint: {e}"))?;
+        let n = BigUint::parse_bytes(
+            b"FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551",
+            16,
+        )
+        .ok_or("Failed to parse secp256r1 order")?; // TODO: optimize $n$ for secp256r1
+        let n_half = &n >> 1;
+        let s_norm = if s_uint > n_half {
+            &n - &s_uint
+        } else {
+            s_uint
+        };
+        let s = s_norm.to_bytes_be();
+
+        let mut res = Vec::with_capacity(64);
+        res.extend_from_slice(&r);
+        res.extend_from_slice(&s);
+        Ok(res)
     }
 }
 
@@ -292,7 +283,7 @@ mod tests {
 
     #[test]
     fn test_parse_es256_ca_cert() {
-        let cert = include_bytes!("../test_data/es256_ca.der");
+        let cert = include_bytes!("../test_data/es256_ca_strongbox.der");
         let parsed_cert = ParsedCert::from_der(cert).unwrap();
 
         assert_eq!(
@@ -369,7 +360,6 @@ mod tests {
         assert_eq!(parsed_cert.authority_key_identifier_index, 2);
         assert_eq!(parsed_cert.basic_constraints_ca_index, 3);
         assert_eq!(parsed_cert.key_usage_key_cert_sign_index, 4);
-        assert_eq!(parsed_cert.key_usage_digital_signature_index, 0);
         assert_eq!(
             parsed_cert.extra_extension,
             [
@@ -461,7 +451,6 @@ mod tests {
         assert_eq!(parsed_cert.authority_key_identifier_index, 0);
         assert_eq!(parsed_cert.basic_constraints_ca_index, 0);
         assert_eq!(parsed_cert.key_usage_key_cert_sign_index, 0);
-        assert_eq!(parsed_cert.key_usage_digital_signature_index, 1);
         assert_eq!(
             parsed_cert.extra_extension,
             [

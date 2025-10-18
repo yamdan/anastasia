@@ -9,9 +9,13 @@ ark-bn254 = "0.5.0"
 ark-crypto-primitives = { version = "0.5.0", features = ["crh", "merkle_tree"] }
 ark-ff = "0.5.0"
 ark-grumpkin = "0.5.0"
+ark-serialize = "0.5.0"
 ark-std = "0.5.0"
+arrayvec = "0.7.6"
 base64 = "0.22.1"
 chrono = "0.4.42"
+ciborium = "0.2.2"
+digest = "0.10.7"
 flate2 = "1.1.2"
 hex = "0.4.3"
 itertools = "0.14.0"
@@ -21,8 +25,15 @@ noir = { package = "noir", git = "https://github.com/zkmopro/noir-rs", features 
 ], branch = "v1.0.0-beta.8-3" }
 num-bigint = "0.4.6"
 num-traits = "0.2.19"
+serde = "1.0.228"
+serde_bytes = "0.11.19"
 serde_json = "1.0.143"
+sha2 = "0.10.9"
 x509-parser = "0.18.0"
 
 acir = { version = "1.0.0-beta.8", package = "acir", git = "https://github.com/noir-lang/noir" }
 bn254_blackbox_solver = { version = "1.0.0-beta.8", package = "bn254_blackbox_solver", git = "https://github.com/noir-lang/noir" }
+
+[dev-dependencies]
+ark-test-curves = { version = "0.5.0", features = ["bls12_381_scalar_field", "bls12_381_curve"] }
+serial_test = "3.2.0"

@@ -11,7 +11,31 @@ mopro_ffi::app!();
 
 mod ffi_types;
 
-use crate::ffi_types::{CircuitMeta, CommitResult, ProofResult};
+use crate::ffi_types::{
+    CAProofResult, ChainProofResultBase64, CircuitMeta, CommitResult, EEProofResult,
+};
+
+#[uniffi::export]
+fn setup(srs_path: &str) -> Result<(), MoproError> {
+    anastasia_rs::setup(srs_path).map_err(|e| MoproError::NoirError(e.to_string()))
+}
+
+#[uniffi::export]
+fn generate_user_sk() -> String {
+    anastasia_rs::generate_user_sk_hex()
+}
+
+#[uniffi::export]
+fn generate_nym(
+    user_sk: &str,
+    device_pk_x: &[u8],
+    device_pk_y: &[u8],
+    context: &str,
+) -> Result<String, MoproError> {
+    let nym = anastasia_rs::generate_nym_base64(user_sk, device_pk_x, device_pk_y, context)
+        .map_err(|e| MoproError::NoirError(e.to_string()))?;
+    Ok(nym)
+}
 
 #[uniffi::export]
 fn commit_attrs(
@@ -33,43 +57,188 @@ fn commit_attrs(
 }
 
 #[uniffi::export]
-fn prove(
+fn prove_ca(
     circuit_meta: CircuitMeta,
     cert: Vec<u8>,
-    authority_key_id: Vec<u8>,
     issuer_pk_x: Vec<u8>,
     issuer_pk_y: Vec<u8>,
     prev_cmt_x: String,
     prev_cmt_y: String,
     prev_cmt_r: String,
     now: Option<i64>,
-) -> Result<ProofResult, MoproError> {
-    let now = match now {
-        Some(ts) => chrono::DateTime::from_timestamp_secs(ts)
-            .ok_or_else(|| MoproError::NoirError("Invalid timestamp".to_string()))?
-            .with_timezone(&chrono::Utc),
-        None => chrono::Utc::now(),
-    };
-
-    let proof = anastasia_rs::prove(
+    is_keccak_mode: Option<bool>,
+) -> Result<CAProofResult, MoproError> {
+    let proof = anastasia_rs::prove_ca(
         &circuit_meta.into(),
-        cert,
+        &cert,
         now,
-        authority_key_id,
-        issuer_pk_x,
-        issuer_pk_y,
-        prev_cmt_x,
-        prev_cmt_y,
-        prev_cmt_r,
+        &issuer_pk_x,
+        &issuer_pk_y,
+        &prev_cmt_x,
+        &prev_cmt_y,
+        &prev_cmt_r,
+        is_keccak_mode.unwrap_or(false),
     )
     .map_err(|e| MoproError::NoirError(e.to_string()))?;
 
     Ok(proof.into())
 }
 
+#[uniffi::export]
+fn prove_ee(
+    circuit_meta: CircuitMeta,
+    cert: Vec<u8>,
+    issuer_pk_x: Vec<u8>,
+    issuer_pk_y: Vec<u8>,
+    prev_cmt_x: String,
+    prev_cmt_y: String,
+    prev_cmt_r: String,
+    now: Option<i64>,
+    authority_key_id: Vec<u8>,
+    user_sk: &str,
+    context: &str,
+    is_keccak_mode: Option<bool>,
+) -> Result<EEProofResult, MoproError> {
+    let proof = anastasia_rs::prove_ee(
+        &circuit_meta.into(),
+        &cert,
+        now,
+        &issuer_pk_x,
+        &issuer_pk_y,
+        &prev_cmt_x,
+        &prev_cmt_y,
+        &prev_cmt_r,
+        &authority_key_id,
+        user_sk,
+        context,
+        is_keccak_mode.unwrap_or(false),
+    )
+    .map_err(|e| MoproError::NoirError(e.to_string()))?;
+
+    Ok(proof.into())
+}
+
+#[uniffi::export]
+fn prove_chain_base64(
+    subroot_circuit_meta: CircuitMeta,
+    intermediate_circuits_meta: Vec<CircuitMeta>,
+    leaf_circuit_meta: CircuitMeta,
+    root_cert: Vec<u8>,
+    subroot_cert: Vec<u8>,
+    intermediate_certs: Vec<Vec<u8>>,
+    leaf_cert: Vec<u8>,
+    now: Option<i64>,
+    user_sk: &str,
+    context: &str,
+    is_keccak_mode: Option<bool>,
+) -> Result<ChainProofResultBase64, MoproError> {
+    let intermediate_circuits_meta_converted: Vec<anastasia_rs::CircuitMeta> =
+        intermediate_circuits_meta
+            .into_iter()
+            .map(|meta| meta.into())
+            .collect();
+
+    let intermediate_certs_converted: Vec<&[u8]> = intermediate_certs
+        .iter()
+        .map(|cert| cert.as_slice())
+        .collect();
+
+    let chain_proof = anastasia_rs::prove_chain_base64(
+        &subroot_circuit_meta.into(),
+        &intermediate_circuits_meta_converted,
+        &leaf_circuit_meta.into(),
+        &root_cert,
+        &subroot_cert,
+        &intermediate_certs_converted,
+        &leaf_cert,
+        now,
+        user_sk,
+        context,
+        is_keccak_mode.unwrap_or(false),
+    )
+    .map_err(|e| MoproError::NoirError(e.to_string()))?;
+
+    Ok(chain_proof.into())
+}
+
+#[uniffi::export]
+fn prove_chain_jwt(
+    subroot_circuit_meta: CircuitMeta,
+    intermediate_circuits_meta: Vec<CircuitMeta>,
+    leaf_circuit_meta: CircuitMeta,
+    root_cert: Vec<u8>,
+    subroot_cert: Vec<u8>,
+    intermediate_certs: Vec<Vec<u8>>,
+    leaf_cert: Vec<u8>,
+    now: Option<i64>,
+    user_sk: &str,
+    context: &str,
+    is_keccak_mode: Option<bool>,
+) -> Result<String, MoproError> {
+    let intermediate_circuits_meta_converted: Vec<anastasia_rs::CircuitMeta> =
+        intermediate_circuits_meta
+            .into_iter()
+            .map(|meta| meta.into())
+            .collect();
+
+    let intermediate_certs_converted: Vec<&[u8]> = intermediate_certs
+        .iter()
+        .map(|cert| cert.as_slice())
+        .collect();
+
+    let chain_proof = anastasia_rs::prove_chain_as_key_attestation_jwt(
+        &subroot_circuit_meta.into(),
+        &intermediate_circuits_meta_converted,
+        &leaf_circuit_meta.into(),
+        &root_cert,
+        &subroot_cert,
+        &intermediate_certs_converted,
+        &leaf_cert,
+        now,
+        user_sk,
+        context,
+        is_keccak_mode.unwrap_or(false),
+    )
+    .map_err(|e| MoproError::NoirError(e.to_string()))?;
+
+    Ok(chain_proof)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use serial_test::serial;
+
+    #[test]
+    fn test_setup() {
+        let result = setup("../anastasia-rs/data/common.srs");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_generate_user_sk() {
+        let sk = generate_user_sk();
+        assert_eq!(sk.len(), 64); // 32 bytes in hex
+    }
+
+    #[test]
+    fn test_generate_nym() {
+        let user_sk = "deadbeef";
+        let pk_x = vec![
+            0xb4, 0x46, 0x2b, 0xe1, 0x47, 0x16, 0x55, 0x9d, 0x26, 0xf1, 0x2e, 0x60, 0x4f, 0xed,
+            0xe1, 0x53, 0x39, 0xd2, 0x5a, 0xa4, 0xf5, 0xdb, 0xda, 0x49, 0x6e, 0x1f, 0x30, 0x43,
+            0x36, 0x01, 0xed, 0x74,
+        ];
+        let pk_y = vec![
+            0xf6, 0x39, 0x6f, 0x87, 0xe8, 0xe7, 0x20, 0x55, 0x3d, 0x86, 0x22, 0xa1, 0xbb, 0xd7,
+            0xab, 0xf5, 0x01, 0x19, 0x1b, 0xae, 0x74, 0x94, 0x97, 0x86, 0x76, 0x47, 0x6b, 0x00,
+            0xfb, 0xd6, 0xda, 0x90,
+        ];
+        let context = "https://credential-issuer.example.com";
+        let nym = generate_nym(user_sk, &pk_x, &pk_y, context).unwrap();
+        assert_eq!(nym, "KHpTfbNadhyuSx_s9GMIiFZRPHfl0slN289Nhd0K6hg");
+    }
 
     #[test]
     fn test_commit_attrs() {
@@ -153,15 +322,17 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_prove_es256_ca() {
         let meta = CircuitMeta::new(
             "es256_ca".to_string(),
             "../anastasia-rs/data/es256_ca.json".to_string(),
             "../anastasia-rs/data/es256_ca.vk".to_string(),
+            "../anastasia-rs/data/es256_ca.keccak.vk".to_string(),
             "../anastasia-rs/data/common.srs".to_string(),
         );
 
-        let cert = std::fs::read("../anastasia-rs/test_data/es256_ca.der").unwrap();
+        let cert = std::fs::read("../anastasia-rs/test_data/es256_ca_strongbox.der").unwrap();
 
         // Generate previous commitment
         let issuer = vec![
@@ -199,23 +370,23 @@ mod tests {
         .unwrap();
 
         // Generate proof
-        let ProofResult {
+        let CAProofResult {
             proof,
             public_inputs,
             num_public_inputs,
             next_cmt_x,
             next_cmt_y,
             next_cmt_r,
-        } = prove(
+        } = prove_ca(
             meta,
             cert,
-            authority_key_id,
             issuer_pk_x,
             issuer_pk_y,
             prev_cmt_x.to_string(),
             prev_cmt_y.to_string(),
             prev_cmt_r.to_string(),
             Some(1757808000), // 2025-09-14T00:00:00Z
+            None,
         )
         .unwrap();
 
@@ -268,5 +439,139 @@ mod tests {
         .unwrap();
         assert_eq!(next_cmt_x, next_cmt_x_generated);
         assert_eq!(next_cmt_y, next_cmt_y_generated);
+    }
+
+    #[test]
+    #[serial]
+    fn test_prove_es256_chain_jwt() {
+        let meta_subroot = CircuitMeta::new(
+            "es256_subroot".to_string(),
+            "../anastasia-rs/data/es256_subroot.json".to_string(),
+            "../anastasia-rs/data/es256_subroot.vk".to_string(),
+            "../anastasia-rs/data/es256_subroot.keccak.vk".to_string(),
+            "../anastasia-rs/data/common.srs".to_string(),
+        );
+        let meta_ee = CircuitMeta::new(
+            "es256_ee".to_string(),
+            "../anastasia-rs/data/es256_ee.json".to_string(),
+            "../anastasia-rs/data/es256_ee.vk".to_string(),
+            "../anastasia-rs/data/es256_ee.keccak.vk".to_string(),
+            "../anastasia-rs/data/common.srs".to_string(),
+        );
+
+        let cert_root = std::fs::read("../anastasia-rs/test_data/es256_ca_droidca3.der").unwrap();
+        let cert_subroot =
+            std::fs::read("../anastasia-rs/test_data/es256_ca_strongbox.der").unwrap();
+        let cert_ee = std::fs::read("../anastasia-rs/test_data/es256_ee.der").unwrap();
+
+        let now = 1757808000; // 2025-09-14T00:00:00Z
+        let user_sk = "deadbeef";
+        let context = "https://credential-issuer.example.com";
+
+        let result = prove_chain_jwt(
+            meta_subroot,
+            vec![],
+            meta_ee,
+            cert_root,
+            cert_subroot,
+            vec![],
+            cert_ee,
+            Some(now),
+            user_sk,
+            context,
+            None,
+        )
+        .unwrap();
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    #[serial]
+    fn test_prove_es256_chain_jwt_keccak_true() {
+        let meta_subroot = CircuitMeta::new(
+            "es256_subroot".to_string(),
+            "../anastasia-rs/data/es256_subroot.json".to_string(),
+            "../anastasia-rs/data/es256_subroot.vk".to_string(),
+            "../anastasia-rs/data/es256_subroot.keccak.vk".to_string(),
+            "../anastasia-rs/data/common.srs".to_string(),
+        );
+        let meta_ee = CircuitMeta::new(
+            "es256_ee".to_string(),
+            "../anastasia-rs/data/es256_ee.json".to_string(),
+            "../anastasia-rs/data/es256_ee.vk".to_string(),
+            "../anastasia-rs/data/es256_ee.keccak.vk".to_string(),
+            "../anastasia-rs/data/common.srs".to_string(),
+        );
+
+        let cert_root = std::fs::read("../anastasia-rs/test_data/es256_ca_droidca3.der").unwrap();
+        let cert_subroot =
+            std::fs::read("../anastasia-rs/test_data/es256_ca_strongbox.der").unwrap();
+        let cert_ee = std::fs::read("../anastasia-rs/test_data/es256_ee.der").unwrap();
+
+        let now = 1757808000; // 2025-09-14T00:00:00Z
+        let user_sk = "deadbeef";
+        let context = "https://credential-issuer.example.com";
+
+        // keccak mode == true
+        let result = prove_chain_jwt(
+            meta_subroot,
+            vec![],
+            meta_ee,
+            cert_root,
+            cert_subroot,
+            vec![],
+            cert_ee,
+            Some(now),
+            user_sk,
+            context,
+            Some(true),
+        )
+        .unwrap();
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    #[serial]
+    fn test_prove_es256_chain_jwt_keccak_false() {
+        let meta_subroot = CircuitMeta::new(
+            "es256_subroot".to_string(),
+            "../anastasia-rs/data/es256_subroot.json".to_string(),
+            "../anastasia-rs/data/es256_subroot.vk".to_string(),
+            "../anastasia-rs/data/es256_subroot.keccak.vk".to_string(),
+            "../anastasia-rs/data/common.srs".to_string(),
+        );
+        let meta_ee = CircuitMeta::new(
+            "es256_ee".to_string(),
+            "../anastasia-rs/data/es256_ee.json".to_string(),
+            "../anastasia-rs/data/es256_ee.vk".to_string(),
+            "../anastasia-rs/data/es256_ee.keccak.vk".to_string(),
+            "../anastasia-rs/data/common.srs".to_string(),
+        );
+
+        let cert_root = std::fs::read("../anastasia-rs/test_data/es256_ca_droidca3.der").unwrap();
+        let cert_subroot =
+            std::fs::read("../anastasia-rs/test_data/es256_ca_strongbox.der").unwrap();
+        let cert_ee = std::fs::read("../anastasia-rs/test_data/es256_ee.der").unwrap();
+
+        let now = 1757808000; // 2025-09-14T00:00:00Z
+        let user_sk = "deadbeef";
+        let context = "https://credential-issuer.example.com";
+
+        // keccak mode == true
+        let result = prove_chain_jwt(
+            meta_subroot,
+            vec![],
+            meta_ee,
+            cert_root,
+            cert_subroot,
+            vec![],
+            cert_ee,
+            Some(now),
+            user_sk,
+            context,
+            Some(false),
+        )
+        .unwrap();
+        assert!(!result.is_empty());
     }
 }
