@@ -42,15 +42,14 @@ fn prove(
     prev_cmt_x: String,
     prev_cmt_y: String,
     prev_cmt_r: String,
-    now: Option<String>,
+    now: Option<i64>,
 ) -> Result<ProofResult, MoproError> {
-    let now = now
-        .map(|s| {
-            chrono::DateTime::parse_from_rfc3339(&s)
-                .map_err(|e| MoproError::NoirError(e.to_string()))
-        })
-        .transpose()?
-        .map(|dt| dt.with_timezone(&chrono::Utc));
+    let now = match now {
+        Some(ts) => chrono::DateTime::from_timestamp_secs(ts)
+            .ok_or_else(|| MoproError::NoirError("Invalid timestamp".to_string()))?
+            .with_timezone(&chrono::Utc),
+        None => chrono::Utc::now(),
+    };
 
     let proof = anastasia_rs::prove(
         &circuit_meta.into(),
@@ -216,7 +215,7 @@ mod tests {
             prev_cmt_x.to_string(),
             prev_cmt_y.to_string(),
             prev_cmt_r.to_string(),
-            Some("2025-09-14T00:00:00Z".to_string()),
+            Some(1757808000), // 2025-09-14T00:00:00Z
         )
         .unwrap();
 

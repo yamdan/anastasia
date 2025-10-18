@@ -966,7 +966,7 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_anastasia_mopro_checksum_func_get_noir_verification_key() != 7183.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_anastasia_mopro_checksum_func_prove() != 9397.toShort()) {
+    if (lib.uniffi_anastasia_mopro_checksum_func_prove() != 27369.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_anastasia_mopro_checksum_func_verify_circom_proof() != 13928.toShort()) {
@@ -1052,6 +1052,29 @@ public object FfiConverterUInt: FfiConverter<UInt, Int> {
 
     override fun write(value: UInt, buf: ByteBuffer) {
         buf.putInt(value.toInt())
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterLong: FfiConverter<Long, Long> {
+    override fun lift(value: Long): Long {
+        return value
+    }
+
+    override fun read(buf: ByteBuffer): Long {
+        return buf.getLong()
+    }
+
+    override fun lower(value: Long): Long {
+        return value
+    }
+
+    override fun allocationSize(value: Long) = 8UL
+
+    override fun write(value: Long, buf: ByteBuffer) {
+        buf.putLong(value)
     }
 }
 
@@ -1613,6 +1636,38 @@ public object FfiConverterTypeProofLib: FfiConverterRustBuffer<ProofLib> {
 /**
  * @suppress
  */
+public object FfiConverterOptionalLong: FfiConverterRustBuffer<kotlin.Long?> {
+    override fun read(buf: ByteBuffer): kotlin.Long? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterLong.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.Long?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterLong.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.Long?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterLong.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?> {
     override fun read(buf: ByteBuffer): kotlin.String? {
         if (buf.get().toInt() == 0) {
@@ -1755,11 +1810,11 @@ public object FfiConverterMapStringSequenceString: FfiConverterRustBuffer<Map<ko
     }
     
 
-    @Throws(MoproException::class) fun `prove`(`circuitMeta`: CircuitMeta, `cert`: kotlin.ByteArray, `authorityKeyId`: kotlin.ByteArray, `issuerPkX`: kotlin.ByteArray, `issuerPkY`: kotlin.ByteArray, `prevCmtX`: kotlin.String, `prevCmtY`: kotlin.String, `prevCmtR`: kotlin.String, `now`: kotlin.String?): ProofResult {
+    @Throws(MoproException::class) fun `prove`(`circuitMeta`: CircuitMeta, `cert`: kotlin.ByteArray, `authorityKeyId`: kotlin.ByteArray, `issuerPkX`: kotlin.ByteArray, `issuerPkY`: kotlin.ByteArray, `prevCmtX`: kotlin.String, `prevCmtY`: kotlin.String, `prevCmtR`: kotlin.String, `now`: kotlin.Long?): ProofResult {
             return FfiConverterTypeProofResult.lift(
     uniffiRustCallWithError(MoproException) { _status ->
     UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_prove(
-        FfiConverterTypeCircuitMeta.lower(`circuitMeta`),FfiConverterByteArray.lower(`cert`),FfiConverterByteArray.lower(`authorityKeyId`),FfiConverterByteArray.lower(`issuerPkX`),FfiConverterByteArray.lower(`issuerPkY`),FfiConverterString.lower(`prevCmtX`),FfiConverterString.lower(`prevCmtY`),FfiConverterString.lower(`prevCmtR`),FfiConverterOptionalString.lower(`now`),_status)
+        FfiConverterTypeCircuitMeta.lower(`circuitMeta`),FfiConverterByteArray.lower(`cert`),FfiConverterByteArray.lower(`authorityKeyId`),FfiConverterByteArray.lower(`issuerPkX`),FfiConverterByteArray.lower(`issuerPkY`),FfiConverterString.lower(`prevCmtX`),FfiConverterString.lower(`prevCmtY`),FfiConverterString.lower(`prevCmtR`),FfiConverterOptionalLong.lower(`now`),_status)
 }
     )
     }
