@@ -2,21 +2,13 @@ package org.ethtokyo.hackathon.anastasia.core
 
 
 import android.content.Context
-import android.util.Log
 import uniffi.mopro.CircuitMeta
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.security.cert.Certificate
-import java.security.cert.X509Certificate
 
-data class Circuit(
-    val vk: String,
-    val keccak_vk: String,
-    val circuit: String,
-    val srs: String
-)
 
 private val assetFileCache = mutableMapOf<String, String>()
 
