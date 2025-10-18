@@ -2,6 +2,8 @@ package org.ethtokyo.hackathon.anastasia.core
 
 
 import android.content.Context
+import android.util.Log
+import uniffi.mopro.CircuitMeta
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
@@ -11,6 +13,7 @@ import java.security.cert.X509Certificate
 
 data class Circuit(
     val vk: String,
+    val keccak_vk: String,
     val circuit: String,
     val srs: String
 )
@@ -59,44 +62,28 @@ fun getFilePathFromAssets(context: Context, assetFileName: String): String {
 }
 
 
-fun selectAppropriateCircuit(context: Context, certificate: Certificate): Circuit {
+fun selectAppropriateCircuit(context: Context, certificate: Certificate): CircuitMeta {
     val prefix = certificate.getCircuitDir()
-
     // todo: 暗号アルゴリズムごとに適切な回路を使用できるようにすべき
-    return Circuit(
-        vk = getFilePathFromAssets(context, "$prefix/es256.vk"),
-        circuit = getFilePathFromAssets(context, "$prefix/es256.json"),
-        srs = getFilePathFromAssets(context, "$prefix/common.srs")
+    val vk = getFilePathFromAssets(context, "$prefix/es256.vk")
+    val keccak_vk = getFilePathFromAssets(context, "$prefix/es256_keccak.vk")
+    val circuit = getFilePathFromAssets(context, "$prefix/es256.json")
+    val srs = getFilePathFromAssets(context, "common.srs")
+    return CircuitMeta(
+        "es256_${prefix.lowercase()}",
+        circuit,
+        vk,
+        keccak_vk,
+        srs,
     )
-}
-
-fun Certificate.isEndEntity(): Boolean {
-    try {
-        val x509Cert = this as X509Certificate
-        val issuer = x509Cert.issuerX500Principal
-        val issuerName = issuer.name
-
-        // IssuerのDNからO（Organization）フィールドを抽出
-        val oValue = extractOrganizationFromDN(issuerName)
-
-        // Oの値を小文字に正規化してチェック
-        val normalizedO = oValue?.lowercase()
-        return (normalizedO == "tee" || normalizedO == "strongbox")
-    }catch(_: Exception){
-        return false
-    }
 }
 
 fun Certificate.getCircuitDir(): String {
     if (this.isEndEntity()){
         return "ee"
     }
+    if (this.isSubroot()){
+        return "subroot"
+    }
     return "ca"
-}
-
-private fun extractOrganizationFromDN(dn: String): String? {
-    // DN（Distinguished Name）からO=の値を抽出
-    val regex = Regex("(?:^|,)\\s*O\\s*=\\s*([^,]+)", RegexOption.IGNORE_CASE)
-    val matchResult = regex.find(dn)
-    return matchResult?.groupValues?.get(1)?.trim()
 }

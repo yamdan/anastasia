@@ -1,7 +1,6 @@
 package org.ethtokyo.hackathon.anastasia.core
 
 import org.ethtokyo.hackathon.anastasia.data.ProofResult as InternalProofResult
-import uniffi.mopro.prove
 import java.security.cert.Certificate
 import java.security.cert.X509Certificate
 import android.content.Context
@@ -11,12 +10,14 @@ fun bytes(vararg ints: Int): ByteArray =
     ints.map { it.toByte() }.toByteArray()
 
 
+/*
 fun proveParentChildRel(context: Context, child: Certificate, parent: Certificate, caPrevCmtX: String,caPrevCmtY: String, caPrevCmtR: String): InternalProofResult {
     val circuitForChild = selectAppropriateCircuit(context, child)
     val circuitMetaForLibrary = CircuitMeta(
         "${circuitForChild.circuit}-${circuitForChild.vk}-${circuitForChild.srs}",
         circuitForChild.circuit,
         circuitForChild.vk,
+        circuitForChild.keccak_vk,
         circuitForChild.srs,
     )
 
@@ -53,3 +54,4 @@ fun proveParentChildRel(context: Context, child: Certificate, parent: Certificat
         nextCmtR = moproProved.nextCmtR
     )
 }
+*/

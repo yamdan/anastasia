@@ -14,7 +14,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val eeCertVerifierAddress: LiveData<String> = appSettings.eeCertVerifierAddress
 
     fun loadSettings() {
-        appSettings.loadSettings()
+        appSettings.loadEditableSettings()
     }
 
     fun saveSettings(
@@ -22,7 +22,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         caCertVerifierAddress: String,
         eeCertVerifierAddress: String,
     ) {
-        appSettings.updateSettings(
+        appSettings.updateEditableSettings(
             sepoliaApiKey,
             caCertVerifierAddress,
             eeCertVerifierAddress,

@@ -16,6 +16,7 @@ class AppSettingsRepository(private val context: Context) {
         private const val KEY_SEPOLIA_API_KEY = "sepolia_api_key"
         private const val KEY_CA_CERT_VERIFIER_ADDRESS = "ca_cert_verifier_address"
         private const val KEY_EE_CERT_VERIFIER_ADDRESS = "ee_cert_verifier_address"
+        private const val USER_SK = "user_sk"
     }
     private fun isValidHexString(value: String): Boolean {
         if (value.isBlank()) return false
@@ -66,6 +67,18 @@ class AppSettingsRepository(private val context: Context) {
         val defaultValue = BuildConfig.SC_ADDRESS_EE
         val result = if (stored.isNullOrBlank()) defaultValue ?: "" else stored
         Log.d("AppSettingsRepo", "getEeCertVerifierAddress: stored='$stored', default='$defaultValue', result='$result'")
+        return result
+    }
+
+    fun saveUserSk(usersk: String) {
+        sharedPreferences.edit()
+            .putString(USER_SK, usersk)
+            .apply()
+    }
+
+    fun getUserSk(): String {
+        val stored = sharedPreferences.getString(USER_SK, null)
+        val result = if (stored.isNullOrBlank()) "" else stored
         return result
     }
 }

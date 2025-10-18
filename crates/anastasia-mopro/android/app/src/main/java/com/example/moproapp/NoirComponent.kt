@@ -44,9 +44,11 @@ fun NoirComponent() {
     var statusMessage by remember { mutableStateOf("Ready to generate proof") }
 
     val srsFile = getFilePathFromAssets("common.srs")
+
     val subrootCircuitFile = getFilePathFromAssets("es256_subroot.json")
     val subrootVkFile = getFilePathFromAssets("es256_subroot.vk")
     val subrootVkKeccakFile = getFilePathFromAssets("es256_subroot.keccak.vk")
+
     val eeCircuitFile = getFilePathFromAssets("es256_ee.json")
     val eeVkFile = getFilePathFromAssets("es256_ee.vk")
     val eeVkKeccakFile = getFilePathFromAssets("es256_ee.keccak.vk")

@@ -8,6 +8,7 @@ import org.bouncycastle.asn1.x509.SubjectKeyIdentifier
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import java.math.BigInteger
 import java.security.MessageDigest
+import java.security.cert.Certificate
 import java.security.cert.X509Certificate
 import java.security.interfaces.ECPublicKey
 
@@ -92,5 +93,50 @@ private fun bigIntegerToFixedSizeByteArray(bigInt: BigInteger, size: Int): ByteA
             // 先頭にゼロを埋める
             ByteArray(size - bytes.size) + bytes
         }
+    }
+}
+
+fun extractOrganizationFromDN(dn: String): String? {
+    // DN（Distinguished Name）からO=の値を抽出
+    val regex = Regex("(?:^|,)\\s*O\\s*=\\s*([^,]+)", RegexOption.IGNORE_CASE)
+    val matchResult = regex.find(dn)
+    return matchResult?.groupValues?.get(1)?.trim()
+}
+
+fun Certificate.getSubjectOrgValue(): String? {
+    val x509Cert = this as X509Certificate
+    val subject = x509Cert.subjectX500Principal
+    val subjectName = subject.name
+
+    val subjectOrgValue = extractOrganizationFromDN(subjectName)
+    return subjectOrgValue?.lowercase()
+}
+
+fun Certificate.getIssuerOrgValue(): String? {
+    val x509Cert = this as X509Certificate
+    val issuer = x509Cert.issuerX500Principal
+    val issuerName = issuer.name
+
+    val issuerOrgValue = extractOrganizationFromDN(issuerName)
+    return issuerOrgValue?.lowercase()
+}
+
+// subrootの定義は以下を参照
+// https://discord.com/channels/1414913139446779999/1414917851285815416/1427899611992817734
+fun Certificate.isSubroot(): Boolean {
+    try {
+        val subjectOrgValue = this.getSubjectOrgValue()
+        return (subjectOrgValue == "tee" || subjectOrgValue == "strongbox")
+    }catch(_: Exception){
+        return false
+    }
+}
+
+fun Certificate.isEndEntity(): Boolean {
+    try {
+        val issuerOrgValue = this.getIssuerOrgValue()
+        return (issuerOrgValue == "tee" || issuerOrgValue == "strongbox")
+    }catch(_: Exception){
+        return false
     }
 }

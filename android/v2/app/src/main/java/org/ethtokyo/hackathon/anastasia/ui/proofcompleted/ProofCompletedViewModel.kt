@@ -76,12 +76,12 @@ class ProofCompletedViewModel(application: Application) : AndroidViewModel(appli
         .build()
 
 
-    fun verifyProofs(proofs: Array<ProofResult>) {
+    fun verifyProofs(jsonString: String) {
         viewModelScope.launch {
             _isLoading.value = true
             _progressMessage.value = "Preparing proof submissions..."
             try {
-                val allResults = postProofToServer(proofs)
+                val allResults = postProofToServer(jsonString)
                 _postResult.value = Result.success(allResults)
             } catch (e: Exception) {
                 // 予期しないエラーの場合のみfailureとして扱う
@@ -93,87 +93,10 @@ class ProofCompletedViewModel(application: Application) : AndroidViewModel(appli
         }
     }
 
-    private suspend fun postProofToServer(proofs: Array<ProofResult>): AllProofsResult = withContext(Dispatchers.IO) {
+    private suspend fun postProofToServer(jsonString: String): AllProofsResult = withContext(Dispatchers.IO) {
         val results = mutableListOf<ProofSubmissionResult>()
-        val apiKey = appSettings.getSepoliaApiKeyValue()
-        val endpoint = resolveInfuraPath(apiKey)
 
-        proofs.forEachIndexed { index, proofResult ->
-            // プログレス更新（UIスレッドで実行）
-            withContext(Dispatchers.Main) {
-                _progressMessage.value = "Submitting proof ${index + 1} of ${proofs.size}..."
-            }
-
-            try {
-                val smContractAddress = if (proofResult.proofForEE){
-                    val eeAddress = appSettings.getEeCertVerifierAddressValue()
-                    Log.d("ProofCompletedVM", "EE Long Address from settings: '$eeAddress'")
-                    if (eeAddress.isBlank()){
-                        Log.e("ProofCompletedVM", "EE Cert Long Verifier Address is blank!")
-                        throw InvalidDestinationException("EE Cert Long Verifier Address is blank. Check Settings page.")
-                    }
-                    eeAddress
-                } else {
-                    val caAddress = appSettings.getCaCertVerifierAddressValue()
-                    Log.d("ProofCompletedVM", "CA Address from settings: '$caAddress'")
-                    if (caAddress.isBlank()){
-                        Log.e("ProofCompletedVM", "CA Cert Verifier Address is blank!")
-                        throw InvalidDestinationException("CA Cert Verifier Address is blank. Check Settings page.")
-                    }
-                    caAddress
-                }
-                val converted = proofResult.convertProofForInfura()
-                val jsonPayload = create_eth_call_json(smContractAddress, converted)
-                val requestBody = jsonPayload.toRequestBody("application/json; charset=utf-8".toMediaType())
-                val request = Request.Builder()
-                    .url(endpoint)
-                    .post(requestBody)
-                    .build()
-
-                client.newCall(request).execute().use { response ->
-                    val responseBody = response.body?.string() ?: ""
-
-                    if (response.isSuccessful) {
-                        // 2XX系レスポンスの場合、さらにJSON内のerrorキーをチェック
-                        val (isReallySuccess, errorMessage) = checkResponseForError(responseBody)
-
-                        if (isReallySuccess) {
-                            results.add(ProofSubmissionResult(
-                                proofIndex = index,
-                                isSuccess = true,
-                                response = responseBody,
-                                error = null,
-                                smartContractAddress = smContractAddress
-                            ))
-                        } else {
-                            results.add(ProofSubmissionResult(
-                                proofIndex = index,
-                                isSuccess = false,
-                                response = responseBody,
-                                error = errorMessage ?: "Server returned error in response",
-                                smartContractAddress = smContractAddress
-                            ))
-                        }
-                    } else {
-                        results.add(ProofSubmissionResult(
-                            proofIndex = index,
-                            isSuccess = false,
-                            response = responseBody,
-                            error = "HTTP ${response.code}: ${response.message}",
-                            smartContractAddress = smContractAddress
-                        ))
-                    }
-                }
-            } catch (e: Exception) {
-                results.add(ProofSubmissionResult(
-                    proofIndex = index,
-                    isSuccess = false,
-                    response = null,
-                    error = e.message ?: "Unknown error",
-                    smartContractAddress = ""
-                ))
-            }
-        }
+        // todo: `key-attestation+jwt` を表す jsonString をスマートコントラクトで検証する処理
 
         val overallSuccess = results.all { it.isSuccess }
         return@withContext AllProofsResult(results, overallSuccess)
