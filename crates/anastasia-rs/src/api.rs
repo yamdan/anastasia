@@ -413,6 +413,12 @@ pub fn prove_chain_base64(
 ) -> Result<ChainProofResultBase64, String> {
     let user_sk_bytes =
         hex::decode(user_sk).map_err(|e| format!("Failed to decode user_sk: {}", e))?;
+    if user_sk_bytes.len() != 32 {
+        return Err(format!(
+            "user_sk must be a 64-character hex string (32 bytes), got {} bytes",
+            user_sk_bytes.len()
+        ));
+    }
     let user_sk = Fr::from_be_bytes_mod_order(&user_sk_bytes);
 
     let result = prove_chain(
