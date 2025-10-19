@@ -1,6 +1,8 @@
 package org.ethtokyo.hackathon.anastasia.ui.proofgeneration
 
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -30,15 +32,16 @@ class ProofGenerationFragment : Fragment() {
 
         setupObservers()
         setupListeners()
+        setupUrlInputValidation()
 
         return binding.root
     }
 
     private fun setupObservers() {
-        viewModel.proofsGenerationResult.observe(viewLifecycleOwner) { result ->
+        viewModel.proofGenerationResult.observe(viewLifecycleOwner) { result ->
             if (result.isSuccess) {
                 val proofsResult = result.getOrNull()
-                if (proofsResult != null && proofsResult.proofs.isNotEmpty() && !hasNavigated) {
+                if (proofsResult != null && proofsResult.keyAttestationJwt.isNotEmpty() && !hasNavigated) {
                     hasNavigated = true
                     isNavigating = true
 
@@ -63,7 +66,8 @@ class ProofGenerationFragment : Fragment() {
         }
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            binding.btnStart.isEnabled = !isLoading && !isNavigating
+            val hasInput = !binding.etUrlInput.text.isNullOrBlank()
+            binding.btnStart.isEnabled = !isLoading && !isNavigating && hasInput
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
 
             if (isLoading || isNavigating) {
@@ -83,12 +87,37 @@ class ProofGenerationFragment : Fragment() {
         }
     }
 
+    private fun setupUrlInputValidation() {
+        // 初期状態でボタンを非活性化
+        binding.btnStart.isEnabled = false
+
+        // URL入力フィールドの変更を監視
+        binding.etUrlInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                // 入力がある場合のみボタンを活性化
+                val hasInput = !s.isNullOrBlank()
+                val isLoading = viewModel.isLoading.value ?: false
+                binding.btnStart.isEnabled = hasInput && !isLoading && !isNavigating
+            }
+
+            override fun afterTextChanged(s: Editable?) {}
+        })
+    }
+
     private fun setupListeners() {
         binding.btnStart.setOnClickListener {
+            val url = binding.etUrlInput.text.toString()
+
+            // 3つの要素を表示
+            binding.tvProcessTimeMessage.visibility = View.VISIBLE
+            binding.proofGenerationImage.visibility = View.VISIBLE
+
             hasNavigated = false
             isNavigating = false
             binding.tvProgressMessage.visibility = View.GONE
-            viewModel.generateProof()
+            viewModel.generateProof(url)
         }
     }
 
@@ -106,10 +135,13 @@ class ProofGenerationFragment : Fragment() {
     }
 
     private fun updateUI() {
-        binding.btnStart.isEnabled = true
+        val hasInput = !binding.etUrlInput.text.isNullOrBlank()
+        binding.btnStart.isEnabled = hasInput
         binding.btnStart.text = "Start"
         binding.progressBar.visibility = View.GONE
         binding.tvProgressMessage.visibility = View.GONE
+        binding.tvProcessTimeMessage.visibility = View.GONE
+        binding.proofGenerationImage.visibility = View.GONE
     }
 
     override fun onDestroyView() {

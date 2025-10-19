@@ -84,7 +84,7 @@
         tools:layout="@layout/fragment_proof_completed">
         <argument
             android:name="proofsResult"
-            app:argType="org.ethtokyo.hackathon.anastasia.data.ProofsGenerationResult" />
+            app:argType="org.ethtokyo.hackathon.anastasia.data.ProofGenerationResult" />
         <action
             android:id="@+id/action_proofCompletedFragment_to_smartContractCompletedFragment"
             app:destination="@id/smartContractCompletedFragment" />

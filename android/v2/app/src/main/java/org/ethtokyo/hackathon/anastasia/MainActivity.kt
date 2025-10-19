@@ -10,18 +10,13 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import org.ethtokyo.hackathon.anastasia.data.AppSettings
 import org.ethtokyo.hackathon.anastasia.databinding.ActivityMainBinding
+import uniffi.mopro.generateUserSk
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        setSupportActionBar(binding.toolbar)
-
+    private fun initializeAppSettings(){
         // Initialize app settings on startup
         Log.d("MainActivity", "Initializing AppSettings...")
         val appSettings = AppSettings.getInstance(this)
@@ -30,6 +25,26 @@ class MainActivity : AppCompatActivity() {
         Log.d("MainActivity", "EE Address: '${appSettings.getEeCertVerifierAddressValue()}'")
         Log.d("MainActivity", "BuildConfig SC_ADDRESS_CA: '${BuildConfig.SC_ADDRESS_CA}'")
         Log.d("MainActivity", "BuildConfig SC_ADDRESS_EE: '${BuildConfig.SC_ADDRESS_EE}'")
+
+        val userSk = appSettings.getUserSk()
+        if (userSk.isEmpty()) {
+            Log.d("MainActivity", "UserSk is empty. Generating new one...")
+            val generatedValue = generateUserSk() // あなたの定義した初期化関数
+            appSettings.updateInternalSettings(generatedValue)
+            Log.d("MainActivity", "New UserSk saved")
+        } else {
+            Log.d("MainActivity", "UserSk already initialized")
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        initializeAppSettings()
+
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        setSupportActionBar(binding.toolbar)
 
         val navView: BottomNavigationView = binding.navView
 
