@@ -13,6 +13,33 @@
         android:padding="16dp">
 
         <TextView
+            android:id="@+id/tv_url_input_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Enter the URL of the recipient of the generated proof"
+            android:textSize="14sp"
+            android:textColor="@android:color/black"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_url_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_url_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="URL"
+                android:inputType="textUri"
+                android:singleLine="true" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
             android:id="@+id/tv_process_time_message"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -22,17 +49,8 @@
             android:textColor="@android:color/black"
             android:layout_marginTop="16dp"
             android:layout_marginBottom="16dp"
-            android:gravity="center" />
-
-        <TextView
-            android:id="@+id/tv_proof_description"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="This process creates proof that your key is securely stored in device."
-            android:textSize="18sp"
-            android:textColor="@android:color/black"
-            android:layout_marginBottom="32dp"
-            android:gravity="center" />
+            android:gravity="center"
+            android:visibility="gone" />
 
         <ImageView
             android:id="@+id/proof_generation_image"
@@ -42,7 +60,8 @@
             android:layout_marginBottom="32dp"
             android:src="@drawable/proof_generation_image"
             android:contentDescription="Proof Generation Illustration"
-            android:scaleType="fitCenter" />
+            android:scaleType="fitCenter"
+            android:visibility="gone" />
 
         <ProgressBar
             android:id="@+id/progress_bar"

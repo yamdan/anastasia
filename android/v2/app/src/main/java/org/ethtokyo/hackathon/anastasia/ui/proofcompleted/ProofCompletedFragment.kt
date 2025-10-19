@@ -15,8 +15,6 @@ import androidx.navigation.fragment.navArgs
 import org.ethtokyo.hackathon.anastasia.R
 import org.ethtokyo.hackathon.anastasia.databinding.FragmentProofCompletedBinding
 import org.ethtokyo.hackathon.anastasia.data.AppSettings
-import org.ethtokyo.hackathon.anastasia.data.ProofGenerationPerformance
-import org.ethtokyo.hackathon.anastasia.data.ProofResult
 
 class ProofCompletedFragment : Fragment() {
 
@@ -34,28 +32,26 @@ class ProofCompletedFragment : Fragment() {
         _binding = FragmentProofCompletedBinding.inflate(inflater, container, false)
 
         // ProofsGenerationResultから直接データを取得
-        val proofsResult = args.proofsResult
+        val proofResult = args.proofsResult
 
         // 複数のproofを改行区切りで表示
-        val proofsText = proofsResult.proofs.joinToString("\n\n") { proofResult ->
-            "Proof:\n${proofResult.proof}\n\nNext CommitmentX:\n${proofResult.nextCmtX}\n\nNext CommitmentY:\n${proofResult.nextCmtY}\n\nNext Commitment R:\n${proofResult.nextCmtR}"
-        }
-        binding.textViewProof.text = proofsText
+        //val proofsText = proofsResult.proofs.joinToString("\n\n") { proofResult ->
+        //    "Proof:\n${proofResult.proof}\n\nNext CommitmentX:\n${proofResult.nextCmtX}\n\nNext CommitmentY:\n${proofResult.nextCmtY}\n\nNext Commitment R:\n${proofResult.nextCmtR}"
+        //}
+        val proofText = proofResult.keyAttestationJwt
+        binding.textViewProof.text = proofText
 
         // パフォーマンスデータの表示
-        val performance = ProofGenerationPerformance(
-            individualTimes = proofsResult.performances.toList(),
-            totalTime = proofsResult.totalTime
-        )
-        binding.textViewPerformance.text = performance.toFormattedString()
 
-        setupUI(proofsResult.proofs, proofsText)
+        binding.textViewPerformance.text = proofResult.performance.toFormattedString()
+
+        setupUI(proofResult.keyAttestationJwt, proofText)
         setupObservers()
 
         return binding.root
     }
 
-    private fun setupUI(proofResults: Array<ProofResult>, proofsText: String) {
+    private fun setupUI(jsonString: String, proofsText: String) {
         val appSettings = AppSettings.getInstance(requireContext())
         val hasRequiredSettings = checkRequiredSettings(appSettings)
 
@@ -65,7 +61,7 @@ class ProofCompletedFragment : Fragment() {
             binding.buttonYes.visibility = View.VISIBLE
             binding.buttonNo.visibility = View.VISIBLE
             binding.buttonFinish.visibility = View.GONE
-            setupSmartContractListeners(proofResults)
+            setupSmartContractListeners(jsonString)
         } else {
             // 設定が不足している場合：Finishボタンのみ表示
             binding.textViewMessage.visibility = View.GONE
@@ -86,14 +82,16 @@ class ProofCompletedFragment : Fragment() {
         val caCertAddress = appSettings.getCaCertVerifierAddressValue()
         val eeCertAddress = appSettings.getEeCertVerifierAddressValue()
 
+        val readyToVerifyKeyAttestationJwtBySmartContract = false
+
         return sepoliaApiKey.isNotBlank() &&
                caCertAddress.isNotBlank() &&
-               eeCertAddress.isNotBlank()
+               eeCertAddress.isNotBlank() && readyToVerifyKeyAttestationJwtBySmartContract
     }
 
-    private fun setupSmartContractListeners(proofResults: Array<ProofResult>) {
+    private fun setupSmartContractListeners(jsonString: String) {
         binding.buttonYes.setOnClickListener {
-            viewModel.verifyProofs(proofResults)
+            viewModel.verifyProofs(jsonString)
         }
         binding.buttonNo.setOnClickListener {
             findNavController().navigate(R.id.action_proofCompletedFragment_to_navigation_key_management)

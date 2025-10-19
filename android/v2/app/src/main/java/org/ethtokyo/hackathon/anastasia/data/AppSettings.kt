@@ -18,6 +18,9 @@ class AppSettings private constructor(context: Context) {
     private val _eeCertVerifierAddress = MutableLiveData<String>()
     val eeCertVerifierAddress: LiveData<String> = _eeCertVerifierAddress
 
+    private val _userSk = MutableLiveData<String>()
+    val userSk: LiveData<String> = _userSk
+
     companion object {
         @Volatile
         private var INSTANCE: AppSettings? = null
@@ -30,16 +33,21 @@ class AppSettings private constructor(context: Context) {
     }
 
     init {
-        loadSettings()
+        loadEditableSettings()
+        loadInternalSettings()
     }
 
-    fun loadSettings() {
+    fun loadInternalSettings() {
+        _userSk.value = repository.getUserSk()
+    }
+
+    fun loadEditableSettings() {
         _sepoliaApiKey.value = repository.getSepoliaApiKey()
         _caCertVerifierAddress.value = repository.getCaCertVerifierAddress()
         _eeCertVerifierAddress.value = repository.getEeCertVerifierAddress()
     }
 
-    fun updateSettings(
+    fun updateEditableSettings(
         sepoliaApiKey: String,
         caCertVerifierAddress: String,
         eeCertVerifierAddress: String,
@@ -52,6 +60,13 @@ class AppSettings private constructor(context: Context) {
         _sepoliaApiKey.value = sepoliaApiKey
         _caCertVerifierAddress.value = caCertVerifierAddress
         _eeCertVerifierAddress.value = eeCertVerifierAddress
+    }
+
+    fun updateInternalSettings(
+        userSk: String,
+    ) {
+        repository.saveUserSk(userSk)
+        _userSk.value = userSk
     }
 
     // Synchronous getters for cases where LiveData observation is not suitable
@@ -76,6 +91,13 @@ class AppSettings private constructor(context: Context) {
         val repositoryValue = repository.getEeCertVerifierAddress()
         val result = liveDataValue ?: repositoryValue
         Log.d("AppSettings", "getEeCertVerifierAddressValue: liveData='$liveDataValue', repo='$repositoryValue', result='$result'")
+        return result
+    }
+
+    fun getUserSk(): String {
+        val liveDataValue = _userSk.value
+        val repositoryValue = repository.getUserSk()
+        val result = liveDataValue ?: repositoryValue
         return result
     }
 
