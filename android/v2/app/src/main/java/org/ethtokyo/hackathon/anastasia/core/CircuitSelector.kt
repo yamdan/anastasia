@@ -57,12 +57,12 @@ fun getFilePathFromAssets(context: Context, assetFileName: String): String {
 fun selectAppropriateCircuit(context: Context, certificate: Certificate): CircuitMeta {
     val prefix = certificate.getCircuitDir()
     // todo: 暗号アルゴリズムごとに適切な回路を使用できるようにすべき
-    val vk = getFilePathFromAssets(context, "$prefix/es256.vk")
-    val keccak_vk = getFilePathFromAssets(context, "$prefix/es256_keccak.vk")
-    val circuit = getFilePathFromAssets(context, "$prefix/es256.json")
+    val vk = getFilePathFromAssets(context, "es256_$prefix/0.1.1/vk") // TODO: fix me
+    val keccak_vk = getFilePathFromAssets(context, "es256_$prefix/0.1.1/keccak.vk") // TODO: fix me
+    val circuit = getFilePathFromAssets(context, "es256_$prefix/0.1.1/circuit.json") // TODO: fix me
     val srs = getFilePathFromAssets(context, "common.srs")
     return CircuitMeta(
-        "es256_${prefix.lowercase()}",
+        "es256_${prefix.lowercase()}/0.1.1", // TODO: fix me
         circuit,
         vk,
         keccak_vk,
