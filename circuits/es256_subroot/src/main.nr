@@ -1,6 +1,6 @@
-mod verify;
-
-use es256_common::models;
+use es256_common::{
+    models::prepare_std_ca_extensions, utils::check_commitments, verify::verify_signature_es256,
+};
 
 global MAX_TBS_LEN: u32 = 500;
 global MAX_EXTRA_EXT_LEN: u32 = 30;
@@ -31,11 +31,28 @@ fn main(
     basic_constraints_ca_index: u32,
     key_usage_key_cert_sign_index: u32,
 ) {
-    let not_before = models::UtcTime::from_bytes(not_before);
-    let not_after = models::UtcTime::from_bytes(not_after);
-    let now = models::UtcTime::from_bytes(now);
+    // Verify next chain commitment
+    check_commitments(
+        subject,
+        subject_key_identifier,
+        subject_pk_x,
+        subject_pk_y,
+        next_cmt,
+        next_cmt_r,
+    );
 
-    verify::verify::<MAX_TBS_LEN, _>(
+    // Prepare standard extensions
+    let (std_extensions, std_extensions_len) = prepare_std_ca_extensions(
+        subject_key_identifier,
+        authority_key_identifier,
+        subject_key_identifier_index,
+        authority_key_identifier_index,
+        basic_constraints_ca_index,
+        key_usage_key_cert_sign_index,
+    );
+
+    // Verify signature
+    verify_signature_es256::<MAX_TBS_LEN, _, _>(
         issuer_pk_x,
         issuer_pk_y,
         sig,
@@ -47,18 +64,12 @@ fn main(
         subject_len,
         subject_pk_x,
         subject_pk_y,
+        std_extensions,
+        std_extensions_len,
         extra_extension,
         extra_extension_len,
         not_before,
         not_after,
         now,
-        next_cmt,
-        next_cmt_r,
-        subject_key_identifier,
-        authority_key_identifier,
-        subject_key_identifier_index,
-        authority_key_identifier_index,
-        basic_constraints_ca_index,
-        key_usage_key_cert_sign_index,
     )
 }

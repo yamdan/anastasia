@@ -658,10 +658,10 @@ mod tests {
     #[serial]
     fn test_prove_es256_ca() {
         let meta = CircuitMeta::new(
-            "es256_ca".to_string(),
-            "data/es256_ca.json".to_string(),
-            "data/es256_ca.vk".to_string(),
-            "data/es256_ca.keccak.vk".to_string(),
+            "es256_ca/0.1.1".to_string(),
+            "data/es256_ca/0.1.1/circuit.json".to_string(),
+            "data/es256_ca/0.1.1/vk".to_string(),
+            "data/es256_ca/0.1.1/keccak.vk".to_string(),
             "data/common.srs".to_string(),
         );
         let cert = std::fs::read("test_data/es256_ca_strongbox.der").unwrap();
@@ -801,10 +801,10 @@ mod tests {
     #[serial]
     fn test_prove_es256_ee() {
         let meta = CircuitMeta::new(
-            "es256_ee".to_string(),
-            "data/es256_ee.json".to_string(),
-            "data/es256_ee.vk".to_string(),
-            "data/es256_ee.keccak.vk".to_string(),
+            "es256_ee/0.1.1".to_string(),
+            "data/es256_ee/0.1.1/circuit.json".to_string(),
+            "data/es256_ee/0.1.1/vk".to_string(),
+            "data/es256_ee/0.1.1/keccak.vk".to_string(),
             "data/common.srs".to_string(),
         );
         let cert = std::fs::read("test_data/es256_ee.der").unwrap();
@@ -913,18 +913,20 @@ mod tests {
     #[test]
     #[serial]
     fn test_prove_es256_chain_ca_ee_b64() {
+        let version = "0.1.1";
+
         let meta_subroot = CircuitMeta::new(
-            "es256_subroot".to_string(),
-            "data/es256_subroot.json".to_string(),
-            "data/es256_subroot.vk".to_string(),
-            "data/es256_subroot.keccak.vk".to_string(),
-            "data/common.srs".to_string(),
+            format!("es256_subroot/{version}"),
+            format!("data/es256_subroot/{version}/circuit.json"),
+            format!("data/es256_subroot/{version}/vk"),
+            format!("data/es256_subroot/{version}/keccak.vk"),
+            format!("data/common.srs"),
         );
         let meta_ee = CircuitMeta::new(
-            "es256_ee".to_string(),
-            "data/es256_ee.json".to_string(),
-            "data/es256_ee.vk".to_string(),
-            "data/es256_ee.keccak.vk".to_string(),
+            format!("es256_ee/{version}"),
+            format!("data/es256_ee/{version}/circuit.json"),
+            format!("data/es256_ee/{version}/vk"),
+            format!("data/es256_ee/{version}/keccak.vk"),
             "data/common.srs".to_string(),
         );
 
@@ -959,18 +961,20 @@ mod tests {
     #[test]
     #[serial]
     fn test_prove_es256_chain_ca_ee_key_attestation_jwt() {
+        let version = "0.1.1";
+
         let meta_subroot = CircuitMeta::new(
-            "es256_subroot".to_string(),
-            "data/es256_subroot.json".to_string(),
-            "data/es256_subroot.vk".to_string(),
-            "data/es256_subroot.keccak.vk".to_string(),
-            "data/common.srs".to_string(),
+            format!("es256_subroot/{version}"),
+            format!("data/es256_subroot/{version}/circuit.json"),
+            format!("data/es256_subroot/{version}/vk"),
+            format!("data/es256_subroot/{version}/keccak.vk"),
+            format!("data/common.srs"),
         );
         let meta_ee = CircuitMeta::new(
-            "es256_ee".to_string(),
-            "data/es256_ee.json".to_string(),
-            "data/es256_ee.vk".to_string(),
-            "data/es256_ee.keccak.vk".to_string(),
+            format!("es256_ee/{version}"),
+            format!("data/es256_ee/{version}/circuit.json"),
+            format!("data/es256_ee/{version}/vk"),
+            format!("data/es256_ee/{version}/keccak.vk"),
             "data/common.srs".to_string(),
         );
 
@@ -1000,7 +1004,78 @@ mod tests {
 
         let header_b64 = result.split('.').next().unwrap();
         let header_bytes = URL_SAFE_NO_PAD.decode(header_b64).unwrap();
-        let expected_header = r#"{"alg":"ANASTASIA-AKA","typ":"key-attestation+jwt","x5c":["es256_ee","es256_subroot","MIIB1jCCAV2gAwIBAgIUAKPaleRujkV60qOYNtfCM5xBWw8wCgYIKoZIzj0EAwMwKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EyMB4XDTI1MDgyMjE2MjM0NloXDTI1MTAzMTE2MjM0NVowKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKcLvJKS+if1RNYkksy440ltknk6W/wtva+IShxv1JieanWtWaCm/Ovj+4FCUP7twq/Wxs1rB47iV7i7AqFr70qNjMGEwDgYDVR0PAQH/BAQDAgIEMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFP5ibNwq5YDnGWrKI90j8TkCRqilMB8GA1UdIwQYMBaAFLv4Nq2Jrmzi5Z6U8NWy19J65HxBMAoGCCqGSM49BAMDA2cAMGQCMAF1II8ktm7BKU6mvr0sh7hL4sbU/3cDI80eIpiC32RYUA1dKPDNGxw5YFrhGQ/yaQIwV/5uJxy0dvZVx2GWfHKWDghfSNmIeeJ5dpPkIaDinCUAGoR0k70+xyBjdzH1K3yY"]}"#;
+        let expected_header = format!(
+            "{{\"alg\":\"ANASTASIA-AKA\",\"typ\":\"key-attestation+jwt\",\"x5c\":[\"es256_ee/{version}\",\"es256_subroot/{version}\",\"MIIB1jCCAV2gAwIBAgIUAKPaleRujkV60qOYNtfCM5xBWw8wCgYIKoZIzj0EAwMwKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EyMB4XDTI1MDgyMjE2MjM0NloXDTI1MTAzMTE2MjM0NVowKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKcLvJKS+if1RNYkksy440ltknk6W/wtva+IShxv1JieanWtWaCm/Ovj+4FCUP7twq/Wxs1rB47iV7i7AqFr70qNjMGEwDgYDVR0PAQH/BAQDAgIEMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFP5ibNwq5YDnGWrKI90j8TkCRqilMB8GA1UdIwQYMBaAFLv4Nq2Jrmzi5Z6U8NWy19J65HxBMAoGCCqGSM49BAMDA2cAMGQCMAF1II8ktm7BKU6mvr0sh7hL4sbU/3cDI80eIpiC32RYUA1dKPDNGxw5YFrhGQ/yaQIwV/5uJxy0dvZVx2GWfHKWDghfSNmIeeJ5dpPkIaDinCUAGoR0k70+xyBjdzH1K3yY\"]}}"
+        );
+        assert_eq!(String::from_utf8_lossy(&header_bytes), expected_header);
+
+        // Generate proof in keccak mode
+        let result = prove_chain_as_key_attestation_jwt(
+            &meta_subroot,
+            &[],
+            &meta_ee,
+            &cert_root,
+            &cert_subroot,
+            &[],
+            &cert_ee,
+            Some(now),
+            &user_sk,
+            context,
+            true,
+        )
+        .unwrap();
+        assert!(!result.is_empty());
+        assert_eq!(String::from_utf8_lossy(&header_bytes), expected_header);
+    }
+
+    #[test]
+    #[serial]
+    fn test_prove_es256_chain_ca_ee_key_attestation_jwt_deprecated() {
+        let version = "0.1.0";
+        let meta_subroot = CircuitMeta::new(
+            format!("es256_subroot"),
+            format!("data/es256_subroot/{version}/circuit.json"),
+            format!("data/es256_subroot/{version}/vk"),
+            format!("data/es256_subroot/{version}/keccak.vk"),
+            format!("data/common.srs"),
+        );
+        let meta_ee = CircuitMeta::new(
+            format!("es256_ee"),
+            format!("data/es256_ee/{version}/circuit.json"),
+            format!("data/es256_ee/{version}/vk"),
+            format!("data/es256_ee/{version}/keccak.vk"),
+            "data/common.srs".to_string(),
+        );
+
+        let cert_root = std::fs::read("test_data/es256_ca_droidca3.der").unwrap();
+        let cert_subroot = std::fs::read("test_data/es256_ca_strongbox.der").unwrap();
+        let cert_ee = std::fs::read("test_data/es256_ee.der").unwrap();
+
+        let now = 1757808000; // 2025-09-14T00:00:00Z
+        let user_sk = "deadbeef";
+        let context = "https://credential-issuer.example.com";
+
+        let result = prove_chain_as_key_attestation_jwt(
+            &meta_subroot,
+            &[],
+            &meta_ee,
+            &cert_root,
+            &cert_subroot,
+            &[],
+            &cert_ee,
+            Some(now),
+            &user_sk,
+            context,
+            false,
+        )
+        .unwrap();
+        assert!(!result.is_empty());
+
+        let header_b64 = result.split('.').next().unwrap();
+        let header_bytes = URL_SAFE_NO_PAD.decode(header_b64).unwrap();
+        let expected_header = format!(
+            "{{\"alg\":\"ANASTASIA-AKA\",\"typ\":\"key-attestation+jwt\",\"x5c\":[\"es256_ee\",\"es256_subroot\",\"MIIB1jCCAV2gAwIBAgIUAKPaleRujkV60qOYNtfCM5xBWw8wCgYIKoZIzj0EAwMwKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EyMB4XDTI1MDgyMjE2MjM0NloXDTI1MTAzMTE2MjM0NVowKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKcLvJKS+if1RNYkksy440ltknk6W/wtva+IShxv1JieanWtWaCm/Ovj+4FCUP7twq/Wxs1rB47iV7i7AqFr70qNjMGEwDgYDVR0PAQH/BAQDAgIEMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFP5ibNwq5YDnGWrKI90j8TkCRqilMB8GA1UdIwQYMBaAFLv4Nq2Jrmzi5Z6U8NWy19J65HxBMAoGCCqGSM49BAMDA2cAMGQCMAF1II8ktm7BKU6mvr0sh7hL4sbU/3cDI80eIpiC32RYUA1dKPDNGxw5YFrhGQ/yaQIwV/5uJxy0dvZVx2GWfHKWDghfSNmIeeJ5dpPkIaDinCUAGoR0k70+xyBjdzH1K3yY\"]}}"
+        );
         assert_eq!(String::from_utf8_lossy(&header_bytes), expected_header);
 
         // Generate proof in keccak mode

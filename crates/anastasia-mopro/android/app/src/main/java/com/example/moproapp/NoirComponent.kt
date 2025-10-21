@@ -44,12 +44,12 @@ fun NoirComponent() {
     var statusMessage by remember { mutableStateOf("Ready to generate proof") }
 
     val srsFile = getFilePathFromAssets("common.srs")
-    val subrootCircuitFile = getFilePathFromAssets("es256_subroot.json")
-    val subrootVkFile = getFilePathFromAssets("es256_subroot.vk")
-    val subrootVkKeccakFile = getFilePathFromAssets("es256_subroot.keccak.vk")
-    val eeCircuitFile = getFilePathFromAssets("es256_ee.json")
-    val eeVkFile = getFilePathFromAssets("es256_ee.vk")
-    val eeVkKeccakFile = getFilePathFromAssets("es256_ee.keccak.vk")
+    val subrootCircuitFile = getFilePathFromAssets("es256_subroot/0.1.1/circuit.json")
+    val subrootVkFile = getFilePathFromAssets("es256_subroot/0.1.1/vk")
+    val subrootVkKeccakFile = getFilePathFromAssets("es256_subroot/0.1.1/keccak.vk")
+    val eeCircuitFile = getFilePathFromAssets("es256_ee/0.1.1/circuit.json")
+    val eeVkFile = getFilePathFromAssets("es256_ee/0.1.1/vk")
+    val eeVkKeccakFile = getFilePathFromAssets("es256_ee/0.1.1/keccak.vk")
 
     val rootCertFile = getFilePathFromAssets("es256_ca_droidca3.der")
     val subrootCertFile = getFilePathFromAssets("es256_ca_strongbox.der")
@@ -102,13 +102,13 @@ fun NoirComponent() {
                                 statusMessage = "Generating proof..."
                                 val result = proveChainBase64(
                                     CircuitMeta(
-                                        "ES256-SUBROOT",
+                                        "es256_subroot/0.1.1",
                                         subrootCircuitFile,
                                         subrootVkFile,
                                         subrootVkKeccakFile,
                                         srsFile,
                                     ), listOf(), CircuitMeta(
-                                        "ES256-EE",
+                                        "es256_ee/0.1.1",
                                         eeCircuitFile,
                                         eeVkFile,
                                         eeVkKeccakFile,
