@@ -121,15 +121,15 @@ mod tests {
     #[test]
     fn test_circuit_meta_new() {
         let meta = CircuitMeta::new(
-            "es256_ca".to_string(),
-            "data/es256_ca.json".to_string(),
-            "data/es256_ca.vk".to_string(),
-            "data/es256_ca.keccak.vk".to_string(),
+            "es256_ca/0.1.1".to_string(),
+            "data/es256_ca/0.1.1/circuit.json".to_string(),
+            "data/es256_ca/0.1.1/vk".to_string(),
+            "data/es256_ca/0.1.1/keccak.vk".to_string(),
             "data/common.srs".to_string(),
         );
-        assert_eq!(meta.id, "es256_ca");
-        assert_eq!(meta.circuit_path, "data/es256_ca.json");
-        assert_eq!(meta.verification_key_path, "data/es256_ca.vk");
+        assert_eq!(meta.id, "es256_ca/0.1.1");
+        assert_eq!(meta.circuit_path, "data/es256_ca/0.1.1/circuit.json");
+        assert_eq!(meta.verification_key_path, "data/es256_ca/0.1.1/vk");
         assert_eq!(meta.srs_path, "data/common.srs");
     }
 
@@ -137,9 +137,9 @@ mod tests {
     fn test_circuit_new() {
         let meta = CircuitMeta::new(
             "es256_ca".to_string(),
-            "data/es256_ca.json".to_string(),
-            "data/es256_ca.vk".to_string(),
-            "data/es256_ca.keccak.vk".to_string(),
+            "data/es256_ca/0.1.1/circuit.json".to_string(),
+            "data/es256_ca/0.1.1/vk".to_string(),
+            "data/es256_ca/0.1.1/keccak.vk".to_string(),
             "data/common.srs".to_string(),
         );
         let circuit = Circuit::new(&meta).unwrap();

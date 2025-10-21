@@ -30,10 +30,11 @@ fun copyFile(inputStream: InputStream, outputStream: OutputStream) {
 @Composable
 fun getFilePathFromAssets(name: String): String {
     val context = LocalContext.current
-    return remember {
+    return remember(name) {
         val assetManager = context.assets
         val inputStream = assetManager.open(name)
         val file = File(context.filesDir, name)
+        file.parentFile?.mkdirs()
         copyFile(inputStream, file.outputStream())
         file.absolutePath
     }
