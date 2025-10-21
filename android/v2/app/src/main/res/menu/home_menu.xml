@@ -4,7 +4,7 @@
 
     <item
         android:id="@+id/action_proof_generation"
-        android:title="Proof Generation"
+        android:title="Key attestation JWT Generation"
         android:orderInCategory="100"
         app:showAsAction="never" />
 

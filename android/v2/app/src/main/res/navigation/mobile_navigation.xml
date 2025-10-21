@@ -67,7 +67,7 @@
     <fragment
         android:id="@+id/proofGenerationFragment"
         android:name="org.ethtokyo.hackathon.anastasia.ui.proofgeneration.ProofGenerationFragment"
-        android:label="Proof Generation"
+        android:label="Key attestation JWT Generation"
         tools:layout="@layout/fragment_proof_generation">
         <action
             android:id="@+id/action_proofGenerationFragment_to_proofCompletedFragment"
@@ -80,7 +80,7 @@
     <fragment
         android:id="@+id/proofCompletedFragment"
         android:name="org.ethtokyo.hackathon.anastasia.ui.proofcompleted.ProofCompletedFragment"
-        android:label="Proof generation completed"
+        android:label="Key attestation JWT generated"
         tools:layout="@layout/fragment_proof_completed">
         <argument
             android:name="proofsResult"
