@@ -16,7 +16,7 @@
             android:id="@+id/tv_url_input_label"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Enter the URL of the recipient of the generated proof"
+            android:text="Enter the issuer's URL to receive the key attestation JWT"
             android:textSize="14sp"
             android:textColor="@android:color/black"
             android:layout_marginTop="16dp"
@@ -59,7 +59,7 @@
             android:layout_gravity="center"
             android:layout_marginBottom="32dp"
             android:src="@drawable/proof_generation_image"
-            android:contentDescription="Proof Generation Illustration"
+            android:contentDescription="Key attestation JWT Illustration"
             android:scaleType="fitCenter"
             android:visibility="gone" />
 

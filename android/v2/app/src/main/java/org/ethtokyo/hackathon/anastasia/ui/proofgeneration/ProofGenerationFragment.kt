@@ -54,11 +54,11 @@ class ProofGenerationFragment : Fragment() {
                     // 画面遷移後にローディング状態を解除
                     viewModel.onNavigationCompleted()
                 } else if (!hasNavigated) {
-                    Toast.makeText(context, "Proof generation failed: No proofs generated", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "Key attestation JWT generation failed: No proofs generated", Toast.LENGTH_LONG).show()
                     findNavController().navigate(R.id.action_proofGenerationFragment_to_navigation_key_management)
                 }
             } else {
-                val error = result.exceptionOrNull()?.message ?: "Proof generation failed"
+                val error = result.exceptionOrNull()?.message ?: "Key attestation JWT generation failed"
                 Toast.makeText(context, error, Toast.LENGTH_LONG).show()
                 // Navigate back to home on error
                 findNavController().navigate(R.id.action_proofGenerationFragment_to_navigation_key_management)

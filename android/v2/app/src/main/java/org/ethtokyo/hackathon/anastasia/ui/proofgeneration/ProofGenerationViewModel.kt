@@ -36,18 +36,18 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
     fun generateProof(proofAudience: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            _progressMessage.value = "Proof generation started..."
+            _progressMessage.value = "Key attestation JWT generation started..."
 
             try {
                 delay(2000)
                 val result = generateProofCore(proofAudience)
 
-                _progressMessage.value = "Proof generation completed!"
+                _progressMessage.value = "Key attestation JWT has been generated!"
                 _proofGenerationResult.value = Result.success(result)
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                _progressMessage.value = "Proof generation failed: ${e.message}"
+                _progressMessage.value = "Key attestation JWT generation failed: ${e.message}"
                 _proofGenerationResult.value = Result.failure(e)
                 _isLoading.value = false
             }
