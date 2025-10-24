@@ -1,8 +1,4 @@
-use es256_common::{
-    models::prepare_std_ee_extensions,
-    utils::{check_commitments, check_nyms},
-    verify::verify_signature_es256,
-};
+use es256_common::{check_commitments, check_nyms, prepare_std_ee_extensions, verify_es256_256};
 
 global MAX_TBS_LEN: u32 = 700;
 global MAX_EXTRA_EXT_LEN: u32 = 500;
@@ -48,7 +44,7 @@ fn main(
     let (std_extensions, std_extensions_len) = prepare_std_ee_extensions();
 
     // Verify signature
-    verify_signature_es256::<MAX_TBS_LEN, _, _>(
+    verify_es256_256::<MAX_TBS_LEN, _, _>(
         issuer_pk_x,
         issuer_pk_y,
         sig,

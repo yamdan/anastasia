@@ -1,16 +1,20 @@
 use std::ecdsa_secp256r1::verify_signature;
 
-use sha256::sha256_var;
-
-use super::{
+use es_common::{
     models::{
         prepare_extensions_header, prepare_serial_number, prepare_subject_public_key_info_es256,
         prepare_tbs, prepare_validity,
     },
     utils::UtcTime,
 };
+use sha256::sha256_var;
 
-pub fn verify_signature_es256<let MAX_TBS_LEN: u32, let MAX_STD_EXT_LEN: u32, let MAX_EXTRA_EXT_LEN: u32>(
+fn prepare_algorithm() -> ([u8; 12], u32) {
+    let algorithm = [0x30, 0x0a, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x02];
+    (algorithm, algorithm.len() as u32)
+}
+
+pub fn verify_es256_256<let MAX_TBS_LEN: u32, let MAX_STD_EXT_LEN: u32, let MAX_EXTRA_EXT_LEN: u32>(
     issuer_pk_x: [u8; 32],
     issuer_pk_y: [u8; 32],
     sig: [u8; 64],
@@ -39,8 +43,7 @@ pub fn verify_signature_es256<let MAX_TBS_LEN: u32, let MAX_STD_EXT_LEN: u32, le
         prepare_serial_number(serial_number, serial_number_len);
 
     // signature
-    let signature = [0x30, 0x0a, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x02];
-    let signature_len = 12;
+    let (signature, signature_len) = prepare_algorithm();
 
     // validity
     let not_before = UtcTime::from_bytes(not_before);
