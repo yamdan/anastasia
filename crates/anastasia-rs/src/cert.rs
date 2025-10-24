@@ -227,24 +227,33 @@ impl ParsedCert {
         let s_uint = items[1]
             .as_biguint()
             .map_err(|e| format!("Failed to convert s to BigUint: {e}"))?;
-        let n = BigUint::parse_bytes(
-            b"FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551",
-            16,
-        )
-        .ok_or("Failed to parse secp256r1 order")?; // TODO: optimize $n$ for secp256r1
-        let n_half = &n >> 1;
-        let s_norm = if s_uint > n_half {
-            &n - &s_uint
-        } else {
-            s_uint
-        };
-        let s = s_norm.to_bytes_be();
+        let s = normalize_s_p256(s_uint).to_bytes_be();
 
         let mut res = Vec::with_capacity(64);
         res.extend_from_slice(&r);
         res.extend_from_slice(&s);
         Ok(res)
     }
+}
+
+pub fn normalize_s_p256(s: BigUint) -> BigUint {
+    let n = BigUint::parse_bytes(
+        b"ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551",
+        16,
+    )
+    .expect("Failed to parse secp256r1 order"); // TODO: optimize $n$ for secp256r1
+    let n_half = &n >> 1;
+    if s > n_half { &n - &s } else { s }
+}
+
+pub fn normalize_s_p384(s: BigUint) -> BigUint {
+    let n = BigUint::parse_bytes(
+        b"ffffffffffffffffffffffffffffffffffffffffffffffffc7634d81f4372ddf581a0db248b0a77aecec196accc52973",
+        16,
+    )
+    .expect("Failed to parse secp384r1 order"); // TODO: optimize $n$ for secp384r1
+    let n_half = &n >> 1;
+    if s > n_half { &n - &s } else { s }
 }
 
 pub fn serialize_length(len: usize) -> Result<Vec<u8>, String> {
@@ -280,6 +289,26 @@ fn parse_asn1time(dt: &ASN1Time) -> [u8; 7] {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_normalize_s_p256() {
+        let s_hex = "f4d6445f925c8040fec5632db1fa35f2f28289bfa79c2025b611f112e20bceed";
+        let s = BigUint::parse_bytes(s_hex.as_bytes(), 16).unwrap();
+        let normalized_s = normalize_s_p256(s);
+        let expected_s_hex = "b29bb9f6da37fc0013a9cd24e05ca0cca6470edff7b7e5f3da7d9b01a575664";
+        let expected_s = BigUint::parse_bytes(expected_s_hex.as_bytes(), 16).unwrap();
+        assert_eq!(normalized_s, expected_s);
+    }
+
+    #[test]
+    fn test_normalize_s_p384() {
+        let s_hex = "f4d6445f925c8040fec5632db1fa35f2f28289bfa79c2025b611f112e20bceed8e23018211922df44699ab75f97b42a1";
+        let s = BigUint::parse_bytes(s_hex.as_bytes(), 16).unwrap();
+        let normalized_s = normalize_s_p384(s);
+        let expected_s_hex = "b29bba06da37fbf013a9cd24e05ca0d0d7d76405863dfda11515c6f122b5ef1c9f70c30371e7986a6526df4d349e6d2";
+        let expected_s = BigUint::parse_bytes(expected_s_hex.as_bytes(), 16).unwrap();
+        assert_eq!(normalized_s, expected_s);
+    }
 
     #[test]
     fn test_parse_es256_ca_cert() {
