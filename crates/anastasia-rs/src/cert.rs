@@ -312,7 +312,7 @@ mod tests {
 
     #[test]
     fn test_parse_es256_ca_cert() {
-        let cert = include_bytes!("../test_data/es256_ca_strongbox.der");
+        let cert = include_bytes!("../test_data/strongbox.der");
         let parsed_cert = ParsedCert::from_der(cert).unwrap();
 
         assert_eq!(
@@ -403,7 +403,7 @@ mod tests {
 
     #[test]
     fn test_parse_es256_ee_cert() {
-        let cert = include_bytes!("../test_data/es256_ee.der");
+        let cert = include_bytes!("../test_data/keystore.der");
         let parsed_cert = ParsedCert::from_der(cert).unwrap();
 
         assert_eq!(
