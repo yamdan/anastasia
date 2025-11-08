@@ -28,11 +28,19 @@ fn main(
     nym: pub Field,
 ) {
     // Verify previous chain commitment
+    let mut issuer_pk_x_padded = [0; 48];
+    for i in 0..32 {
+        issuer_pk_x_padded[i] = issuer_pk_x[i];
+    }
+    let mut issuer_pk_y_padded = [0; 48];
+    for i in 0..32 {
+        issuer_pk_y_padded[i] = issuer_pk_y[i];
+    }
     check_commitments(
         issuer,
         given_authority_key_identifier,
-        issuer_pk_x,
-        issuer_pk_y,
+        issuer_pk_x_padded,
+        issuer_pk_y_padded,
         prev_cmt,
         prev_cmt_r,
     );

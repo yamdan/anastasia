@@ -237,8 +237,8 @@ impl<let MAX_OID_LEN: u32, let MAX_EXT_VALUE_LEN: u32> Extension<MAX_OID_LEN, MA
 pub fn check_commitments(
     dn: [u8; 124],
     key_identifier: [u8; 20],
-    pk_x: [u8; 32],
-    pk_y: [u8; 32],
+    pk_x: [u8; 48],
+    pk_y: [u8; 48],
     cmt: (Field, Field),
     cmt_r: Field,
 ) {

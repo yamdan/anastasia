@@ -28,11 +28,19 @@ fn main(
     key_usage_key_cert_sign_index: u32,
 ) {
     // Verify next chain commitment
+    let mut subject_pk_x_padded = [0; 48];
+    for i in 0..32 {
+        subject_pk_x_padded[i] = subject_pk_x[i];
+    }
+    let mut subject_pk_y_padded = [0; 48];
+    for i in 0..32 {
+        subject_pk_y_padded[i] = subject_pk_y[i];
+    }
     check_commitments(
         subject,
         subject_key_identifier,
-        subject_pk_x,
-        subject_pk_y,
+        subject_pk_x_padded,
+        subject_pk_y_padded,
         next_cmt,
         next_cmt_r,
     );
