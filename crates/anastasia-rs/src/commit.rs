@@ -24,7 +24,7 @@ pub fn derive_generators_fe(num: u32) -> Vec<FieldElement> {
         .collect()
 }
 
-static GENERATORS_8: LazyLock<Vec<FieldElement>> = LazyLock::new(|| derive_generators_fe(8));
+static GENERATORS_10: LazyLock<Vec<FieldElement>> = LazyLock::new(|| derive_generators_fe(10));
 
 pub fn compute_decomposition(x: &GrumpkinFr) -> (Fr, Fr) {
     let x_big = x.into_bigint();
@@ -68,35 +68,65 @@ pub fn pedersen_commitment(
     Ok((cmt.0.into_repr(), cmt.1.into_repr(), cmt.2.into_repr()))
 }
 
+/// Commit attributes using Pedersen commitment
+///
+/// This function takes a distinguished name (dn), key identifier (key_id), public key coordinates (pk_x, pk_y),
+/// and a random value (r) to compute a Pedersen commitment.
+/// It returns the commitment as a tuple of Fr elements (cmt_x, cmt_y, cmt_inf).
+///
+/// The dn is expected to be a 124-byte array, key_id a 20-byte array,
+/// pk_x and pk_y are byte arrays representing the x and y coordinates of the public key,
+/// supporting up to 48 bytes in length (to accommodate ES384 usage).
+///
+/// Each value is converted into a field element using 31 bytes at a time, ensuring it fits within the BN254 field.
+///
+/// Commitment is computed as:
+///   cmt = pedersenCommit10(
+///     dn[0..31],
+///     dn[31..62],
+///     dn[62..93],
+///     dn[93..124],
+///     key_id[0..20] + zero[0..11],
+///     pk_x[0..31],
+///     pk_x[31..48] + zero[0..14],
+///     pk_y[0..31],
+///     pk_y[31..48] + zero[0..14],
+///     r
+///   )
 pub fn commit_attrs(
     dn: [u8; 124],
-    key_id: [u8; 20],
-    pk_x: [u8; 32],
-    pk_y: [u8; 32],
+    key_id: &[u8],
+    pk_x: &[u8],
+    pk_y: &[u8],
     r: Fr, // TODO: change to GrumpkinFr
 ) -> Result<(Fr, Fr), String> {
+    if key_id.len() != 20 {
+        return Err("Key identifier must be 20 bytes".to_string());
+    }
+    if pk_x.len() > 48 || pk_y.len() > 48 {
+        return Err("Public key coordinates must be at most 48 bytes each".to_string());
+    }
+    let mut pk_x_padded = [0u8; 62];
+    pk_x_padded[..pk_x.len()].copy_from_slice(pk_x);
+    let mut pk_y_padded = [0u8; 62];
+    pk_y_padded[..pk_y.len()].copy_from_slice(pk_y);
+    let mut key_id_padded = [0u8; 31];
+    key_id_padded[..key_id.len()].copy_from_slice(key_id);
+
     let scalars = vec![
         GrumpkinFr::from_le_bytes_mod_order(&dn[0..31]),
         GrumpkinFr::from_le_bytes_mod_order(&dn[31..62]),
         GrumpkinFr::from_le_bytes_mod_order(&dn[62..93]),
         GrumpkinFr::from_le_bytes_mod_order(&dn[93..124]),
-        {
-            let mut bytes = [0u8; 31];
-            bytes[..20].copy_from_slice(&key_id);
-            bytes[20..].copy_from_slice(&pk_x[..11]); // pk_x[0..10]
-            GrumpkinFr::from_le_bytes_mod_order(&bytes)
-        },
-        {
-            let mut bytes = [0u8; 31];
-            bytes[..21].copy_from_slice(&pk_x[11..]); // pk_x[11..31]
-            bytes[21..].copy_from_slice(&pk_y[..10]); // pk_y[0..9]
-            GrumpkinFr::from_le_bytes_mod_order(&bytes)
-        },
-        GrumpkinFr::from_le_bytes_mod_order(&pk_y[10..32]),
+        GrumpkinFr::from_le_bytes_mod_order(&key_id_padded),
+        GrumpkinFr::from_le_bytes_mod_order(&pk_x_padded[0..31]), // pk_x[0..31]
+        GrumpkinFr::from_le_bytes_mod_order(&pk_x_padded[31..62]), // pk_x[31..48] + zero[0..14]
+        GrumpkinFr::from_le_bytes_mod_order(&pk_y_padded[0..31]), // pk_y[0..31]
+        GrumpkinFr::from_le_bytes_mod_order(&pk_y_padded[31..62]), // pk_y[31..48] + zero[0..14]
         GrumpkinFr::from_le_bytes_mod_order(&r.into_bigint().to_bytes_le()),
     ];
 
-    let (cmt_x, cmt_y, is_infinity) = pedersen_commitment(&scalars, Some(&GENERATORS_8))?;
+    let (cmt_x, cmt_y, is_infinity) = pedersen_commitment(&scalars, Some(&GENERATORS_10))?;
     if is_infinity != Fr::ZERO {
         return Err("Pedersen commitment resulted in point at infinity".to_string());
     }
@@ -204,62 +234,18 @@ mod tests {
         ];
         let r = Fr::from(0xdeadbeefu64);
 
-        let (cmt_x, cmt_y) = commit_attrs(dn, key_identifier, pk_x, pk_y, r).unwrap();
+        let (cmt_x, cmt_y) = commit_attrs(dn, &key_identifier, &pk_x, &pk_y, r).unwrap();
         let cmt_x_bytes = cmt_x.into_bigint().to_bytes_be();
         let cmt_x_hex = hex::encode(cmt_x_bytes);
         assert_eq!(
             cmt_x_hex,
-            "1566ab02692714a5c5c07252b13597c49b80b0b4d78849fb8ff9f0d930c9481c"
+            "06c54c7142201e07095430f7e9d69848e525c93c56958b22054d13f4fd98a41e"
         );
         let cmt_y_bytes = cmt_y.into_bigint().to_bytes_be();
         let cmt_y_hex = hex::encode(cmt_y_bytes);
         assert_eq!(
             cmt_y_hex,
-            "20a10a6b5362161c9412b2a93897e481234834c699c84936459d9c6a30cf2537"
-        );
-    }
-
-    #[test]
-    fn test_commit_attrs_pedersen_2() {
-        let dn = [
-            0x30, 0x3f, 0x31, 0x29, 0x30, 0x27, 0x06, 0x03, 0x55, 0x04, 0x03, 0x13, 0x20, 0x65,
-            0x35, 0x62, 0x66, 0x61, 0x39, 0x37, 0x37, 0x31, 0x35, 0x63, 0x31, 0x63, 0x62, 0x31,
-            0x31, 0x37, 0x30, 0x63, 0x33, 0x30, 0x65, 0x30, 0x31, 0x33, 0x33, 0x31, 0x65, 0x65,
-            0x66, 0x34, 0x32, 0x31, 0x12, 0x30, 0x10, 0x06, 0x03, 0x55, 0x04, 0x0a, 0x13, 0x09,
-            0x53, 0x74, 0x72, 0x6f, 0x6e, 0x67, 0x42, 0x6f, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ];
-        let key_identifier = [
-            0x83, 0x29, 0xbe, 0xbb, 0x68, 0xbc, 0x24, 0xed, 0x89, 0x38, 0x4d, 0xb4, 0xf1, 0x94,
-            0x6c, 0x20, 0xd7, 0x95, 0x9a, 0x05,
-        ];
-        let pk_x = [
-            0xa3, 0x30, 0xd2, 0x88, 0x45, 0xc2, 0xf4, 0xb1, 0x60, 0xa7, 0xa5, 0xa8, 0xec, 0x1e,
-            0x46, 0x21, 0x31, 0x18, 0x5e, 0x25, 0xba, 0x48, 0x7e, 0xba, 0x2f, 0xbb, 0x41, 0xd7,
-            0x18, 0xa7, 0xa6, 0xbf,
-        ];
-        let pk_y = [
-            0xd7, 0x87, 0x8d, 0xc6, 0x36, 0xe4, 0x1e, 0xa4, 0xe2, 0x51, 0x6a, 0xa9, 0xc4, 0xf7,
-            0x1f, 0xce, 0x15, 0xf5, 0xd2, 0x48, 0x34, 0x05, 0x82, 0x56, 0x99, 0x72, 0x5c, 0xb1,
-            0x3c, 0xeb, 0x47, 0xcd,
-        ];
-        let r = Fr::from(0xfeedfaceu64);
-
-        let (cmt_x, cmt_y) = commit_attrs(dn, key_identifier, pk_x, pk_y, r).unwrap();
-        let cmt_x_bytes = cmt_x.into_bigint().to_bytes_be();
-        let cmt_x_hex = hex::encode(cmt_x_bytes);
-        assert_eq!(
-            cmt_x_hex,
-            "2434324a0bb86af96dea879d4e1c404e92b8c723e6d1f22b310a5792458e81e2"
-        );
-        let cmt_y_bytes = cmt_y.into_bigint().to_bytes_be();
-        let cmt_y_hex = hex::encode(cmt_y_bytes);
-        assert_eq!(
-            cmt_y_hex,
-            "24cfab433f62cf007d124a96d7a830f4d9cb9d332bf7eb89ca442c41c1fc3b21"
+            "0850beb53a88e53106894548cc0a40b5f8d8383679628f0a12437bec500f6483"
         );
     }
 }

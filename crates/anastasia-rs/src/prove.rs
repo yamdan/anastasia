@@ -24,7 +24,7 @@ use crate::{
 pub const MAX_EXTRA_EXTENSION_LEN_CA: usize = 30;
 pub const MAX_EXTRA_EXTENSION_LEN_EE: usize = 500;
 
-pub fn prove_subroot_ca(
+pub fn prove_subroot(
     circuit: &Circuit,
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
@@ -36,26 +36,40 @@ pub fn prove_subroot_ca(
     let next_cmt_r = Fr::rand(&mut rng);
     let (next_cmt_x, next_cmt_y) = commit_attrs(
         parsed_cert.subject,
-        parsed_cert.subject_key_identifier,
-        parsed_cert.subject_pk_x,
-        parsed_cert.subject_pk_y,
+        &parsed_cert.subject_key_identifier,
+        &parsed_cert.subject_pk_x,
+        &parsed_cert.subject_pk_y,
         next_cmt_r,
     )?;
 
-    let initial_witness = generate_witness_subroot_ca(
-        parsed_cert,
-        now,
-        issuer_pk_x
-            .try_into()
-            .map_err(|_| "issuer_pk_x must be 32 bytes")?,
-        issuer_pk_y
-            .try_into()
-            .map_err(|_| "issuer_pk_y must be 32 bytes")?,
-        &next_cmt_x,
-        &next_cmt_y,
-        &next_cmt_r,
-        MAX_EXTRA_EXTENSION_LEN_CA,
-    )?;
+    let initial_witness = match &circuit.id {
+        id if id.starts_with("es256_subroot/") => generate_witness_es256_subroot(
+            parsed_cert,
+            now,
+            issuer_pk_x,
+            issuer_pk_y,
+            &next_cmt_x,
+            &next_cmt_y,
+            &next_cmt_r,
+            MAX_EXTRA_EXTENSION_LEN_CA,
+        )?,
+        id if id.starts_with("es384_subroot/") => generate_witness_es384_subroot(
+            parsed_cert,
+            now,
+            issuer_pk_x,
+            issuer_pk_y,
+            &next_cmt_x,
+            &next_cmt_y,
+            &next_cmt_r,
+            MAX_EXTRA_EXTENSION_LEN_CA,
+        )?,
+        _ => {
+            return Err(format!(
+                "Unsupported circuit ID for subroot proof: {}",
+                circuit.id
+            ));
+        }
+    };
 
     let proof = if is_keccak_mode {
         prove_ultra_honk_keccak(
@@ -102,13 +116,13 @@ pub fn prove_ca(
     let next_cmt_r = Fr::rand(&mut rng);
     let (next_cmt_x, next_cmt_y) = commit_attrs(
         parsed_cert.subject,
-        parsed_cert.subject_key_identifier,
-        parsed_cert.subject_pk_x,
-        parsed_cert.subject_pk_y,
+        &parsed_cert.subject_key_identifier,
+        &parsed_cert.subject_pk_x,
+        &parsed_cert.subject_pk_y,
         next_cmt_r,
     )?;
 
-    let initial_witness = generate_witness_ca(
+    let initial_witness = generate_witness_es256_ca(
         parsed_cert,
         now,
         issuer_pk_x
@@ -176,13 +190,23 @@ pub fn prove_ee(
     let context_bytes = context.as_bytes();
     let context_field: Fr = HASH_TO_SCALAR.hash_to_scalar(context_bytes);
 
-    let nym = generate_nym(
-        user_sk,
-        &(parsed_cert.subject_pk_x, parsed_cert.subject_pk_y),
-        &context_field,
-    )?;
+    if parsed_cert.subject_pk_x.len() != 32 || parsed_cert.subject_pk_y.len() != 32 {
+        return Err("End entity subject public key coordinates must be 32 bytes each".to_string());
+    }
+    let subject_pk_x = parsed_cert
+        .subject_pk_x
+        .clone()
+        .try_into()
+        .map_err(|_| "subject_pk_x must be 32 bytes")?;
+    let subject_pk_y = parsed_cert
+        .subject_pk_y
+        .clone()
+        .try_into()
+        .map_err(|_| "subject_pk_y must be 32 bytes")?;
 
-    let initial_witness = generate_witness_ee(
+    let nym = generate_nym(user_sk, &(subject_pk_x, subject_pk_y), &context_field)?;
+
+    let initial_witness = generate_witness_es256_ee(
         parsed_cert,
         now,
         issuer_pk_x
@@ -233,11 +257,11 @@ pub fn prove_ee(
     Ok((proof_with_public_inputs, nym))
 }
 
-fn generate_witness_subroot_ca(
+fn generate_witness_es256_subroot(
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
-    issuer_pk_x: &[u8; 32],
-    issuer_pk_y: &[u8; 32],
+    issuer_pk_x: &[u8],
+    issuer_pk_y: &[u8],
     next_cmt_x: &Fr,
     next_cmt_y: &Fr,
     next_cmt_r: &Fr, // TODO: change to lo and hi parts as GrumpkinFr
@@ -272,11 +296,50 @@ fn generate_witness_subroot_ca(
     Ok(witness_map)
 }
 
-fn generate_witness_ca(
+fn generate_witness_es384_subroot(
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
-    issuer_pk_x: &[u8; 32],
-    issuer_pk_y: &[u8; 32],
+    issuer_pk_x: &[u8],
+    issuer_pk_y: &[u8],
+    next_cmt_x: &Fr,
+    next_cmt_y: &Fr,
+    next_cmt_r: &Fr, // TODO: change to lo and hi parts as GrumpkinFr
+    max_extra_extension_len: usize,
+) -> Result<WitnessMap<GenericFieldElement<Fr>>, String> {
+    let mut witness = generate_witness_common(
+        parsed_cert,
+        now,
+        issuer_pk_x,
+        issuer_pk_y,
+        max_extra_extension_len,
+    )?;
+
+    witness.push(*next_cmt_x);
+    witness.push(*next_cmt_y);
+    witness.push(*next_cmt_r);
+
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.subject_key_identifier));
+    witness.extend(from_u8_array_to_fr_vec(
+        &parsed_cert.authority_key_identifier,
+    ));
+    witness.push(parsed_cert.subject_key_identifier_index.into());
+    witness.push(parsed_cert.authority_key_identifier_index.into());
+    witness.push(parsed_cert.basic_constraints_ca_index.into());
+    witness.push(parsed_cert.key_usage_key_cert_sign_index.into());
+
+    let mut witness_map = WitnessMap::new();
+    for (i, witness) in witness.iter().enumerate() {
+        witness_map.insert(Witness(i as u32), FieldElement::from_repr(*witness));
+    }
+
+    Ok(witness_map)
+}
+
+fn generate_witness_es256_ca(
+    parsed_cert: &ParsedCert,
+    now: &DateTime<Utc>,
+    issuer_pk_x: &[u8],
+    issuer_pk_y: &[u8],
     prev_cmt_x: &Fr,
     prev_cmt_y: &Fr,
     prev_cmt_r: &Fr, // TODO: change to lo and hi parts as GrumpkinFr
@@ -317,11 +380,11 @@ fn generate_witness_ca(
     Ok(witness_map)
 }
 
-fn generate_witness_ee(
+fn generate_witness_es256_ee(
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
-    issuer_pk_x: &[u8; 32],
-    issuer_pk_y: &[u8; 32],
+    issuer_pk_x: &[u8],
+    issuer_pk_y: &[u8],
     prev_cmt_x: &Fr,
     prev_cmt_y: &Fr,
     prev_cmt_r: &Fr, // TODO: change to lo and hi parts as GrumpkinFr
@@ -358,8 +421,8 @@ fn generate_witness_ee(
 fn generate_witness_common(
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
-    issuer_pk_x: &[u8; 32],
-    issuer_pk_y: &[u8; 32],
+    issuer_pk_x: &[u8],
+    issuer_pk_y: &[u8],
     max_extra_extension_len: usize,
 ) -> Result<Vec<Fr>, String> {
     let mut witness: Vec<Fr> = Vec::new();
@@ -372,6 +435,13 @@ fn generate_witness_common(
         minute: now.minute() as u8,
         second: now.second() as u8,
     };
+
+    let issuer_pk_x = issuer_pk_x
+        .try_into()
+        .map_err(|e| format!("issuer_pk_x must be 32 bytes: failed to convert: {}", e))?;
+    let issuer_pk_y = issuer_pk_y
+        .try_into()
+        .map_err(|e| format!("issuer_pk_y must be 32 bytes: failed to convert: {}", e))?;
 
     witness.extend(from_u8_array_to_fr_vec(issuer_pk_x));
     witness.extend(from_u8_array_to_fr_vec(issuer_pk_y));

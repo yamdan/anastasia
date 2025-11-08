@@ -15,8 +15,8 @@ pub struct ParsedCert {
     pub not_after: [u8; 7],
     pub subject: [u8; 124],
     pub subject_len: u32,
-    pub subject_pk_x: [u8; 32],
-    pub subject_pk_y: [u8; 32],
+    pub subject_pk_x: Vec<u8>,
+    pub subject_pk_y: Vec<u8>,
     pub subject_key_identifier: [u8; 20],
     pub authority_key_identifier: [u8; 20],
     pub subject_key_identifier_index: u32,
@@ -156,22 +156,8 @@ impl ParsedCert {
             not_after,
             subject: { to_fixed_array::<124>(subject)? },
             subject_len: subject_len as u32,
-            subject_pk_x: {
-                let mut buf = [0u8; 32];
-                if spk_x.len() != 32 {
-                    return Err("Public key X length is not 32 bytes".to_string());
-                }
-                buf.copy_from_slice(spk_x);
-                buf
-            },
-            subject_pk_y: {
-                let mut buf = [0u8; 32];
-                if spk_y.len() != 32 {
-                    return Err("Public key Y length is not 32 bytes".to_string());
-                }
-                buf.copy_from_slice(spk_y);
-                buf
-            },
+            subject_pk_x: spk_x.to_vec(),
+            subject_pk_y: spk_y.to_vec(),
             subject_key_identifier: {
                 let mut buf = [0u8; 20];
                 if subject_key_identifier.len() != 0 && subject_key_identifier.len() != 20 {
