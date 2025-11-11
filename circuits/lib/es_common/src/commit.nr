@@ -67,3 +67,15 @@ pub fn commit_attrs(
 
     (cmt.x, cmt.y)
 }
+
+pub fn check_commitments(
+    dn: [u8; 124],
+    key_identifier: [u8; 20],
+    pk_x: [u8; 48],
+    pk_y: [u8; 48],
+    cmt: (Field, Field),
+    cmt_r: Field,
+) {
+    let cmt_generated = commit_attrs(dn, key_identifier, pk_x, pk_y, cmt_r);
+    assert(cmt_generated == cmt, "Commitment does not match");
+}

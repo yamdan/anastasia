@@ -41,3 +41,8 @@ pub fn generate_nym(
     let nym = hash_2([user_device_private_key, context]);
     nym
 }
+
+pub fn check_nyms(pk_x: [u8; 32], pk_y: [u8; 32], user_sk: Field, context: Field, nym: Field) {
+    let nym_generated = generate_nym(pk_x, pk_y, user_sk, context);
+    assert(nym_generated == nym, "Pseudonym does not match");
+}
