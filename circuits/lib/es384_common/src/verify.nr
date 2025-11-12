@@ -8,7 +8,7 @@ use es_common::{
         prepare_extensions_header, prepare_serial_number, prepare_subject_public_key_info_es256,
         prepare_tbs, prepare_validity,
     },
-    utils::UtcTime,
+    utils::{to_bignum_limbs, UtcTime},
 };
 
 fn prepare_algorithm() -> ([u8; 12], u32) {
@@ -17,10 +17,10 @@ fn prepare_algorithm() -> ([u8; 12], u32) {
 }
 
 pub fn verify_es384_256<let MAX_TBS_LEN: u32, let MAX_STD_EXT_LEN: u32, let MAX_EXTRA_EXT_LEN: u32>(
-    issuer_pk_x: [u128; 4],
-    issuer_pk_y: [u128; 4],
-    sig_r: [u128; 4],
-    sig_s: [u128; 4],
+    issuer_pk_x: [u8; 48],
+    issuer_pk_y: [u8; 48],
+    sig_r: [u8; 48],
+    sig_s: [u8; 48],
     serial_number: [u8; 20],
     serial_number_len: u32,
     issuer: [u8; 124],
@@ -90,9 +90,12 @@ pub fn verify_es384_256<let MAX_TBS_LEN: u32, let MAX_STD_EXT_LEN: u32, let MAX_
     let tbs_bounded_vec = BoundedVec::<u8, MAX_TBS_LEN>::from_parts_unchecked(tbs, tbs_len);
     let hash = sha384_var(tbs_bounded_vec);
 
-    let ipkx: Secp384r1_Fq = Secp384r1_Fq::from_limbs(issuer_pk_x);
-    let ipky: Secp384r1_Fq = Secp384r1_Fq::from_limbs(issuer_pk_y);
-    let sig = (Secp384r1_Fr::from_limbs(sig_r), Secp384r1_Fr::from_limbs(sig_s));
+    let ipkx: Secp384r1_Fq = Secp384r1_Fq::from_limbs(to_bignum_limbs(issuer_pk_x));
+    let ipky: Secp384r1_Fq = Secp384r1_Fq::from_limbs(to_bignum_limbs(issuer_pk_y));
+    let sig = (
+        Secp384r1_Fr::from_limbs(to_bignum_limbs(sig_r)),
+        Secp384r1_Fr::from_limbs(to_bignum_limbs(sig_s)),
+    );
 
     let result = verify_secp384r1_ecdsa(ipkx, ipky, hash, sig);
     assert(result, "Signature verification failed");

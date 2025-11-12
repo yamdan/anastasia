@@ -1,12 +1,13 @@
 use es384_common::{check_commitments, prepare_std_ca_extensions, verify_es384_256};
 
 global MAX_TBS_LEN: u32 = 500;
+global MAX_EXTRA_EXT_LEN: u32 = 30;
 
 fn main(
-    issuer_pk_x: pub [u128; 4],
-    issuer_pk_y: pub [u128; 4],
-    sig_r: [u128; 4],
-    sig_s: [u128; 4],
+    issuer_pk_x: pub [u8; 48],
+    issuer_pk_y: pub [u8; 48],
+    sig_r: [u8; 48],
+    sig_s: [u8; 48],
     serial_number: [u8; 20],
     serial_number_len: u32,
     issuer: pub [u8; 124],
@@ -15,6 +16,8 @@ fn main(
     subject_len: u32,
     subject_pk_x: [u8; 32],
     subject_pk_y: [u8; 32],
+    extra_extension: [u8; MAX_EXTRA_EXT_LEN],
+    extra_extension_len: u32,
     not_before: [u8; 7],
     not_after: [u8; 7],
     now: pub [u8; 7],
@@ -71,8 +74,8 @@ fn main(
         subject_pk_y,
         std_extensions,
         std_extensions_len,
-        [0u8; 0], // extra_extension, not used in this context
-        0, // extra_extension_len, not used in this context
+        extra_extension,
+        extra_extension_len,
         not_before,
         not_after,
         now,
