@@ -1,11 +1,17 @@
 use num_bigint::BigUint;
+use oid_registry::{
+    OID_EC_P256, OID_KEY_TYPE_EC_PUBLIC_KEY, OID_NIST_EC_P384, OID_SIG_ECDSA_WITH_SHA256,
+    OID_SIG_ECDSA_WITH_SHA384,
+};
+use x509_parser::asn1_rs::Oid;
 use x509_parser::der_parser::der::{DerObjectContent, parse_der_sequence};
 use x509_parser::prelude::*;
 
 use crate::utils::to_fixed_array;
 
 #[derive(Debug)]
-pub struct ParsedCert {
+pub struct ParsedCert<'a> {
+    pub algorithm_oid: Oid<'a>,
     pub signature: Vec<u8>,
     pub serial_number: [u8; 20],
     pub serial_number_len: u32,
@@ -27,10 +33,13 @@ pub struct ParsedCert {
     pub extra_extension_len: u32,
 }
 
-impl ParsedCert {
-    pub fn from_der(cert: &[u8]) -> Result<Self, String> {
+impl<'a> ParsedCert<'a> {
+    pub fn from_der(cert: &'a [u8]) -> Result<Self, String> {
         let (_, parsed_cert) = X509Certificate::from_der(cert)
             .map_err(|e| format!("Failed to parse certificate: {}", e))?;
+
+        // parse algorithm
+        let algorithm_oid = parsed_cert.signature_algorithm.oid().to_owned();
 
         // parse signature value
         let signature_value = parsed_cert.signature_value.as_ref();
@@ -53,16 +62,42 @@ impl ParsedCert {
         let not_after = parse_asn1time(&validity.not_after);
 
         // parse subject public key info
-        let spki = &parsed_cert
-            .tbs_certificate
-            .subject_pki
-            .subject_public_key
-            .data;
-        if spki[0] != 0x04 {
+        // TODO: take into account other subject public key types (e.g. RSA)
+        let spki = &parsed_cert.tbs_certificate.subject_pki;
+        let spk_alg = &spki.algorithm.algorithm;
+        if *spk_alg != OID_KEY_TYPE_EC_PUBLIC_KEY {
+            return Err(format!(
+                "Unsupported subject public key algorithm: {}",
+                spk_alg
+            ));
+        }
+        let spk_param = match &spki.algorithm.parameters {
+            Some(param) => param,
+            None => return Err("Subject public key algorithm parameters are missing".to_string()),
+        };
+        let spk_param_oid = Oid::try_from(spk_param).map_err(|e| {
+            format!(
+                "Failed to convert subject public key algorithm parameters to OID: {}",
+                e
+            )
+        })?;
+        let spk_len = if spk_param_oid == OID_EC_P256 {
+            32
+        } else if spk_param_oid == OID_NIST_EC_P384 {
+            48
+        } else {
+            return Err(format!(
+                "Unsupported subject public key algorithm: {}",
+                spk_alg
+            ));
+        };
+
+        let spk = &spki.subject_public_key.data;
+        if spk[0] != 0x04 {
             return Err("Only uncompressed EC public key is supported".to_string());
         }
-        let spk_x = &spki[1..33];
-        let spk_y = &spki[33..65];
+        let spk_x = &spk[1..(spk_len + 1)];
+        let spk_y = &spk[(spk_len + 1)..(2 * spk_len + 1)];
 
         // parse extensions
         let mut subject_key_identifier: Vec<u8> = Vec::with_capacity(20);
@@ -140,6 +175,7 @@ impl ParsedCert {
         }
 
         Ok(ParsedCert {
+            algorithm_oid,
             signature: signature_value.to_vec(),
             serial_number: {
                 let mut buf = [0u8; 20];
@@ -187,7 +223,7 @@ impl ParsedCert {
         })
     }
 
-    pub fn extract_normalized_es256_sig(&self) -> Result<Vec<u8>, String> {
+    pub fn extract_normalized_ecdsa_sig(&self) -> Result<Vec<u8>, String> {
         let (_, seq) =
             parse_der_sequence(&self.signature).map_err(|e| format!("parse error: {e:?}"))?;
         let items = match seq.content {
@@ -213,7 +249,7 @@ impl ParsedCert {
         let s_uint = items[1]
             .as_biguint()
             .map_err(|e| format!("Failed to convert s to BigUint: {e}"))?;
-        let s = normalize_s_p256(s_uint).to_bytes_be();
+        let s = normalize_s(s_uint, &self.algorithm_oid)?.to_bytes_be();
 
         let mut res = Vec::with_capacity(64);
         res.extend_from_slice(&r);
@@ -222,24 +258,24 @@ impl ParsedCert {
     }
 }
 
-pub fn normalize_s_p256(s: BigUint) -> BigUint {
-    let n = BigUint::parse_bytes(
-        b"ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551",
-        16,
-    )
-    .expect("Failed to parse secp256r1 order"); // TODO: optimize $n$ for secp256r1
+pub fn normalize_s(s: BigUint, alg: &Oid) -> Result<BigUint, String> {
+    let n = if *alg == OID_SIG_ECDSA_WITH_SHA256 {
+        BigUint::parse_bytes(
+            b"ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551",
+            16,
+        )
+        .ok_or_else(|| "Failed to parse secp256r1 order".to_string())?
+    } else if *alg == OID_SIG_ECDSA_WITH_SHA384 {
+        BigUint::parse_bytes(
+            b"ffffffffffffffffffffffffffffffffffffffffffffffffc7634d81f4372ddf581a0db248b0a77aecec196accc52973",
+            16,
+        )
+        .ok_or_else(|| "Failed to parse secp384r1 order".to_string())? // TODO: optimize $n$ for secp384r1
+    } else {
+        return Err("Unsupported algorithm".to_string());
+    };
     let n_half = &n >> 1;
-    if s > n_half { &n - &s } else { s }
-}
-
-pub fn normalize_s_p384(s: BigUint) -> BigUint {
-    let n = BigUint::parse_bytes(
-        b"ffffffffffffffffffffffffffffffffffffffffffffffffc7634d81f4372ddf581a0db248b0a77aecec196accc52973",
-        16,
-    )
-    .expect("Failed to parse secp384r1 order"); // TODO: optimize $n$ for secp384r1
-    let n_half = &n >> 1;
-    if s > n_half { &n - &s } else { s }
+    if s > n_half { Ok(&n - &s) } else { Ok(s) }
 }
 
 pub fn serialize_length(len: usize) -> Result<Vec<u8>, String> {
@@ -280,7 +316,7 @@ mod tests {
     fn test_normalize_s_p256() {
         let s_hex = "f4d6445f925c8040fec5632db1fa35f2f28289bfa79c2025b611f112e20bceed";
         let s = BigUint::parse_bytes(s_hex.as_bytes(), 16).unwrap();
-        let normalized_s = normalize_s_p256(s);
+        let normalized_s = normalize_s(s, &OID_SIG_ECDSA_WITH_SHA256).unwrap();
         let expected_s_hex = "b29bb9f6da37fc0013a9cd24e05ca0cca6470edff7b7e5f3da7d9b01a575664";
         let expected_s = BigUint::parse_bytes(expected_s_hex.as_bytes(), 16).unwrap();
         assert_eq!(normalized_s, expected_s);
@@ -290,7 +326,7 @@ mod tests {
     fn test_normalize_s_p384() {
         let s_hex = "f4d6445f925c8040fec5632db1fa35f2f28289bfa79c2025b611f112e20bceed8e23018211922df44699ab75f97b42a1";
         let s = BigUint::parse_bytes(s_hex.as_bytes(), 16).unwrap();
-        let normalized_s = normalize_s_p384(s);
+        let normalized_s = normalize_s(s, &OID_SIG_ECDSA_WITH_SHA384).unwrap();
         let expected_s_hex = "b29bba06da37fbf013a9cd24e05ca0d0d7d76405863dfda11515c6f122b5ef1c9f70c30371e7986a6526df4d349e6d2";
         let expected_s = BigUint::parse_bytes(expected_s_hex.as_bytes(), 16).unwrap();
         assert_eq!(normalized_s, expected_s);

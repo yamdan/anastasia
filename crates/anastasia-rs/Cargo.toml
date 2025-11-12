@@ -33,6 +33,7 @@ x509-parser = "0.18.0"
 
 acir = { version = "1.0.0-beta.8", package = "acir", git = "https://github.com/noir-lang/noir" }
 bn254_blackbox_solver = { version = "1.0.0-beta.8", package = "bn254_blackbox_solver", git = "https://github.com/noir-lang/noir" }
+oid-registry = "0.8.1"
 
 [dev-dependencies]
 ark-test-curves = { version = "0.5.0", features = ["bls12_381_scalar_field", "bls12_381_curve"] }

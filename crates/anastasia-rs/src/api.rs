@@ -21,7 +21,7 @@ use crate::{
     utils::{FromHexString, ToBase64UrlString, ToHexString},
 };
 
-pub const DEFAULT_CIRCUIT_SIZE_LIMIT: u32 = 524_288; // == 2^19 (max supported by data/common.srs)
+pub const DEFAULT_CIRCUIT_SIZE_LIMIT: u32 = 1_048_576; // == 2^20 (max supported by data/default_20.srs)
 
 pub fn setup(srs_path: &str) -> Result<(), String> {
     setup_srs_from_bytecode_cached(DEFAULT_CIRCUIT_SIZE_LIMIT, srs_path)
@@ -297,6 +297,7 @@ pub fn prove_chain(
             is_keccak_mode,
         )?;
     proofs.push(subroot_proof_with_public_inputs.proof);
+    println!("Subroot proof generated: {}", subroot_circuit.id);
 
     let next_cmt_x_bytes = next_cmt_x.into_bigint().to_bytes_be();
     let next_cmt_y_bytes = next_cmt_y.into_bigint().to_bytes_be();
@@ -327,6 +328,7 @@ pub fn prove_chain(
                 is_keccak_mode,
             )?;
         proofs.push(ca_proof_with_public_inputs.proof);
+        println!("Intermediate proof generated: {}", circuit.id);
 
         let next_cmt_x_bytes = next_cmt_x.into_bigint().to_bytes_be();
         let next_cmt_y_bytes = next_cmt_y.into_bigint().to_bytes_be();
@@ -359,6 +361,7 @@ pub fn prove_chain(
         is_keccak_mode,
     )?;
     proofs.push(ee_proof_with_public_inputs.proof);
+    println!("Leaf proof generated: {}", leaf_circuit.id);
 
     // serialize proofs_and_commitments to CBOR
     let proofs_and_commitments = ProofsAndCommitments {
@@ -518,7 +521,7 @@ mod tests {
 
     #[test]
     fn test_setup() {
-        let result = setup("../anastasia-rs/data/common.srs");
+        let result = setup("../anastasia-rs/data/default_20.srs");
         assert!(result.is_ok());
     }
 
@@ -664,7 +667,7 @@ mod tests {
             format!("data/es256_ca/{version}/circuit.json"),
             format!("data/es256_ca/{version}/vk"),
             format!("data/es256_ca/{version}/keccak.vk"),
-            "data/common.srs".to_string(),
+            "data/default_20.srs".to_string(),
         );
         let cert = std::fs::read("test_data/strongbox.der").unwrap();
 
@@ -809,7 +812,7 @@ mod tests {
             format!("data/es256_ee/{version}/circuit.json"),
             format!("data/es256_ee/{version}/vk"),
             format!("data/es256_ee/{version}/keccak.vk"),
-            "data/common.srs".to_string(),
+            "data/default_20.srs".to_string(),
         );
         let cert = std::fs::read("test_data/keystore.der").unwrap();
 
@@ -924,14 +927,14 @@ mod tests {
             format!("data/es256_subroot/{version}/circuit.json"),
             format!("data/es256_subroot/{version}/vk"),
             format!("data/es256_subroot/{version}/keccak.vk"),
-            format!("data/common.srs"),
+            format!("data/default_20.srs"),
         );
         let meta_ee = CircuitMeta::new(
             format!("es256_ee/{version}"),
             format!("data/es256_ee/{version}/circuit.json"),
             format!("data/es256_ee/{version}/vk"),
             format!("data/es256_ee/{version}/keccak.vk"),
-            "data/common.srs".to_string(),
+            "data/default_20.srs".to_string(),
         );
 
         let cert_root = std::fs::read("test_data/droid_ca3.der").unwrap();
@@ -972,14 +975,14 @@ mod tests {
             format!("data/es256_subroot/{version}/circuit.json"),
             format!("data/es256_subroot/{version}/vk"),
             format!("data/es256_subroot/{version}/keccak.vk"),
-            format!("data/common.srs"),
+            format!("data/default_20.srs"),
         );
         let meta_ee = CircuitMeta::new(
             format!("es256_ee/{version}"),
             format!("data/es256_ee/{version}/circuit.json"),
             format!("data/es256_ee/{version}/vk"),
             format!("data/es256_ee/{version}/keccak.vk"),
-            "data/common.srs".to_string(),
+            "data/default_20.srs".to_string(),
         );
 
         let cert_root = std::fs::read("test_data/droid_ca3.der").unwrap();
@@ -1030,5 +1033,62 @@ mod tests {
         .unwrap();
         assert!(!result.is_empty());
         assert_eq!(String::from_utf8_lossy(&header_bytes), expected_header);
+    }
+
+    #[test]
+    #[serial]
+    fn test_prove_es384_256_chain_b64() {
+        let version = "0.2.0";
+        let version_subroot = "0.1.0";
+
+        let meta_subroot = CircuitMeta::new(
+            format!("es384_subroot/{version_subroot}"),
+            format!("data/es384_subroot/{version_subroot}/circuit.json"),
+            format!("data/es384_subroot/{version_subroot}/vk"),
+            format!("data/es384_subroot/{version_subroot}/keccak.vk"),
+            format!("data/default_20.srs"),
+        );
+        let meta_ca = CircuitMeta::new(
+            format!("es256_ca/{version}"),
+            format!("data/es256_ca/{version}/circuit.json"),
+            format!("data/es256_ca/{version}/vk"),
+            format!("data/es256_ca/{version}/keccak.vk"),
+            format!("data/default_20.srs"),
+        );
+        let meta_ee = CircuitMeta::new(
+            format!("es256_ee/{version}"),
+            format!("data/es256_ee/{version}/circuit.json"),
+            format!("data/es256_ee/{version}/vk"),
+            format!("data/es256_ee/{version}/keccak.vk"),
+            "data/default_20.srs".to_string(),
+        );
+
+        let cert_root = std::fs::read("test_data/droid_ca2.der").unwrap();
+        let cert_subroot = std::fs::read("test_data/droid_ca3.der").unwrap();
+        let cert_ca = std::fs::read("test_data/strongbox.der").unwrap();
+        let cert_ee = std::fs::read("test_data/keystore.der").unwrap();
+
+        let now = 1757808000; // 2025-09-14T00:00:00Z
+        let user_sk = "deadbeef";
+        let context = "https://credential-issuer.example.com";
+
+        let result = prove_chain_base64(
+            &meta_subroot,
+            &[meta_ca],
+            &meta_ee,
+            &cert_root,
+            &cert_subroot,
+            &[&cert_ca],
+            &cert_ee,
+            Some(now),
+            &user_sk,
+            context,
+            false,
+        )
+        .unwrap();
+
+        assert_eq!(result.now, now);
+        assert!(!result.nym.is_empty());
+        assert!(!result.proofs_and_commitments.is_empty());
     }
 }

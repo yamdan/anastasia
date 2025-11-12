@@ -197,6 +197,7 @@ dependencies = [
  "noir",
  "num-bigint",
  "num-traits",
+ "oid-registry",
  "serde",
  "serde_bytes",
  "serde_json",

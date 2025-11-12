@@ -11,6 +11,7 @@ use noir::{
         ProofWithPublicInputs, get_num_public_inputs_from_circuit, parse_proof_with_public_inputs,
     },
 };
+use oid_registry::{OID_SIG_ECDSA_WITH_SHA256, OID_SIG_ECDSA_WITH_SHA384};
 
 use crate::{
     cert::ParsedCert,
@@ -446,8 +447,17 @@ fn generate_witness_common(
     witness.extend(from_u8_array_to_fr_vec(issuer_pk_x));
     witness.extend(from_u8_array_to_fr_vec(issuer_pk_y));
 
-    // TODO: support other signature algorithms rather than just ES256
-    let signature = parsed_cert.extract_normalized_es256_sig()?;
+    // TODO: support other signature algorithms
+    let signature = if parsed_cert.algorithm_oid == OID_SIG_ECDSA_WITH_SHA256
+        || parsed_cert.algorithm_oid == OID_SIG_ECDSA_WITH_SHA384
+    {
+        parsed_cert.extract_normalized_ecdsa_sig()?
+    } else {
+        return Err(format!(
+            "Unsupported signature algorithm OID: {}",
+            parsed_cert.algorithm_oid
+        ));
+    };
     witness.extend(from_u8_array_to_fr_vec(&signature));
 
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.serial_number));

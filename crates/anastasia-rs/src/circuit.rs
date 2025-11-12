@@ -7,7 +7,7 @@ use std::{
 use noir::barretenberg::srs::setup_srs;
 use serde_json::Value;
 
-pub const DEFAULT_CIRCUIT_SIZE_LIMIT: u32 = 524_288; // == 2^19 (max supported by data/common.srs)
+pub const DEFAULT_CIRCUIT_SIZE_LIMIT: u32 = 1_048_576; // == 2^20 (max supported by data/default_20.srs)
 
 pub struct CircuitMeta {
     pub id: String,
@@ -125,12 +125,12 @@ mod tests {
             "data/es256_ca/0.1.1/circuit.json".to_string(),
             "data/es256_ca/0.1.1/vk".to_string(),
             "data/es256_ca/0.1.1/keccak.vk".to_string(),
-            "data/common.srs".to_string(),
+            "data/default_20.srs".to_string(),
         );
         assert_eq!(meta.id, "es256_ca/0.1.1");
         assert_eq!(meta.circuit_path, "data/es256_ca/0.1.1/circuit.json");
         assert_eq!(meta.verification_key_path, "data/es256_ca/0.1.1/vk");
-        assert_eq!(meta.srs_path, "data/common.srs");
+        assert_eq!(meta.srs_path, "data/default_20.srs");
     }
 
     #[test]
@@ -140,7 +140,7 @@ mod tests {
             "data/es256_ca/0.1.1/circuit.json".to_string(),
             "data/es256_ca/0.1.1/vk".to_string(),
             "data/es256_ca/0.1.1/keccak.vk".to_string(),
-            "data/common.srs".to_string(),
+            "data/default_20.srs".to_string(),
         );
         let circuit = Circuit::new(&meta).unwrap();
         assert_eq!(circuit.id, "es256_ca");
