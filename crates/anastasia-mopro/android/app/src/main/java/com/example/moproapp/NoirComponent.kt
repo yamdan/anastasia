@@ -43,17 +43,21 @@ fun NoirComponent() {
     var isVerifyingProof by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf("Ready to generate proof") }
 
-    val srsFile = getFilePathFromAssets("common.srs")
-    val subrootCircuitFile = getFilePathFromAssets("es256_subroot/0.1.1/circuit.json")
-    val subrootVkFile = getFilePathFromAssets("es256_subroot/0.1.1/vk")
-    val subrootVkKeccakFile = getFilePathFromAssets("es256_subroot/0.1.1/keccak.vk")
-    val eeCircuitFile = getFilePathFromAssets("es256_ee/0.1.1/circuit.json")
-    val eeVkFile = getFilePathFromAssets("es256_ee/0.1.1/vk")
-    val eeVkKeccakFile = getFilePathFromAssets("es256_ee/0.1.1/keccak.vk")
+    val srsFile = getFilePathFromAssets("default_20.srs")
+    val subrootCircuitFile = getFilePathFromAssets("es384_subroot/0.1.0/circuit.json")
+    val subrootVkFile = getFilePathFromAssets("es384_subroot/0.1.0/vk")
+    val subrootVkKeccakFile = getFilePathFromAssets("es384_subroot/0.1.0/keccak.vk")
+    val caCircuitFile = getFilePathFromAssets("es256_ca/0.2.0/circuit.json")
+    val caVkFile = getFilePathFromAssets("es256_ca/0.2.0/vk")
+    val caVkKeccakFile = getFilePathFromAssets("es256_ca/0.2.0/keccak.vk")
+    val eeCircuitFile = getFilePathFromAssets("es256_ee/0.2.0/circuit.json")
+    val eeVkFile = getFilePathFromAssets("es256_ee/0.2.0/vk")
+    val eeVkKeccakFile = getFilePathFromAssets("es256_ee/0.2.0/keccak.vk")
 
-    val rootCertFile = getFilePathFromAssets("es256_ca_droidca3.der")
-    val subrootCertFile = getFilePathFromAssets("es256_ca_strongbox.der")
-    val eeCertFile = getFilePathFromAssets("es256_ee.der")
+    val rootCertFile = getFilePathFromAssets("droid_ca2.der")
+    val subrootCertFile = getFilePathFromAssets("droid_ca3.der")
+    val caCertFile = getFilePathFromAssets("strongbox.der")
+    val eeCertFile = getFilePathFromAssets("keystore.der")
 
     val userSk by remember { mutableStateOf(generateUserSk()) }
 
@@ -96,19 +100,29 @@ fun NoirComponent() {
                                 fun readBytes(path: String): ByteArray = File(path).readBytes()
                                 val rootCert = readBytes(rootCertFile)
                                 val subrootCert = readBytes(subrootCertFile)
+                                val caCert = readBytes(caCertFile)
                                 val eeCert = readBytes(eeCertFile)
 
                                 val startTime = System.currentTimeMillis()
                                 statusMessage = "Generating proof..."
                                 val result = proveChainBase64(
                                     CircuitMeta(
-                                        "es256_subroot/0.1.1",
+                                        "es384_subroot/0.1.0",
                                         subrootCircuitFile,
                                         subrootVkFile,
                                         subrootVkKeccakFile,
                                         srsFile,
-                                    ), listOf(), CircuitMeta(
-                                        "es256_ee/0.1.1",
+                                    ),
+                                    listOf(
+                                        CircuitMeta(
+                                            "es256_ca/0.2.0",
+                                            caCircuitFile,
+                                            caVkFile,
+                                            caVkKeccakFile,
+                                            srsFile,
+                                        )
+                                    ), CircuitMeta(
+                                        "es256_ee/0.2.0",
                                         eeCircuitFile,
                                         eeVkFile,
                                         eeVkKeccakFile,
@@ -116,7 +130,7 @@ fun NoirComponent() {
                                     ),
                                     rootCert,
                                     subrootCert,
-                                    listOf(),
+                                    listOf(caCert),
                                     eeCert,
                                     1757808000, // 2025-09-14T00:00:00Z
                                     userSk,
