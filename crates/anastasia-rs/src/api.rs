@@ -708,266 +708,6 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_prove_es256_ca() {
-        let version = "0.2.0";
-
-        let meta = CircuitMeta::new(
-            format!("es256_ca/{version}"),
-            format!("data/es256_ca/{version}/circuit.json"),
-            format!("data/es256_ca/{version}/vk"),
-            format!("data/es256_ca/{version}/keccak.vk"),
-            "data/default_20.srs".to_string(),
-        );
-        let cert = std::fs::read("test_data/strongbox.der").unwrap();
-
-        let now = 1757808000; // 2025-09-14T00:00:00Z
-
-        // Generate previous commitment
-        let issuer = [
-            0x30, 0x29, 0x31, 0x13, 0x30, 0x11, 0x06, 0x03, 0x55, 0x04, 0x0a, 0x13, 0x0a, 0x47,
-            0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x20, 0x4c, 0x4c, 0x43, 0x31, 0x12, 0x30, 0x10, 0x06,
-            0x03, 0x55, 0x04, 0x03, 0x13, 0x09, 0x44, 0x72, 0x6f, 0x69, 0x64, 0x20, 0x43, 0x41,
-            0x33,
-        ]; // O=Google LLC, CN=Droid CA3        
-        let authority_key_id = [
-            0xfe, 0x62, 0x6c, 0xdc, 0x2a, 0xe5, 0x80, 0xe7, 0x19, 0x6a, 0xca, 0x23, 0xdd, 0x23,
-            0xf1, 0x39, 0x02, 0x46, 0xa8, 0xa5,
-        ];
-        let issuer_pk_x = [
-            0x29, 0xc2, 0xef, 0x24, 0xa4, 0xbe, 0x89, 0xfd, 0x51, 0x35, 0x89, 0x24, 0xb3, 0x2e,
-            0x38, 0xd2, 0x5b, 0x64, 0x9e, 0x4e, 0x96, 0xff, 0x0b, 0x6f, 0x6b, 0xe2, 0x12, 0x87,
-            0x1b, 0xf5, 0x26, 0x27,
-        ];
-        let issuer_pk_y = [
-            0x9a, 0x9d, 0x6b, 0x56, 0x68, 0x29, 0xbf, 0x3a, 0xf8, 0xfe, 0xe0, 0x50, 0x94, 0x3f,
-            0xbb, 0x70, 0xab, 0xf5, 0xb1, 0xb3, 0x5a, 0xc1, 0xe3, 0xb8, 0x95, 0xee, 0x2e, 0xc0,
-            0xa8, 0x5a, 0xfb, 0xd2,
-        ];
-        let prev_cmt_r = "deadbeef";
-        let CommitResult {
-            cmt_x: prev_cmt_x,
-            cmt_y: prev_cmt_y,
-            r: _,
-        } = commit_attrs(
-            &issuer,
-            &authority_key_id,
-            &issuer_pk_x,
-            &issuer_pk_y,
-            Some(prev_cmt_r),
-        )
-        .unwrap();
-
-        // Generate proof
-        let CAProofResult {
-            proof_with_public_inputs,
-            next_cmt_x,
-            next_cmt_y,
-            next_cmt_r,
-        } = prove_ca(
-            &meta,
-            &cert,
-            Some(now),
-            &issuer_pk_x,
-            &issuer_pk_y,
-            &prev_cmt_x,
-            &prev_cmt_y,
-            &prev_cmt_r.to_string(),
-            false,
-        )
-        .unwrap();
-
-        assert!(!proof_with_public_inputs.proof.is_empty());
-        assert_eq!(next_cmt_x.len(), 64); // 32 bytes in hex
-        assert_eq!(next_cmt_y.len(), 64); // 32 bytes in hex
-        assert_eq!(next_cmt_r.len(), 64); // 32 bytes in hex
-        assert_eq!(
-            proof_with_public_inputs.num_public_inputs,
-            11 // Number of public inputs expected for es256_ca
-        );
-
-        // Generate next commitment and check it matches
-        let subject = [
-            0x30, 0x3f, 0x31, 0x29, 0x30, 0x27, 0x06, 0x03, 0x55, 0x04, 0x03, 0x13, 0x20, 0x65,
-            0x35, 0x62, 0x66, 0x61, 0x39, 0x37, 0x37, 0x31, 0x35, 0x63, 0x31, 0x63, 0x62, 0x31,
-            0x31, 0x37, 0x30, 0x63, 0x33, 0x30, 0x65, 0x30, 0x31, 0x33, 0x33, 0x31, 0x65, 0x65,
-            0x66, 0x34, 0x32, 0x31, 0x12, 0x30, 0x10, 0x06, 0x03, 0x55, 0x04, 0x0a, 0x13, 0x09,
-            0x53, 0x74, 0x72, 0x6f, 0x6e, 0x67, 0x42, 0x6f, 0x78,
-        ]; // CN=e5bfa97715c1cb1170c30e01331eef42, O=StrongBox
-        let subject_key_id = [
-            0x83, 0x29, 0xbe, 0xbb, 0x68, 0xbc, 0x24, 0xed, 0x89, 0x38, 0x4d, 0xb4, 0xf1, 0x94,
-            0x6c, 0x20, 0xd7, 0x95, 0x9a, 0x05,
-        ];
-        let subject_pk_x = [
-            0xa3, 0x30, 0xd2, 0x88, 0x45, 0xc2, 0xf4, 0xb1, 0x60, 0xa7, 0xa5, 0xa8, 0xec, 0x1e,
-            0x46, 0x21, 0x31, 0x18, 0x5e, 0x25, 0xba, 0x48, 0x7e, 0xba, 0x2f, 0xbb, 0x41, 0xd7,
-            0x18, 0xa7, 0xa6, 0xbf,
-        ];
-        let subject_pk_y = [
-            0xd7, 0x87, 0x8d, 0xc6, 0x36, 0xe4, 0x1e, 0xa4, 0xe2, 0x51, 0x6a, 0xa9, 0xc4, 0xf7,
-            0x1f, 0xce, 0x15, 0xf5, 0xd2, 0x48, 0x34, 0x05, 0x82, 0x56, 0x99, 0x72, 0x5c, 0xb1,
-            0x3c, 0xeb, 0x47, 0xcd,
-        ];
-        let CommitResult {
-            cmt_x: next_cmt_x_generated,
-            cmt_y: next_cmt_y_generated,
-            r: _,
-        } = commit_attrs(
-            &subject,
-            &subject_key_id,
-            &subject_pk_x,
-            &subject_pk_y,
-            Some(&next_cmt_r),
-        )
-        .unwrap();
-        assert_eq!(next_cmt_x, next_cmt_x_generated);
-        assert_eq!(next_cmt_y, next_cmt_y_generated);
-
-        // Generate proof in keccak mode
-        let CAProofResult {
-            proof_with_public_inputs,
-            next_cmt_x,
-            next_cmt_y,
-            next_cmt_r,
-        } = prove_ca(
-            &meta,
-            &cert,
-            Some(now),
-            &issuer_pk_x,
-            &issuer_pk_y,
-            &prev_cmt_x,
-            &prev_cmt_y,
-            &prev_cmt_r.to_string(),
-            true,
-        )
-        .unwrap();
-
-        assert!(!proof_with_public_inputs.proof.is_empty());
-        assert_eq!(next_cmt_x.len(), 64); // 32 bytes in hex
-        assert_eq!(next_cmt_y.len(), 64); // 32 bytes in hex
-        assert_eq!(next_cmt_r.len(), 64); // 32 bytes in hex
-        assert_eq!(
-            proof_with_public_inputs.num_public_inputs,
-            11 // Number of public inputs expected for es256_ca
-        );
-    }
-
-    #[test]
-    #[serial]
-    fn test_prove_es256_ee() {
-        let version = "0.2.0";
-
-        let meta = CircuitMeta::new(
-            format!("es256_ee/{version}"),
-            format!("data/es256_ee/{version}/circuit.json"),
-            format!("data/es256_ee/{version}/vk"),
-            format!("data/es256_ee/{version}/keccak.vk"),
-            "data/default_20.srs".to_string(),
-        );
-        let cert = std::fs::read("test_data/keystore.der").unwrap();
-
-        let now = 1757808000; // 2025-09-14T00:00:00Z
-        let user_sk = "deadbeef";
-        let context = "https://credential-issuer.example.com";
-
-        // Generate previous commitment
-        let issuer = vec![
-            0x30, 0x3f, 0x31, 0x29, 0x30, 0x27, 0x06, 0x03, 0x55, 0x04, 0x03, 0x13, 0x20, 0x65,
-            0x35, 0x62, 0x66, 0x61, 0x39, 0x37, 0x37, 0x31, 0x35, 0x63, 0x31, 0x63, 0x62, 0x31,
-            0x31, 0x37, 0x30, 0x63, 0x33, 0x30, 0x65, 0x30, 0x31, 0x33, 0x33, 0x31, 0x65, 0x65,
-            0x66, 0x34, 0x32, 0x31, 0x12, 0x30, 0x10, 0x06, 0x03, 0x55, 0x04, 0x0a, 0x13, 0x09,
-            0x53, 0x74, 0x72, 0x6f, 0x6e, 0x67, 0x42, 0x6f, 0x78,
-        ]; // CN=e5bfa97715c1cb1170c30e01331eef42, O=StrongBox
-        let authority_key_id = vec![
-            0x83, 0x29, 0xbe, 0xbb, 0x68, 0xbc, 0x24, 0xed, 0x89, 0x38, 0x4d, 0xb4, 0xf1, 0x94,
-            0x6c, 0x20, 0xd7, 0x95, 0x9a, 0x05,
-        ];
-        let issuer_pk_x = vec![
-            0xa3, 0x30, 0xd2, 0x88, 0x45, 0xc2, 0xf4, 0xb1, 0x60, 0xa7, 0xa5, 0xa8, 0xec, 0x1e,
-            0x46, 0x21, 0x31, 0x18, 0x5e, 0x25, 0xba, 0x48, 0x7e, 0xba, 0x2f, 0xbb, 0x41, 0xd7,
-            0x18, 0xa7, 0xa6, 0xbf,
-        ];
-        let issuer_pk_y = vec![
-            0xd7, 0x87, 0x8d, 0xc6, 0x36, 0xe4, 0x1e, 0xa4, 0xe2, 0x51, 0x6a, 0xa9, 0xc4, 0xf7,
-            0x1f, 0xce, 0x15, 0xf5, 0xd2, 0x48, 0x34, 0x05, 0x82, 0x56, 0x99, 0x72, 0x5c, 0xb1,
-            0x3c, 0xeb, 0x47, 0xcd,
-        ];
-        let prev_cmt_r = "feedface";
-        let CommitResult {
-            cmt_x: prev_cmt_x,
-            cmt_y: prev_cmt_y,
-            r: _,
-        } = commit_attrs(
-            &issuer,
-            &authority_key_id,
-            &issuer_pk_x,
-            &issuer_pk_y,
-            Some(prev_cmt_r),
-        )
-        .unwrap();
-
-        // Generate proof
-        let EEProofResult {
-            proof_with_public_inputs,
-            nym,
-        } = prove_ee(
-            &meta,
-            &cert,
-            Some(now),
-            &issuer_pk_x,
-            &issuer_pk_y,
-            &prev_cmt_x,
-            &prev_cmt_y,
-            &prev_cmt_r.to_string(),
-            &authority_key_id,
-            user_sk,
-            context,
-            false,
-        )
-        .unwrap();
-
-        assert!(!proof_with_public_inputs.proof.is_empty());
-        assert_eq!(
-            proof_with_public_inputs.num_public_inputs,
-            11 // Number of public inputs expected for es256_ca
-        );
-        assert_eq!(
-            nym,
-            "KHpTfbNadhyuSx_s9GMIiFZRPHfl0slN289Nhd0K6hg".to_string()
-        );
-
-        // Generate proof in keccak mode
-        let EEProofResult {
-            proof_with_public_inputs,
-            nym,
-        } = prove_ee(
-            &meta,
-            &cert,
-            Some(now),
-            &issuer_pk_x,
-            &issuer_pk_y,
-            &prev_cmt_x,
-            &prev_cmt_y,
-            &prev_cmt_r.to_string(),
-            &authority_key_id,
-            user_sk,
-            context,
-            true,
-        )
-        .unwrap();
-
-        assert!(!proof_with_public_inputs.proof.is_empty());
-        assert_eq!(
-            proof_with_public_inputs.num_public_inputs,
-            11 // Number of public inputs expected for es256_ca
-        );
-        assert_eq!(
-            nym,
-            "KHpTfbNadhyuSx_s9GMIiFZRPHfl0slN289Nhd0K6hg".to_string()
-        );
-    }
-
-    #[test]
-    #[serial]
     fn test_prove_es256_chain_ca_ee_b64() {
         let version = "0.2.0";
 
@@ -990,7 +730,7 @@ mod tests {
         let cert_subroot = std::fs::read("test_data/strongbox.der").unwrap();
         let cert_ee = std::fs::read("test_data/keystore.der").unwrap();
 
-        let now = 1757808000; // 2025-09-14T00:00:00Z
+        let now = 1763028507; // 2025-11-13T10:08:27Z
         let user_sk = "deadbeef";
         let context = "https://credential-issuer.example.com";
 
@@ -1040,7 +780,7 @@ mod tests {
         let cert_subroot = std::fs::read("test_data/strongbox.der").unwrap();
         let cert_ee = std::fs::read("test_data/keystore.der").unwrap();
 
-        let now = 1757808000; // 2025-09-14T00:00:00Z
+        let now = 1763028507; // 2025-11-13T10:08:27Z
         let user_sk = "deadbeef";
         let context = "https://credential-issuer.example.com";
 
@@ -1065,7 +805,7 @@ mod tests {
         let header_b64 = result.split('.').next().unwrap();
         let header_bytes = URL_SAFE_NO_PAD.decode(header_b64).unwrap();
         let expected_header = format!(
-            "{{\"alg\":\"ANASTASIA-AKA\",\"typ\":\"key-attestation+jwt\",\"x5c\":[\"es256_ee/{version}\",\"es256_subroot/{version}\",\"MIIB1jCCAV2gAwIBAgIUAKPaleRujkV60qOYNtfCM5xBWw8wCgYIKoZIzj0EAwMwKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EyMB4XDTI1MDgyMjE2MjM0NloXDTI1MTAzMTE2MjM0NVowKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKcLvJKS+if1RNYkksy440ltknk6W/wtva+IShxv1JieanWtWaCm/Ovj+4FCUP7twq/Wxs1rB47iV7i7AqFr70qNjMGEwDgYDVR0PAQH/BAQDAgIEMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFP5ibNwq5YDnGWrKI90j8TkCRqilMB8GA1UdIwQYMBaAFLv4Nq2Jrmzi5Z6U8NWy19J65HxBMAoGCCqGSM49BAMDA2cAMGQCMAF1II8ktm7BKU6mvr0sh7hL4sbU/3cDI80eIpiC32RYUA1dKPDNGxw5YFrhGQ/yaQIwV/5uJxy0dvZVx2GWfHKWDghfSNmIeeJ5dpPkIaDinCUAGoR0k70+xyBjdzH1K3yY\"]}}"
+            "{{\"alg\":\"ANASTASIA-AKA\",\"typ\":\"key-attestation+jwt\",\"x5c\":[\"es256_ee/{version}\",\"es256_subroot/{version}\",\"MIIB2DCCAV2gAwIBAgIUAJ19meQCjvEEFLN5qjsLMf1cfVMwCgYIKoZIzj0EAwMwKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EyMB4XDTI1MTAyODE4MzQ1N1oXDTI2MDEwNjE4MzQ1NlowKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIGcwn1GkNtohhe4Zx2DdCmI8gv7W5usAT+9gBEM0CEcY3YDagSgiuAjKaANz6hRpevzIEdCdZ3UtrnHAQF5OqNjMGEwDgYDVR0PAQH/BAQDAgIEMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFIk/1d9OYGmE8ndhdTiMRMp8UfBMMB8GA1UdIwQYMBaAFLv4Nq2Jrmzi5Z6U8NWy19J65HxBMAoGCCqGSM49BAMDA2kAMGYCMQDFQ5kHySB6Gbk4wNZ5URlBDK+wO6xVe3m4QEsxbGGB/THfNGRN2E9HvlzzxoyAs9kCMQDOzYdB2aMFZLUkPy+Ije0VVyfVG/G/Zip8TTghDWIgsyoh776VHEp+PddfMAkGqYQ=\"]}}"
         );
         assert_eq!(String::from_utf8_lossy(&header_bytes), expected_header);
 
@@ -1122,7 +862,7 @@ mod tests {
         let cert_ca = std::fs::read("test_data/strongbox.der").unwrap();
         let cert_ee = std::fs::read("test_data/keystore.der").unwrap();
 
-        let now = 1757808000; // 2025-09-14T00:00:00Z
+        let now = 1763028507; // 2025-11-13T10:08:27Z
         let user_sk = "deadbeef";
         let context = "https://credential-issuer.example.com";
 
@@ -1182,7 +922,7 @@ mod tests {
         let cert_ca = std::fs::read("test_data/strongbox.der").unwrap();
         let cert_ee = std::fs::read("test_data/keystore.der").unwrap();
 
-        let now = 1757808000; // 2025-09-14T00:00:00Z
+        let now = 1763028507; // 2025-11-13T10:08:27Z
         let user_sk = "deadbeef";
         let context = "https://credential-issuer.example.com";
 

@@ -23,9 +23,9 @@ Certificate:
                 ASN1 OID: secp384r1
                 NIST CURVE: P-384
         X509v3 extensions:
-            X509v3 Subject Key Identifier: 
+            X509v3 Subject Key Identifier:
                 BB:F8:36:AD:89:AE:6C:E2:E5:9E:94:F0:D5:B2:D7:D2:7A:E4:7C:41
-            X509v3 Authority Key Identifier: 
+            X509v3 Authority Key Identifier:
                 36:61:E1:00:7C:88:05:09:51:8B:44:6C:47:FF:1A:4C:C9:EA:4F:12
             X509v3 Basic Constraints: critical
                 CA:TRUE, pathlen:2
