@@ -68,12 +68,15 @@ class ProofGenerationFragment : Fragment() {
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             val hasInput = !binding.etUrlInput.text.isNullOrBlank()
             binding.btnStart.isEnabled = !isLoading && !isNavigating && hasInput
+            binding.btnStart384.isEnabled = !isLoading && !isNavigating && hasInput
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
 
             if (isLoading || isNavigating) {
                 binding.btnStart.text = "Processing..."
+                binding.btnStart384.text = "Processing..."
             } else {
-                binding.btnStart.text = "Start"
+                binding.btnStart.text = "Start with ES256"
+                binding.btnStart384.text = "Start with ES384 and ES256"
             }
         }
 
@@ -90,6 +93,7 @@ class ProofGenerationFragment : Fragment() {
     private fun setupUrlInputValidation() {
         // 初期状態でボタンを非活性化
         binding.btnStart.isEnabled = false
+        binding.btnStart384.isEnabled = false
 
         // URL入力フィールドの変更を監視
         binding.etUrlInput.addTextChangedListener(object : TextWatcher {
@@ -100,6 +104,7 @@ class ProofGenerationFragment : Fragment() {
                 val hasInput = !s.isNullOrBlank()
                 val isLoading = viewModel.isLoading.value ?: false
                 binding.btnStart.isEnabled = hasInput && !isLoading && !isNavigating
+                binding.btnStart384.isEnabled = hasInput && !isLoading && !isNavigating
             }
 
             override fun afterTextChanged(s: Editable?) {}
@@ -117,7 +122,20 @@ class ProofGenerationFragment : Fragment() {
             hasNavigated = false
             isNavigating = false
             binding.tvProgressMessage.visibility = View.GONE
-            viewModel.generateProof(url)
+            viewModel.generateProof(url, false)
+        }
+
+        binding.btnStart384.setOnClickListener {
+            val url = binding.etUrlInput.text.toString()
+
+            // 3つの要素を表示
+            binding.tvProcessTimeMessage.visibility = View.VISIBLE
+            binding.proofGenerationImage.visibility = View.VISIBLE
+
+            hasNavigated = false
+            isNavigating = false
+            binding.tvProgressMessage.visibility = View.GONE
+            viewModel.generateProof(url, true)
         }
     }
 
@@ -137,7 +155,9 @@ class ProofGenerationFragment : Fragment() {
     private fun updateUI() {
         val hasInput = !binding.etUrlInput.text.isNullOrBlank()
         binding.btnStart.isEnabled = hasInput
-        binding.btnStart.text = "Start"
+        binding.btnStart384.isEnabled = hasInput
+        binding.btnStart.text = "Start with ES256"
+        binding.btnStart384.text = "Start with ES384 and ES256"
         binding.progressBar.visibility = View.GONE
         binding.tvProgressMessage.visibility = View.GONE
         binding.tvProcessTimeMessage.visibility = View.GONE
