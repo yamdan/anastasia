@@ -101,7 +101,10 @@ pub fn prove_ca(
         MAX_EXTRA_EXTENSION_LEN_CA,
     )?;
     let duration_witness = start_witness.elapsed();
-    println!("prove_ca: generate_initial_witness took {:?}", duration_witness);
+    println!(
+        "prove_ca: generate_initial_witness took {:?}",
+        duration_witness
+    );
 
     let start_proof = Instant::now();
     let proof_with_public_inputs = generate_proof(circuit, initial_witness, is_keccak_mode)?;
@@ -148,7 +151,10 @@ pub fn prove_ee(
         MAX_EXTRA_EXTENSION_LEN_EE,
     )?;
     let duration_witness = start_witness.elapsed();
-    println!("prove_ee: generate_initial_witness took {:?}", duration_witness);
+    println!(
+        "prove_ee: generate_initial_witness took {:?}",
+        duration_witness
+    );
 
     let start_proof = Instant::now();
     let proof_with_public_inputs = generate_proof(circuit, initial_witness, is_keccak_mode)?;
