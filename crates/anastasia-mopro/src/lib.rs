@@ -212,7 +212,7 @@ mod tests {
 
     #[test]
     fn test_setup() {
-        let result = setup("../anastasia-rs/data/common.srs");
+        let result = setup("../anastasia-rs/data/default_20.srs");
         assert!(result.is_ok());
     }
 
@@ -313,26 +313,30 @@ mod tests {
         assert_eq!(r.len(), 64); // 32 bytes in hex
         assert_eq!(
             cmt_x,
-            "1566ab02692714a5c5c07252b13597c49b80b0b4d78849fb8ff9f0d930c9481c"
+            "06c54c7142201e07095430f7e9d69848e525c93c56958b22054d13f4fd98a41e"
         );
         assert_eq!(
             cmt_y,
-            "20a10a6b5362161c9412b2a93897e481234834c699c84936459d9c6a30cf2537"
+            "0850beb53a88e53106894548cc0a40b5f8d8383679628f0a12437bec500f6483"
         );
     }
 
     #[test]
     #[serial]
     fn test_prove_es256_ca() {
+        let version = "0.2.0";
+
         let meta = CircuitMeta::new(
-            "es256_ca".to_string(),
-            "../anastasia-rs/data/es256_ca.json".to_string(),
-            "../anastasia-rs/data/es256_ca.vk".to_string(),
-            "../anastasia-rs/data/es256_ca.keccak.vk".to_string(),
-            "../anastasia-rs/data/common.srs".to_string(),
+            format!("es256_ca/{version}"),
+            format!("../anastasia-rs/data/es256_ca/{version}/circuit.json"),
+            format!("../anastasia-rs/data/es256_ca/{version}/vk"),
+            format!("../anastasia-rs/data/es256_ca/{version}/keccak.vk"),
+            "../anastasia-rs/data/default_20.srs".to_string(),
         );
 
-        let cert = std::fs::read("../anastasia-rs/test_data/es256_ca_strongbox.der").unwrap();
+        let cert = std::fs::read("../anastasia-rs/test_data/strongbox.der").unwrap();
+
+        setup("../anastasia-rs/data/default_20.srs").unwrap();
 
         // Generate previous commitment
         let issuer = vec![
@@ -444,25 +448,28 @@ mod tests {
     #[test]
     #[serial]
     fn test_prove_es256_chain_jwt() {
+        let version = "0.2.0";
+
         let meta_subroot = CircuitMeta::new(
-            "es256_subroot".to_string(),
-            "../anastasia-rs/data/es256_subroot.json".to_string(),
-            "../anastasia-rs/data/es256_subroot.vk".to_string(),
-            "../anastasia-rs/data/es256_subroot.keccak.vk".to_string(),
-            "../anastasia-rs/data/common.srs".to_string(),
+            format!("es256_subroot/{version}"),
+            format!("../anastasia-rs/data/es256_subroot/{version}/circuit.json"),
+            format!("../anastasia-rs/data/es256_subroot/{version}/vk"),
+            format!("../anastasia-rs/data/es256_subroot/{version}/keccak.vk"),
+            "../anastasia-rs/data/default_20.srs".to_string(),
         );
         let meta_ee = CircuitMeta::new(
-            "es256_ee".to_string(),
-            "../anastasia-rs/data/es256_ee.json".to_string(),
-            "../anastasia-rs/data/es256_ee.vk".to_string(),
-            "../anastasia-rs/data/es256_ee.keccak.vk".to_string(),
-            "../anastasia-rs/data/common.srs".to_string(),
+            format!("es256_ee/{version}"),
+            format!("../anastasia-rs/data/es256_ee/{version}/circuit.json"),
+            format!("../anastasia-rs/data/es256_ee/{version}/vk"),
+            format!("../anastasia-rs/data/es256_ee/{version}/keccak.vk"),
+            "../anastasia-rs/data/default_20.srs".to_string(),
         );
 
-        let cert_root = std::fs::read("../anastasia-rs/test_data/es256_ca_droidca3.der").unwrap();
-        let cert_subroot =
-            std::fs::read("../anastasia-rs/test_data/es256_ca_strongbox.der").unwrap();
-        let cert_ee = std::fs::read("../anastasia-rs/test_data/es256_ee.der").unwrap();
+        let cert_root = std::fs::read("../anastasia-rs/test_data/droid_ca3.der").unwrap();
+        let cert_subroot = std::fs::read("../anastasia-rs/test_data/strongbox.der").unwrap();
+        let cert_ee = std::fs::read("../anastasia-rs/test_data/keystore.der").unwrap();
+
+        setup("../anastasia-rs/data/default_20.srs").unwrap();
 
         let now = 1757808000; // 2025-09-14T00:00:00Z
         let user_sk = "deadbeef";
@@ -488,25 +495,26 @@ mod tests {
     #[test]
     #[serial]
     fn test_prove_es256_chain_jwt_keccak_true() {
+        let version = "0.2.0";
+
         let meta_subroot = CircuitMeta::new(
-            "es256_subroot".to_string(),
-            "../anastasia-rs/data/es256_subroot.json".to_string(),
-            "../anastasia-rs/data/es256_subroot.vk".to_string(),
-            "../anastasia-rs/data/es256_subroot.keccak.vk".to_string(),
-            "../anastasia-rs/data/common.srs".to_string(),
+            format!("es256_subroot/{version}"),
+            format!("../anastasia-rs/data/es256_subroot/{version}/circuit.json"),
+            format!("../anastasia-rs/data/es256_subroot/{version}/vk"),
+            format!("../anastasia-rs/data/es256_subroot/{version}/keccak.vk"),
+            "../anastasia-rs/data/default_20.srs".to_string(),
         );
         let meta_ee = CircuitMeta::new(
-            "es256_ee".to_string(),
-            "../anastasia-rs/data/es256_ee.json".to_string(),
-            "../anastasia-rs/data/es256_ee.vk".to_string(),
-            "../anastasia-rs/data/es256_ee.keccak.vk".to_string(),
-            "../anastasia-rs/data/common.srs".to_string(),
+            format!("es256_ee/{version}"),
+            format!("../anastasia-rs/data/es256_ee/{version}/circuit.json"),
+            format!("../anastasia-rs/data/es256_ee/{version}/vk"),
+            format!("../anastasia-rs/data/es256_ee/{version}/keccak.vk"),
+            "../anastasia-rs/data/default_20.srs".to_string(),
         );
 
-        let cert_root = std::fs::read("../anastasia-rs/test_data/es256_ca_droidca3.der").unwrap();
-        let cert_subroot =
-            std::fs::read("../anastasia-rs/test_data/es256_ca_strongbox.der").unwrap();
-        let cert_ee = std::fs::read("../anastasia-rs/test_data/es256_ee.der").unwrap();
+        let cert_root = std::fs::read("../anastasia-rs/test_data/droid_ca3.der").unwrap();
+        let cert_subroot = std::fs::read("../anastasia-rs/test_data/strongbox.der").unwrap();
+        let cert_ee = std::fs::read("../anastasia-rs/test_data/keystore.der").unwrap();
 
         let now = 1757808000; // 2025-09-14T00:00:00Z
         let user_sk = "deadbeef";
@@ -533,25 +541,26 @@ mod tests {
     #[test]
     #[serial]
     fn test_prove_es256_chain_jwt_keccak_false() {
+        let version = "0.2.0";
+
         let meta_subroot = CircuitMeta::new(
-            "es256_subroot".to_string(),
-            "../anastasia-rs/data/es256_subroot.json".to_string(),
-            "../anastasia-rs/data/es256_subroot.vk".to_string(),
-            "../anastasia-rs/data/es256_subroot.keccak.vk".to_string(),
-            "../anastasia-rs/data/common.srs".to_string(),
+            format!("es256_subroot/{version}"),
+            format!("../anastasia-rs/data/es256_subroot/{version}/circuit.json"),
+            format!("../anastasia-rs/data/es256_subroot/{version}/vk"),
+            format!("../anastasia-rs/data/es256_subroot/{version}/keccak.vk"),
+            "../anastasia-rs/data/default_20.srs".to_string(),
         );
         let meta_ee = CircuitMeta::new(
-            "es256_ee".to_string(),
-            "../anastasia-rs/data/es256_ee.json".to_string(),
-            "../anastasia-rs/data/es256_ee.vk".to_string(),
-            "../anastasia-rs/data/es256_ee.keccak.vk".to_string(),
-            "../anastasia-rs/data/common.srs".to_string(),
+            format!("es256_ee/{version}"),
+            format!("../anastasia-rs/data/es256_ee/{version}/circuit.json"),
+            format!("../anastasia-rs/data/es256_ee/{version}/vk"),
+            format!("../anastasia-rs/data/es256_ee/{version}/keccak.vk"),
+            "../anastasia-rs/data/default_20.srs".to_string(),
         );
 
-        let cert_root = std::fs::read("../anastasia-rs/test_data/es256_ca_droidca3.der").unwrap();
-        let cert_subroot =
-            std::fs::read("../anastasia-rs/test_data/es256_ca_strongbox.der").unwrap();
-        let cert_ee = std::fs::read("../anastasia-rs/test_data/es256_ee.der").unwrap();
+        let cert_root = std::fs::read("../anastasia-rs/test_data/droid_ca3.der").unwrap();
+        let cert_subroot = std::fs::read("../anastasia-rs/test_data/strongbox.der").unwrap();
+        let cert_ee = std::fs::read("../anastasia-rs/test_data/keystore.der").unwrap();
 
         let now = 1757808000; // 2025-09-14T00:00:00Z
         let user_sk = "deadbeef";
@@ -565,6 +574,61 @@ mod tests {
             cert_root,
             cert_subroot,
             vec![],
+            cert_ee,
+            Some(now),
+            user_sk,
+            context,
+            Some(false),
+        )
+        .unwrap();
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    #[serial]
+    fn test_prove_es384_256_chain_jwt_keccak_false() {
+        let version = "0.2.0";
+        let version_subroot = "0.1.0";
+
+        let meta_subroot = CircuitMeta::new(
+            format!("es384_subroot/{version_subroot}"),
+            format!("../anastasia-rs/data/es384_subroot/{version_subroot}/circuit.json"),
+            format!("../anastasia-rs/data/es384_subroot/{version_subroot}/vk"),
+            format!("../anastasia-rs/data/es384_subroot/{version_subroot}/keccak.vk"),
+            "../anastasia-rs/data/default_20.srs".to_string(),
+        );
+        let meta_ca = CircuitMeta::new(
+            format!("es256_ca/{version}"),
+            format!("../anastasia-rs/data/es256_ca/{version}/circuit.json"),
+            format!("../anastasia-rs/data/es256_ca/{version}/vk"),
+            format!("../anastasia-rs/data/es256_ca/{version}/keccak.vk"),
+            "../anastasia-rs/data/default_20.srs".to_string(),
+        );
+        let meta_ee = CircuitMeta::new(
+            format!("es256_ee/{version}"),
+            format!("../anastasia-rs/data/es256_ee/{version}/circuit.json"),
+            format!("../anastasia-rs/data/es256_ee/{version}/vk"),
+            format!("../anastasia-rs/data/es256_ee/{version}/keccak.vk"),
+            "../anastasia-rs/data/default_20.srs".to_string(),
+        );
+
+        let cert_root = std::fs::read("../anastasia-rs/test_data/droid_ca2.der").unwrap();
+        let cert_subroot = std::fs::read("../anastasia-rs/test_data/droid_ca3.der").unwrap();
+        let cert_ca = std::fs::read("../anastasia-rs/test_data/strongbox.der").unwrap();
+        let cert_ee = std::fs::read("../anastasia-rs/test_data/keystore.der").unwrap();
+
+        let now = 1757808000; // 2025-09-14T00:00:00Z
+        let user_sk = "deadbeef";
+        let context = "https://credential-issuer.example.com";
+
+        // keccak mode == true
+        let result = prove_chain_jwt(
+            meta_subroot,
+            vec![meta_ca],
+            meta_ee,
+            cert_root,
+            cert_subroot,
+            vec![cert_ca],
             cert_ee,
             Some(now),
             user_sk,
