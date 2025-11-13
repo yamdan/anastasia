@@ -12,6 +12,7 @@ use noir::{
     },
 };
 use oid_registry::{OID_SIG_ECDSA_WITH_SHA256, OID_SIG_ECDSA_WITH_SHA384};
+use std::time::Instant;
 
 use crate::{
     cert::ParsedCert,
@@ -33,9 +34,16 @@ pub fn prove_subroot(
     issuer_pk_y: &[u8],
     is_keccak_mode: bool,
 ) -> Result<(ProofWithPublicInputs, Fr, Fr, Fr), String> {
+    let start_commitment = Instant::now();
     let (next_cmt_x, next_cmt_y, next_cmt_r) = generate_commitment(parsed_cert)?;
+    let duration_commitment = start_commitment.elapsed();
+    println!(
+        "prove_subroot: generate_commitment took {:?}",
+        duration_commitment
+    );
 
-    let initial_witness = generate_witness_subroot(
+    let start_witness = Instant::now();
+    let initial_witness = generate_initial_witness_subroot(
         parsed_cert,
         now,
         issuer_pk_x,
@@ -45,8 +53,16 @@ pub fn prove_subroot(
         &next_cmt_r,
         MAX_EXTRA_EXTENSION_LEN_CA,
     )?;
+    let duration_witness = start_witness.elapsed();
+    println!(
+        "prove_subroot: generate_initial_witness took {:?}",
+        duration_witness
+    );
 
+    let start_proof = Instant::now();
     let proof_with_public_inputs = generate_proof(circuit, initial_witness, is_keccak_mode)?;
+    let duration_proof = start_proof.elapsed();
+    println!("prove_subroot: generate_proof took {:?}", duration_proof);
 
     Ok((proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r))
 }
@@ -62,9 +78,16 @@ pub fn prove_ca(
     prev_cmt_r: &Fr,
     is_keccak_mode: bool,
 ) -> Result<(ProofWithPublicInputs, Fr, Fr, Fr), String> {
+    let start_commitment = Instant::now();
     let (next_cmt_x, next_cmt_y, next_cmt_r) = generate_commitment(parsed_cert)?;
+    let duration_commitment = start_commitment.elapsed();
+    println!(
+        "prove_ca: generate_commitment took {:?}",
+        duration_commitment
+    );
 
-    let initial_witness = generate_witness_ca(
+    let start_witness = Instant::now();
+    let initial_witness = generate_initial_witness_ca(
         parsed_cert,
         now,
         issuer_pk_x,
@@ -77,8 +100,13 @@ pub fn prove_ca(
         &next_cmt_r,
         MAX_EXTRA_EXTENSION_LEN_CA,
     )?;
+    let duration_witness = start_witness.elapsed();
+    println!("prove_ca: generate_initial_witness took {:?}", duration_witness);
 
+    let start_proof = Instant::now();
     let proof_with_public_inputs = generate_proof(circuit, initial_witness, is_keccak_mode)?;
+    let duration_proof = start_proof.elapsed();
+    println!("prove_ca: generate_proof took {:?}", duration_proof);
 
     Ok((proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r))
 }
@@ -97,9 +125,13 @@ pub fn prove_ee(
     context: &str,
     is_keccak_mode: bool,
 ) -> Result<(ProofWithPublicInputs, Fr), String> {
+    let start_nym = Instant::now();
     let (nym, context_field) = generate_nym_and_context_field(user_sk, parsed_cert, context)?;
+    let duration_nym = start_nym.elapsed();
+    println!("prove_ee: generate_nym took {:?}", duration_nym);
 
-    let initial_witness = generate_witness_ee(
+    let start_witness = Instant::now();
+    let initial_witness = generate_initial_witness_ee(
         parsed_cert,
         now,
         issuer_pk_x,
@@ -115,8 +147,13 @@ pub fn prove_ee(
         &nym,
         MAX_EXTRA_EXTENSION_LEN_EE,
     )?;
+    let duration_witness = start_witness.elapsed();
+    println!("prove_ee: generate_initial_witness took {:?}", duration_witness);
 
+    let start_proof = Instant::now();
     let proof_with_public_inputs = generate_proof(circuit, initial_witness, is_keccak_mode)?;
+    let duration_proof = start_proof.elapsed();
+    println!("prove_ee: generate_proof took {:?}", duration_proof);
 
     Ok((proof_with_public_inputs, nym))
 }
@@ -194,7 +231,7 @@ fn generate_proof(
     parse_proof_with_public_inputs(&proof, num_public_inputs)
 }
 
-fn generate_witness_subroot(
+fn generate_initial_witness_subroot(
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
     issuer_pk_x: &[u8],
@@ -204,7 +241,7 @@ fn generate_witness_subroot(
     next_cmt_r: &Fr, // TODO: change to lo and hi parts as GrumpkinFr
     max_extra_extension_len: usize,
 ) -> Result<WitnessMap<GenericFieldElement<Fr>>, String> {
-    let mut witness = generate_witness_common(
+    let mut witness = generate_initial_witness_common(
         parsed_cert,
         now,
         issuer_pk_x,
@@ -233,7 +270,7 @@ fn generate_witness_subroot(
     Ok(witness_map)
 }
 
-fn generate_witness_ca(
+fn generate_initial_witness_ca(
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
     issuer_pk_x: &[u8],
@@ -246,7 +283,7 @@ fn generate_witness_ca(
     next_cmt_r: &Fr, // TODO: change to lo and hi parts as GrumpkinFr
     max_extra_extension_len: usize,
 ) -> Result<WitnessMap<GenericFieldElement<Fr>>, String> {
-    let mut witness = generate_witness_common(
+    let mut witness = generate_initial_witness_common(
         parsed_cert,
         now,
         issuer_pk_x,
@@ -278,7 +315,7 @@ fn generate_witness_ca(
     Ok(witness_map)
 }
 
-fn generate_witness_ee(
+fn generate_initial_witness_ee(
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
     issuer_pk_x: &[u8],
@@ -292,7 +329,7 @@ fn generate_witness_ee(
     nym: &Fr,
     max_extra_extension_len: usize,
 ) -> Result<WitnessMap<GenericFieldElement<Fr>>, String> {
-    let mut witness = generate_witness_common(
+    let mut witness = generate_initial_witness_common(
         parsed_cert,
         now,
         issuer_pk_x,
@@ -316,7 +353,7 @@ fn generate_witness_ee(
     Ok(witness_map)
 }
 
-fn generate_witness_common(
+fn generate_initial_witness_common(
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
     issuer_pk_x: &[u8],

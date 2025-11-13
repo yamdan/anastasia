@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::{io::Write, time::Instant};
 
 use ark_bn254::Fr;
 use ark_ff::{BigInteger, PrimeField, UniformRand};
@@ -21,10 +21,15 @@ use crate::{
     utils::{FromHexString, ToBase64UrlString, ToHexString},
 };
 
+// pub const DEFAULT_CIRCUIT_SIZE_LIMIT: u32 = 524_288; // == 2^19 (max supported by data/default_19.srs)
 pub const DEFAULT_CIRCUIT_SIZE_LIMIT: u32 = 1_048_576; // == 2^20 (max supported by data/default_20.srs)
 
 pub fn setup(srs_path: &str) -> Result<(), String> {
-    setup_srs_from_bytecode_cached(DEFAULT_CIRCUIT_SIZE_LIMIT, srs_path)
+    let start_setup = Instant::now();
+    let result = setup_srs_from_bytecode_cached(DEFAULT_CIRCUIT_SIZE_LIMIT, srs_path);
+    let duration = start_setup.elapsed();
+    println!("Setup took {:?}", duration);
+    result
 }
 
 pub fn generate_user_sk() -> Fr {
@@ -284,9 +289,17 @@ pub fn prove_chain(
     let mut issuer_pk_y = parsed_root_cert.subject_pk_y;
 
     // Prove for the subroot CA certificate
+    let start_parse_cert = Instant::now();
     let parsed_subroot_cert =
         ParsedCert::from_der(&subroot_cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
+    let duration_parse_cert = start_parse_cert.elapsed();
+    println!("Parsing subroot cert took {:?}", duration_parse_cert);
+
+    let start_gen_circuit = Instant::now();
     let subroot_circuit = Circuit::new(&subroot_circuit_meta)?;
+    let duration_gen_circuit = start_gen_circuit.elapsed();
+    println!("Generating subroot circuit took {:?}", duration_gen_circuit);
+
     let (subroot_proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r) =
         crate::prove::prove_subroot(
             &subroot_circuit,
@@ -298,6 +311,7 @@ pub fn prove_chain(
         )?;
     proofs.push(subroot_proof_with_public_inputs.proof);
     println!("Subroot proof generated: {}", subroot_circuit.id);
+    println!("");
 
     let next_cmt_x_bytes = next_cmt_x.into_bigint().to_bytes_be();
     let next_cmt_y_bytes = next_cmt_y.into_bigint().to_bytes_be();
@@ -312,9 +326,20 @@ pub fn prove_chain(
 
     // Prove for each intermediate certificate in the chain
     for (circuit_meta, cert) in intermediate_circuits_meta.iter().zip(intermediate_certs) {
+        let start_parse_cert = Instant::now();
         let parsed_cert =
             ParsedCert::from_der(&cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
+        let duration_parse_cert = start_parse_cert.elapsed();
+        println!("Parsing intermediate cert took {:?}", duration_parse_cert);
+
+        let start_gen_circuit = Instant::now();
         let circuit = Circuit::new(circuit_meta)?;
+        let duration_gen_circuit = start_gen_circuit.elapsed();
+        println!(
+            "Generating intermediate circuit took {:?}",
+            duration_gen_circuit
+        );
+
         let (ca_proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r) =
             crate::prove::prove_ca(
                 &circuit,
@@ -329,6 +354,7 @@ pub fn prove_chain(
             )?;
         proofs.push(ca_proof_with_public_inputs.proof);
         println!("Intermediate proof generated: {}", circuit.id);
+        println!("");
 
         let next_cmt_x_bytes = next_cmt_x.into_bigint().to_bytes_be();
         let next_cmt_y_bytes = next_cmt_y.into_bigint().to_bytes_be();
@@ -343,9 +369,17 @@ pub fn prove_chain(
     }
 
     // Prove for the leaf certificate
+    let start_parse_cert = Instant::now();
     let parsed_leaf_cert = ParsedCert::from_der(&leaf_cert)
         .map_err(|e| format!("Failed to parse leaf cert: {}", e))?;
+    let duration_parse_cert = start_parse_cert.elapsed();
+    println!("Parsing leaf cert took {:?}", duration_parse_cert);
+
+    let start_gen_circuit = Instant::now();
     let leaf_circuit = Circuit::new(leaf_circuit_meta)?;
+    let duration_gen_circuit = start_gen_circuit.elapsed();
+    println!("Generating leaf circuit took {:?}", duration_gen_circuit);
+
     let (ee_proof_with_public_inputs, nym) = crate::prove::prove_ee(
         &leaf_circuit,
         &parsed_leaf_cert,
@@ -362,8 +396,10 @@ pub fn prove_chain(
     )?;
     proofs.push(ee_proof_with_public_inputs.proof);
     println!("Leaf proof generated: {}", leaf_circuit.id);
+    println!("");
 
     // serialize proofs_and_commitments to CBOR
+    let start_serialization = Instant::now();
     let proofs_and_commitments = ProofsAndCommitments {
         proofs: proofs.into_iter().map(ByteBuf::from).collect(),
         commitments: commitments
@@ -374,8 +410,15 @@ pub fn prove_chain(
     let mut proofs_and_commitments_cbor = Vec::new();
     ser::into_writer(&proofs_and_commitments, &mut proofs_and_commitments_cbor)
         .map_err(|e| format!("Failed to serialize proof_and_commitments to CBOR: {}", e))?;
+    let duration_serialization = start_serialization.elapsed();
+    println!(
+        "Serializing proofs and commitments took {:?}",
+        duration_serialization
+    );
+    println!("");
 
     // compress the CBOR data with gzip
+    let start_compression = Instant::now();
     let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
     encoder
         .write_all(&proofs_and_commitments_cbor)
@@ -383,6 +426,12 @@ pub fn prove_chain(
     let compressed_proof = encoder
         .finish()
         .map_err(|e| format!("Failed to finish compression of proof: {}", e))?;
+    let duration_compression = start_compression.elapsed();
+    println!(
+        "Compressing proofs and commitments took {:?}",
+        duration_compression
+    );
+    println!("");
 
     Ok(ChainProofResult {
         now: now_datetime.timestamp(),
@@ -945,6 +994,8 @@ mod tests {
         let user_sk = "deadbeef";
         let context = "https://credential-issuer.example.com";
 
+        setup("data/default_20.srs").unwrap();
+
         let result = prove_chain_base64(
             &meta_subroot,
             &[],
@@ -992,6 +1043,8 @@ mod tests {
         let now = 1757808000; // 2025-09-14T00:00:00Z
         let user_sk = "deadbeef";
         let context = "https://credential-issuer.example.com";
+
+        setup("data/default_20.srs").unwrap();
 
         let result = prove_chain_as_key_attestation_jwt(
             &meta_subroot,
@@ -1073,6 +1126,8 @@ mod tests {
         let user_sk = "deadbeef";
         let context = "https://credential-issuer.example.com";
 
+        setup("data/default_20.srs").unwrap();
+
         let result = prove_chain_base64(
             &meta_subroot,
             &meta_cas,
@@ -1130,6 +1185,8 @@ mod tests {
         let now = 1757808000; // 2025-09-14T00:00:00Z
         let user_sk = "deadbeef";
         let context = "https://credential-issuer.example.com";
+
+        setup("data/default_20.srs").unwrap();
 
         let result = prove_chain_as_key_attestation_jwt(
             &meta_subroot,

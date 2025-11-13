@@ -7,6 +7,7 @@ use std::{
 use noir::barretenberg::srs::setup_srs;
 use serde_json::Value;
 
+// pub const DEFAULT_CIRCUIT_SIZE_LIMIT: u32 = 524_288; // == 2^19 (max supported by data/default_19.srs)
 pub const DEFAULT_CIRCUIT_SIZE_LIMIT: u32 = 1_048_576; // == 2^20 (max supported by data/default_20.srs)
 
 pub struct CircuitMeta {
