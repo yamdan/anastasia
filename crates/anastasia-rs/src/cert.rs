@@ -233,26 +233,21 @@ impl<'a> ParsedCert<'a> {
         if items.len() != 2 {
             return Err("sequence does not have 2 elements".to_string());
         }
-        let r = match items[0].content {
-            DerObjectContent::Integer(ref data) => {
-                let d = data.to_vec();
-                if d.len() == 33 && d[0] == 0 {
-                    d[1..].to_vec()
-                } else {
-                    d
-                }
-            }
-            _ => return Err("first element is not integer".to_string()),
-        };
+
+        let r_uint = items[0]
+            .as_biguint()
+            .map_err(|e| format!("Failed to convert r to BigUint: {e}"))?;
 
         // normalize s to low-s form
         let s_uint = items[1]
             .as_biguint()
             .map_err(|e| format!("Failed to convert s to BigUint: {e}"))?;
-        let s = normalize_s(s_uint, &self.algorithm_oid)?.to_bytes_be();
+        let normalized_s_uint = normalize_s(s_uint, &self.algorithm_oid)?;
 
         let mut res = Vec::with_capacity(64);
+        let r = r_uint.to_bytes_be();
         res.extend_from_slice(&r);
+        let s = normalized_s_uint.to_bytes_be();
         res.extend_from_slice(&s);
         Ok(res)
     }
@@ -274,7 +269,7 @@ pub fn normalize_s(s: BigUint, alg: &Oid) -> Result<BigUint, String> {
     } else {
         return Err("Unsupported algorithm".to_string());
     };
-    let n_half = &n >> 1;
+    let n_half: BigUint = &n >> 1;
     if s > n_half { Ok(&n - &s) } else { Ok(s) }
 }
 
