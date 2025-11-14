@@ -235,6 +235,7 @@ fn generate_proof(
     })?;
 
     parse_proof_with_public_inputs(&proof, num_public_inputs)
+        .map_err(|e| format!("Failed to parse proof with public inputs: {}", e))
 }
 
 fn generate_initial_witness_subroot(
