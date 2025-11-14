@@ -5,6 +5,11 @@ use bn254_blackbox_solver::{derive_generators, multi_scalar_mul};
 
 use std::sync::LazyLock;
 
+pub const KEY_IDENTIFIER_LENGTH: usize = 20;
+pub const MAX_PUBLIC_KEY_COORDINATE_LENGTH: usize = 48;
+pub const MAX_DN_LENGTH: usize = 124;
+const COMMITTED_ATTR_LENGTH: usize = 31;
+
 // From: https://github.com/noir-lang/noir/blob/075a31b4ae849374cc17a4804b1dc4976e3a3c28/acvm-repo/bn254_blackbox_solver/src/lib.rs
 // > Temporary hack, this ensure that we always use a bn254 field here
 // > without polluting the feature flags of the `acir_field` crate.
@@ -74,13 +79,14 @@ pub fn pedersen_commitment(
 /// and a random value (r) to compute a Pedersen commitment.
 /// It returns the commitment as a tuple of Fr elements (cmt_x, cmt_y, cmt_inf).
 ///
-/// The dn is expected to be a 124-byte array, key_id a 20-byte array,
+/// The dn is expected to be a `MAX_DN_LENGTH`-byte array, key_id a `KEY_IDENTIFIER_LENGTH`-byte array,
 /// pk_x and pk_y are byte arrays representing the x and y coordinates of the public key,
-/// supporting up to 48 bytes in length (to accommodate ES384 usage).
+/// supporting up to `MAX_PUBLIC_KEY_COORDINATE_LENGTH` bytes in length (to accommodate ES384 usage).
 ///
-/// Each value is converted into a field element using 31 bytes at a time, ensuring it fits within the BN254 field.
+/// Each value is converted into a field element using `COMMITTED_ATTR_LENGTH` bytes at a time, ensuring it fits within the BN254 field.
 ///
-/// Commitment is computed as:
+/// Commitment is computed as follows when we use 124 bytes for `dn` (MAX_DN_LENGTH = 124), 20 bytes for `key_id` (KEY_IDENTIFIER_LENGTH = 20),
+/// 48 bytes for each public key coordinate (MAX_PUBLIC_KEY_COORDINATE_LENGTH = 48), and 31 bytes for each committed attribute (COMMITTED_ATTR_LENGTH = 31):
 ///   cmt = pedersenCommit10(
 ///     dn[0..31],
 ///     dn[31..62],
@@ -94,35 +100,51 @@ pub fn pedersen_commitment(
 ///     r
 ///   )
 pub fn commit_attrs(
-    dn: [u8; 124],
+    dn: [u8; MAX_DN_LENGTH],
     key_id: &[u8],
     pk_x: &[u8],
     pk_y: &[u8],
     r: Fr, // TODO: change to GrumpkinFr
 ) -> Result<(Fr, Fr), String> {
-    if key_id.len() != 20 {
-        return Err("Key identifier must be 20 bytes".to_string());
+    if key_id.len() != KEY_IDENTIFIER_LENGTH {
+        return Err(format!(
+            "Key identifier must be {} bytes",
+            KEY_IDENTIFIER_LENGTH
+        ));
     }
-    if pk_x.len() > 48 || pk_y.len() > 48 {
-        return Err("Public key coordinates must be at most 48 bytes each".to_string());
+    if pk_x.len() > MAX_PUBLIC_KEY_COORDINATE_LENGTH
+        || pk_y.len() > MAX_PUBLIC_KEY_COORDINATE_LENGTH
+    {
+        return Err(format!(
+            "Public key coordinates must be at most {} bytes each",
+            MAX_PUBLIC_KEY_COORDINATE_LENGTH
+        ));
     }
-    let mut pk_x_padded = [0u8; 62];
+    let mut pk_x_padded = [0u8; 2 * COMMITTED_ATTR_LENGTH];
     pk_x_padded[..pk_x.len()].copy_from_slice(pk_x);
-    let mut pk_y_padded = [0u8; 62];
+    let mut pk_y_padded = [0u8; 2 * COMMITTED_ATTR_LENGTH];
     pk_y_padded[..pk_y.len()].copy_from_slice(pk_y);
-    let mut key_id_padded = [0u8; 31];
+    let mut key_id_padded = [0u8; COMMITTED_ATTR_LENGTH];
     key_id_padded[..key_id.len()].copy_from_slice(key_id);
 
     let scalars = vec![
-        GrumpkinFr::from_le_bytes_mod_order(&dn[0..31]),
-        GrumpkinFr::from_le_bytes_mod_order(&dn[31..62]),
-        GrumpkinFr::from_le_bytes_mod_order(&dn[62..93]),
-        GrumpkinFr::from_le_bytes_mod_order(&dn[93..124]),
+        GrumpkinFr::from_le_bytes_mod_order(&dn[0..COMMITTED_ATTR_LENGTH]),
+        GrumpkinFr::from_le_bytes_mod_order(&dn[COMMITTED_ATTR_LENGTH..2 * COMMITTED_ATTR_LENGTH]),
+        GrumpkinFr::from_le_bytes_mod_order(
+            &dn[2 * COMMITTED_ATTR_LENGTH..3 * COMMITTED_ATTR_LENGTH],
+        ),
+        GrumpkinFr::from_le_bytes_mod_order(
+            &dn[3 * COMMITTED_ATTR_LENGTH..4 * COMMITTED_ATTR_LENGTH],
+        ),
         GrumpkinFr::from_le_bytes_mod_order(&key_id_padded),
-        GrumpkinFr::from_le_bytes_mod_order(&pk_x_padded[0..31]), // pk_x[0..31]
-        GrumpkinFr::from_le_bytes_mod_order(&pk_x_padded[31..62]), // pk_x[31..48] + zero[0..14]
-        GrumpkinFr::from_le_bytes_mod_order(&pk_y_padded[0..31]), // pk_y[0..31]
-        GrumpkinFr::from_le_bytes_mod_order(&pk_y_padded[31..62]), // pk_y[31..48] + zero[0..14]
+        GrumpkinFr::from_le_bytes_mod_order(&pk_x_padded[0..COMMITTED_ATTR_LENGTH]), // pk_x[0..31]
+        GrumpkinFr::from_le_bytes_mod_order(
+            &pk_x_padded[COMMITTED_ATTR_LENGTH..2 * COMMITTED_ATTR_LENGTH],
+        ), // pk_x[31..48] + zero[0..14]
+        GrumpkinFr::from_le_bytes_mod_order(&pk_y_padded[0..COMMITTED_ATTR_LENGTH]), // pk_y[0..31]
+        GrumpkinFr::from_le_bytes_mod_order(
+            &pk_y_padded[COMMITTED_ATTR_LENGTH..2 * COMMITTED_ATTR_LENGTH],
+        ), // pk_y[31..48] + zero[0..14]
         GrumpkinFr::from_le_bytes_mod_order(&r.into_bigint().to_bytes_le()),
     ];
 
