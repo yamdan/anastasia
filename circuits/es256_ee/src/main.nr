@@ -1,8 +1,4 @@
-use es256_common::{
-    models::prepare_std_ee_extensions,
-    utils::{check_commitments, check_nyms},
-    verify::verify_signature_es256,
-};
+use es256_common::{check_commitments, check_nyms, prepare_std_ee_extensions, verify_es256_256};
 
 global MAX_TBS_LEN: u32 = 700;
 global MAX_EXTRA_EXT_LEN: u32 = 500;
@@ -32,11 +28,19 @@ fn main(
     nym: pub Field,
 ) {
     // Verify previous chain commitment
+    let mut issuer_pk_x_padded = [0; 48];
+    for i in 0..32 {
+        issuer_pk_x_padded[i] = issuer_pk_x[i];
+    }
+    let mut issuer_pk_y_padded = [0; 48];
+    for i in 0..32 {
+        issuer_pk_y_padded[i] = issuer_pk_y[i];
+    }
     check_commitments(
         issuer,
         given_authority_key_identifier,
-        issuer_pk_x,
-        issuer_pk_y,
+        issuer_pk_x_padded,
+        issuer_pk_y_padded,
         prev_cmt,
         prev_cmt_r,
     );
@@ -48,7 +52,7 @@ fn main(
     let (std_extensions, std_extensions_len) = prepare_std_ee_extensions();
 
     // Verify signature
-    verify_signature_es256::<MAX_TBS_LEN, _, _>(
+    verify_es256_256::<MAX_TBS_LEN, _, _>(
         issuer_pk_x,
         issuer_pk_y,
         sig,

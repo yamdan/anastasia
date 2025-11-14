@@ -1,0 +1,8 @@
+[package]
+name = "es_common"
+version = "0.1.1"
+type = "lib"
+authors = ["yamdan"]
+
+[dependencies]
+poseidon = { tag = "v0.1.1", git = "https://github.com/noir-lang/poseidon" }

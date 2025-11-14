@@ -11,6 +11,8 @@ use noir::{
         ProofWithPublicInputs, get_num_public_inputs_from_circuit, parse_proof_with_public_inputs,
     },
 };
+use oid_registry::{OID_SIG_ECDSA_WITH_SHA256, OID_SIG_ECDSA_WITH_SHA384};
+use std::time::Instant;
 
 use crate::{
     cert::ParsedCert,
@@ -24,7 +26,7 @@ use crate::{
 pub const MAX_EXTRA_EXTENSION_LEN_CA: usize = 30;
 pub const MAX_EXTRA_EXTENSION_LEN_EE: usize = 500;
 
-pub fn prove_subroot_ca(
+pub fn prove_subroot(
     circuit: &Circuit,
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
@@ -32,57 +34,35 @@ pub fn prove_subroot_ca(
     issuer_pk_y: &[u8],
     is_keccak_mode: bool,
 ) -> Result<(ProofWithPublicInputs, Fr, Fr, Fr), String> {
-    let mut rng = OsRng;
-    let next_cmt_r = Fr::rand(&mut rng);
-    let (next_cmt_x, next_cmt_y) = commit_attrs(
-        parsed_cert.subject,
-        parsed_cert.subject_key_identifier,
-        parsed_cert.subject_pk_x,
-        parsed_cert.subject_pk_y,
-        next_cmt_r,
-    )?;
+    let start_commitment = Instant::now();
+    let (next_cmt_x, next_cmt_y, next_cmt_r) = generate_commitment(parsed_cert)?;
+    let duration_commitment = start_commitment.elapsed();
+    println!(
+        "prove_subroot: generate_commitment took {:?}",
+        duration_commitment
+    );
 
-    let initial_witness = generate_witness_subroot_ca(
+    let start_witness = Instant::now();
+    let initial_witness = generate_initial_witness_subroot(
         parsed_cert,
         now,
-        issuer_pk_x
-            .try_into()
-            .map_err(|_| "issuer_pk_x must be 32 bytes")?,
-        issuer_pk_y
-            .try_into()
-            .map_err(|_| "issuer_pk_y must be 32 bytes")?,
+        issuer_pk_x,
+        issuer_pk_y,
         &next_cmt_x,
         &next_cmt_y,
         &next_cmt_r,
         MAX_EXTRA_EXTENSION_LEN_CA,
     )?;
+    let duration_witness = start_witness.elapsed();
+    println!(
+        "prove_subroot: generate_initial_witness took {:?}",
+        duration_witness
+    );
 
-    let proof = if is_keccak_mode {
-        prove_ultra_honk_keccak(
-            &circuit.bytecode,
-            initial_witness,
-            circuit.verification_key_keccak_mode.clone(),
-            false,
-            false,
-        )?
-    } else {
-        prove_ultra_honk(
-            &circuit.bytecode,
-            initial_witness,
-            circuit.verification_key.clone(),
-            false,
-        )?
-    };
-
-    let num_public_inputs = get_num_public_inputs_from_circuit(&circuit.bytecode).map_err(|e| {
-        format!(
-            "Failed to get number of public inputs from circuit bytecode: {}",
-            e
-        )
-    })?;
-
-    let proof_with_public_inputs = parse_proof_with_public_inputs(&proof, num_public_inputs)
-        .map_err(|e| format!("Failed to parse proof with public inputs: {}", e))?;
+    let start_proof = Instant::now();
+    let proof_with_public_inputs = generate_proof(circuit, initial_witness, is_keccak_mode)?;
+    let duration_proof = start_proof.elapsed();
+    println!("prove_subroot: generate_proof took {:?}", duration_proof);
 
     Ok((proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r))
 }
@@ -98,25 +78,20 @@ pub fn prove_ca(
     prev_cmt_r: &Fr,
     is_keccak_mode: bool,
 ) -> Result<(ProofWithPublicInputs, Fr, Fr, Fr), String> {
-    let mut rng = OsRng;
-    let next_cmt_r = Fr::rand(&mut rng);
-    let (next_cmt_x, next_cmt_y) = commit_attrs(
-        parsed_cert.subject,
-        parsed_cert.subject_key_identifier,
-        parsed_cert.subject_pk_x,
-        parsed_cert.subject_pk_y,
-        next_cmt_r,
-    )?;
+    let start_commitment = Instant::now();
+    let (next_cmt_x, next_cmt_y, next_cmt_r) = generate_commitment(parsed_cert)?;
+    let duration_commitment = start_commitment.elapsed();
+    println!(
+        "prove_ca: generate_commitment took {:?}",
+        duration_commitment
+    );
 
-    let initial_witness = generate_witness_ca(
+    let start_witness = Instant::now();
+    let initial_witness = generate_initial_witness_ca(
         parsed_cert,
         now,
-        issuer_pk_x
-            .try_into()
-            .map_err(|_| "issuer_pk_x must be 32 bytes")?,
-        issuer_pk_y
-            .try_into()
-            .map_err(|_| "issuer_pk_y must be 32 bytes")?,
+        issuer_pk_x,
+        issuer_pk_y,
         prev_cmt_x,
         prev_cmt_y,
         prev_cmt_r,
@@ -125,33 +100,16 @@ pub fn prove_ca(
         &next_cmt_r,
         MAX_EXTRA_EXTENSION_LEN_CA,
     )?;
+    let duration_witness = start_witness.elapsed();
+    println!(
+        "prove_ca: generate_initial_witness took {:?}",
+        duration_witness
+    );
 
-    let proof = if is_keccak_mode {
-        prove_ultra_honk_keccak(
-            &circuit.bytecode,
-            initial_witness,
-            circuit.verification_key_keccak_mode.clone(),
-            false,
-            false,
-        )?
-    } else {
-        prove_ultra_honk(
-            &circuit.bytecode,
-            initial_witness,
-            circuit.verification_key.clone(),
-            false,
-        )?
-    };
-
-    let num_public_inputs = get_num_public_inputs_from_circuit(&circuit.bytecode).map_err(|e| {
-        format!(
-            "Failed to get number of public inputs from circuit bytecode: {}",
-            e
-        )
-    })?;
-
-    let proof_with_public_inputs = parse_proof_with_public_inputs(&proof, num_public_inputs)
-        .map_err(|e| format!("Failed to parse proof with public inputs: {}", e))?;
+    let start_proof = Instant::now();
+    let proof_with_public_inputs = generate_proof(circuit, initial_witness, is_keccak_mode)?;
+    let duration_proof = start_proof.elapsed();
+    println!("prove_ca: generate_proof took {:?}", duration_proof);
 
     Ok((proof_with_public_inputs, next_cmt_x, next_cmt_y, next_cmt_r))
 }
@@ -170,27 +128,17 @@ pub fn prove_ee(
     context: &str,
     is_keccak_mode: bool,
 ) -> Result<(ProofWithPublicInputs, Fr), String> {
-    if context.is_empty() {
-        return Err("Context cannot be empty".to_string());
-    }
-    let context_bytes = context.as_bytes();
-    let context_field: Fr = HASH_TO_SCALAR.hash_to_scalar(context_bytes);
+    let start_nym = Instant::now();
+    let (nym, context_field) = generate_nym_and_context_field(user_sk, parsed_cert, context)?;
+    let duration_nym = start_nym.elapsed();
+    println!("prove_ee: generate_nym took {:?}", duration_nym);
 
-    let nym = generate_nym(
-        user_sk,
-        &(parsed_cert.subject_pk_x, parsed_cert.subject_pk_y),
-        &context_field,
-    )?;
-
-    let initial_witness = generate_witness_ee(
+    let start_witness = Instant::now();
+    let initial_witness = generate_initial_witness_ee(
         parsed_cert,
         now,
-        issuer_pk_x
-            .try_into()
-            .map_err(|_| "issuer_pk_x must be 32 bytes")?,
-        issuer_pk_y
-            .try_into()
-            .map_err(|_| "issuer_pk_y must be 32 bytes")?,
+        issuer_pk_x,
+        issuer_pk_y,
         prev_cmt_x,
         prev_cmt_y,
         prev_cmt_r,
@@ -202,7 +150,66 @@ pub fn prove_ee(
         &nym,
         MAX_EXTRA_EXTENSION_LEN_EE,
     )?;
+    let duration_witness = start_witness.elapsed();
+    println!(
+        "prove_ee: generate_initial_witness took {:?}",
+        duration_witness
+    );
 
+    let start_proof = Instant::now();
+    let proof_with_public_inputs = generate_proof(circuit, initial_witness, is_keccak_mode)?;
+    let duration_proof = start_proof.elapsed();
+    println!("prove_ee: generate_proof took {:?}", duration_proof);
+
+    Ok((proof_with_public_inputs, nym))
+}
+
+fn generate_commitment(parsed_cert: &ParsedCert) -> Result<(Fr, Fr, Fr), String> {
+    let mut rng = OsRng;
+    let r = Fr::rand(&mut rng);
+    let (x, y) = commit_attrs(
+        parsed_cert.subject,
+        &parsed_cert.subject_key_identifier,
+        &parsed_cert.subject_pk_x,
+        &parsed_cert.subject_pk_y,
+        r,
+    )?;
+    Ok((x, y, r))
+}
+
+fn generate_nym_and_context_field(
+    user_sk: &Fr,
+    parsed_cert: &ParsedCert,
+    context: &str,
+) -> Result<(Fr, Fr), String> {
+    if context.is_empty() {
+        return Err("Context cannot be empty".to_string());
+    }
+    let context_bytes = context.as_bytes();
+    let context_field: Fr = HASH_TO_SCALAR.hash_to_scalar(context_bytes);
+
+    if parsed_cert.subject_pk_x.len() != 32 || parsed_cert.subject_pk_y.len() != 32 {
+        return Err("End entity subject public key coordinates must be 32 bytes each".to_string());
+    }
+    let subject_pk_x = parsed_cert
+        .subject_pk_x
+        .clone()
+        .try_into()
+        .map_err(|_| "subject_pk_x must be 32 bytes")?;
+    let subject_pk_y = parsed_cert
+        .subject_pk_y
+        .clone()
+        .try_into()
+        .map_err(|_| "subject_pk_y must be 32 bytes")?;
+    let nym = generate_nym(user_sk, &(subject_pk_x, subject_pk_y), &context_field)?;
+    Ok((nym, context_field))
+}
+
+fn generate_proof(
+    circuit: &Circuit,
+    initial_witness: WitnessMap<GenericFieldElement<Fr>>,
+    is_keccak_mode: bool,
+) -> Result<ProofWithPublicInputs, String> {
     let proof = if is_keccak_mode {
         prove_ultra_honk_keccak(
             &circuit.bytecode,
@@ -227,23 +234,21 @@ pub fn prove_ee(
         )
     })?;
 
-    let proof_with_public_inputs = parse_proof_with_public_inputs(&proof, num_public_inputs)
-        .map_err(|e| format!("Failed to parse proof with public inputs: {}", e))?;
-
-    Ok((proof_with_public_inputs, nym))
+    parse_proof_with_public_inputs(&proof, num_public_inputs)
+        .map_err(|e| format!("Failed to parse proof with public inputs: {}", e))
 }
 
-fn generate_witness_subroot_ca(
+fn generate_initial_witness_subroot(
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
-    issuer_pk_x: &[u8; 32],
-    issuer_pk_y: &[u8; 32],
+    issuer_pk_x: &[u8],
+    issuer_pk_y: &[u8],
     next_cmt_x: &Fr,
     next_cmt_y: &Fr,
     next_cmt_r: &Fr, // TODO: change to lo and hi parts as GrumpkinFr
     max_extra_extension_len: usize,
 ) -> Result<WitnessMap<GenericFieldElement<Fr>>, String> {
-    let mut witness = generate_witness_common(
+    let mut witness = generate_initial_witness_common(
         parsed_cert,
         now,
         issuer_pk_x,
@@ -272,11 +277,11 @@ fn generate_witness_subroot_ca(
     Ok(witness_map)
 }
 
-fn generate_witness_ca(
+fn generate_initial_witness_ca(
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
-    issuer_pk_x: &[u8; 32],
-    issuer_pk_y: &[u8; 32],
+    issuer_pk_x: &[u8],
+    issuer_pk_y: &[u8],
     prev_cmt_x: &Fr,
     prev_cmt_y: &Fr,
     prev_cmt_r: &Fr, // TODO: change to lo and hi parts as GrumpkinFr
@@ -285,7 +290,7 @@ fn generate_witness_ca(
     next_cmt_r: &Fr, // TODO: change to lo and hi parts as GrumpkinFr
     max_extra_extension_len: usize,
 ) -> Result<WitnessMap<GenericFieldElement<Fr>>, String> {
-    let mut witness = generate_witness_common(
+    let mut witness = generate_initial_witness_common(
         parsed_cert,
         now,
         issuer_pk_x,
@@ -317,11 +322,11 @@ fn generate_witness_ca(
     Ok(witness_map)
 }
 
-fn generate_witness_ee(
+fn generate_initial_witness_ee(
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
-    issuer_pk_x: &[u8; 32],
-    issuer_pk_y: &[u8; 32],
+    issuer_pk_x: &[u8],
+    issuer_pk_y: &[u8],
     prev_cmt_x: &Fr,
     prev_cmt_y: &Fr,
     prev_cmt_r: &Fr, // TODO: change to lo and hi parts as GrumpkinFr
@@ -331,7 +336,7 @@ fn generate_witness_ee(
     nym: &Fr,
     max_extra_extension_len: usize,
 ) -> Result<WitnessMap<GenericFieldElement<Fr>>, String> {
-    let mut witness = generate_witness_common(
+    let mut witness = generate_initial_witness_common(
         parsed_cert,
         now,
         issuer_pk_x,
@@ -355,11 +360,11 @@ fn generate_witness_ee(
     Ok(witness_map)
 }
 
-fn generate_witness_common(
+fn generate_initial_witness_common(
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
-    issuer_pk_x: &[u8; 32],
-    issuer_pk_y: &[u8; 32],
+    issuer_pk_x: &[u8],
+    issuer_pk_y: &[u8],
     max_extra_extension_len: usize,
 ) -> Result<Vec<Fr>, String> {
     let mut witness: Vec<Fr> = Vec::new();
@@ -373,11 +378,27 @@ fn generate_witness_common(
         second: now.second() as u8,
     };
 
+    let issuer_pk_x = issuer_pk_x
+        .try_into()
+        .map_err(|e| format!("issuer_pk_x must be 32 bytes: failed to convert: {}", e))?;
+    let issuer_pk_y = issuer_pk_y
+        .try_into()
+        .map_err(|e| format!("issuer_pk_y must be 32 bytes: failed to convert: {}", e))?;
+
     witness.extend(from_u8_array_to_fr_vec(issuer_pk_x));
     witness.extend(from_u8_array_to_fr_vec(issuer_pk_y));
 
-    // TODO: support other signature algorithms rather than just ES256
-    let signature = parsed_cert.extract_normalized_es256_sig()?;
+    // TODO: support other signature algorithms
+    let signature = if parsed_cert.algorithm_oid == OID_SIG_ECDSA_WITH_SHA256
+        || parsed_cert.algorithm_oid == OID_SIG_ECDSA_WITH_SHA384
+    {
+        parsed_cert.extract_normalized_ecdsa_sig()?
+    } else {
+        return Err(format!(
+            "Unsupported signature algorithm OID: {}",
+            parsed_cert.algorithm_oid
+        ));
+    };
     witness.extend(from_u8_array_to_fr_vec(&signature));
 
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.serial_number));

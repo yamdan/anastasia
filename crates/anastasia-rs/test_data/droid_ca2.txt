@@ -1,0 +1,64 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            03:88:26:67:60:65:89:96:86:0d
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: serialNumber=f92009e853b6b045
+        Validity
+            Not Before: Jan 26 22:47:52 2022 GMT
+            Not After : Jan 22 22:47:52 2037 GMT
+        Subject: O=Google LLC, CN=Droid CA2
+        Subject Public Key Info:
+            Public Key Algorithm: id-ecPublicKey
+                Public-Key: (384 bit)
+                pub:
+                    04:ba:9a:71:6d:9b:c9:83:03:57:5d:ee:aa:40:a8:
+                    9d:5e:a5:2d:d6:8a:13:f0:ce:90:fb:2b:16:23:0a:
+                    5d:b8:cd:84:6a:54:93:f2:ff:c2:cb:62:4d:d7:46:
+                    aa:4d:f5:12:4e:12:61:6b:fa:02:b4:6f:85:f5:35:
+                    14:be:23:9c:87:a4:5a:86:ba:63:57:20:5d:86:8a:
+                    4c:f4:c1:43:94:27:e4:88:29:0f:08:f1:ae:d8:e0:
+                    cc:8f:b3:bf:6c:a9:e4
+                ASN1 OID: secp384r1
+                NIST CURVE: P-384
+        X509v3 extensions:
+            X509v3 Subject Key Identifier:
+                BB:F8:36:AD:89:AE:6C:E2:E5:9E:94:F0:D5:B2:D7:D2:7A:E4:7C:41
+            X509v3 Authority Key Identifier:
+                36:61:E1:00:7C:88:05:09:51:8B:44:6C:47:FF:1A:4C:C9:EA:4F:12
+            X509v3 Basic Constraints: critical
+                CA:TRUE, pathlen:2
+            X509v3 Key Usage: critical
+                Certificate Sign, CRL Sign
+    Signature Algorithm: sha256WithRSAEncryption
+    Signature Value:
+        81:71:52:21:47:61:f3:9b:aa:b2:4c:d1:e7:97:23:e9:19:15:
+        3e:7b:c0:1a:65:86:af:93:12:37:7e:ef:c9:c8:59:b2:af:28:
+        65:05:96:fb:7b:22:e5:c7:cd:9e:d8:25:db:52:0e:ce:e5:16:
+        d0:ac:c5:77:6b:58:49:8b:72:4c:51:0c:24:5c:b6:1d:c4:6f:
+        59:5e:15:eb:29:4b:7e:4d:00:e7:74:1d:e9:20:f2:fc:b6:1b:
+        7d:4e:58:07:b9:eb:b9:7a:35:d2:e3:ab:2b:6e:91:c1:78:28:
+        0c:c7:21:1c:68:16:2b:cd:fa:d9:64:10:99:a0:ec:44:30:f4:
+        3d:b0:3e:ae:0a:a4:1b:6e:83:8a:09:13:9d:d1:f5:b2:c2:4f:
+        9c:12:56:3e:b7:86:5c:c4:63:78:42:d0:da:12:02:da:74:91:
+        db:61:a3:0f:3a:50:55:73:2e:ac:44:8d:1d:81:d4:c3:c2:32:
+        5c:88:7e:81:b2:06:09:32:01:68:5d:da:05:8d:ea:95:5e:43:
+        c4:59:a0:ee:60:7c:f9:90:b8:2b:27:f2:6f:64:bf:f7:5c:94:
+        53:16:2d:a3:9a:c2:04:b8:93:20:27:f6:24:62:db:26:23:10:
+        02:34:55:58:bb:bb:75:c3:80:15:67:a3:0b:58:02:7e:20:99:
+        ae:6a:e0:17:57:81:b5:9b:51:36:8c:55:55:59:b1:ea:57:29:
+        4a:43:a4:ac:c4:7e:cb:3a:23:0d:33:c7:61:aa:97:be:73:44:
+        3b:20:ca:e0:f2:35:40:f3:ba:db:c3:33:0f:26:80:99:85:91:
+        68:e5:92:a9:15:33:67:62:0d:9c:9d:ce:68:22:f1:ba:f6:b0:
+        94:cb:74:6e:25:53:0b:de:74:86:8b:82:39:c8:0c:41:b5:27:
+        cf:f9:c5:c3:d5:40:91:60:45:fd:e6:e5:71:19:07:88:63:1b:
+        75:9e:ff:8f:69:f8:94:55:41:2a:44:d7:e4:33:1b:4a:da:62:
+        97:4d:b3:10:54:3b:ee:35:76:24:28:ee:a0:bb:4b:cc:36:27:
+        e4:cc:78:67:69:28:68:c2:23:32:a3:50:30:32:db:e8:0e:99:
+        97:59:69:c6:a7:14:df:f4:dd:2c:9d:6c:a5:47:57:46:ff:35:
+        84:56:31:ae:15:69:96:e8:98:a3:8d:df:c2:07:d9:ea:7c:a5:
+        d8:fe:fa:79:92:21:77:96:a5:01:3c:2e:73:04:76:75:05:8e:
+        f0:f3:a7:47:f4:10:b4:97:55:6d:be:e7:16:e5:f9:f7:2a:5a:
+        09:8e:ba:99:94:e3:e6:f1:34:92:ed:92:72:e8:e3:d0:60:e7:
+        0f:63:36:7e:d3:ee:b9:05
