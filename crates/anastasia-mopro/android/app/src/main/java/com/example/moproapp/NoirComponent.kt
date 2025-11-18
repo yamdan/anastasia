@@ -24,6 +24,7 @@ import uniffi.mopro.CircuitMeta
 import uniffi.mopro.generateUserSk
 import uniffi.mopro.verifyNoirProof
 import uniffi.mopro.proveChainBase64
+import uniffi.mopro.proveChainComposedBase64
 import uniffi.mopro.setup
 
 fun bytes(vararg ints: Int): ByteArray = ints.map { it.toByte() }.toByteArray()
@@ -44,15 +45,9 @@ fun NoirComponent() {
     var statusMessage by remember { mutableStateOf("Ready to generate proof") }
 
     val srsFile = getFilePathFromAssets("default_20.srs")
-    val subrootCircuitFile = getFilePathFromAssets("es384_subroot/0.1.0/circuit.json")
-    val subrootVkFile = getFilePathFromAssets("es384_subroot/0.1.0/vk")
-    val subrootVkKeccakFile = getFilePathFromAssets("es384_subroot/0.1.0/keccak.vk")
-    val caCircuitFile = getFilePathFromAssets("es256_ca/0.2.0/circuit.json")
-    val caVkFile = getFilePathFromAssets("es256_ca/0.2.0/vk")
-    val caVkKeccakFile = getFilePathFromAssets("es256_ca/0.2.0/keccak.vk")
-    val eeCircuitFile = getFilePathFromAssets("es256_ee/0.2.0/circuit.json")
-    val eeVkFile = getFilePathFromAssets("es256_ee/0.2.0/vk")
-    val eeVkKeccakFile = getFilePathFromAssets("es256_ee/0.2.0/keccak.vk")
+    val circuitFile = getFilePathFromAssets("es384_composed/0.1.0/circuit.json")
+    val vkFile = getFilePathFromAssets("es384_composed/0.1.0/vk")
+    val vkKeccakFile = getFilePathFromAssets("es384_composed/0.1.0/keccak.vk")
 
     val rootCertFile = getFilePathFromAssets("droid_ca2.der")
     val subrootCertFile = getFilePathFromAssets("droid_ca3.der")
@@ -105,27 +100,12 @@ fun NoirComponent() {
 
                                 val startTime = System.currentTimeMillis()
                                 statusMessage = "Generating proof..."
-                                val result = proveChainBase64(
+                                val result = proveChainComposedBase64(
                                     CircuitMeta(
-                                        "es384_subroot/0.1.0",
-                                        subrootCircuitFile,
-                                        subrootVkFile,
-                                        subrootVkKeccakFile,
-                                        srsFile,
-                                    ),
-                                    listOf(
-                                        CircuitMeta(
-                                            "es256_ca/0.2.0",
-                                            caCircuitFile,
-                                            caVkFile,
-                                            caVkKeccakFile,
-                                            srsFile,
-                                        )
-                                    ), CircuitMeta(
-                                        "es256_ee/0.2.0",
-                                        eeCircuitFile,
-                                        eeVkFile,
-                                        eeVkKeccakFile,
+                                        "es384_composed/0.1.0",
+                                        circuitFile,
+                                        vkFile,
+                                        vkKeccakFile,
                                         srsFile,
                                     ),
                                     rootCert,
@@ -182,7 +162,7 @@ fun NoirComponent() {
 
                                         val startTime = System.currentTimeMillis()
                                         val result = verifyNoirProof(
-                                            subrootCircuitFile, proof, onChain, vk, lowMemoryMode
+                                            circuitFile, proof, onChain, vk, lowMemoryMode
                                         )
                                         val endTime = System.currentTimeMillis()
                                         val duration = endTime - startTime
