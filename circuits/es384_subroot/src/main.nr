@@ -6,8 +6,7 @@ global MAX_EXTRA_EXT_LEN: u32 = 30;
 fn main(
     issuer_pk_x: pub [u8; 48],
     issuer_pk_y: pub [u8; 48],
-    sig_r: [u8; 48],
-    sig_s: [u8; 48],
+    sig: [u8; 96],
     serial_number: [u8; 20],
     serial_number_len: u32,
     issuer: pub [u8; 124],
@@ -62,8 +61,7 @@ fn main(
     verify_es384_256::<MAX_TBS_LEN, _, _>(
         issuer_pk_x,
         issuer_pk_y,
-        sig_r,
-        sig_s,
+        sig,
         serial_number,
         serial_number_len,
         issuer,
