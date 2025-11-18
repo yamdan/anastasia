@@ -9,6 +9,7 @@ global MAX_TBS_LEN2: u32 = 700;
 global MAX_EXTRA_EXT_LEN2: u32 = 500;
 
 fn main(
+    // for subroot
     issuer_pk_x: pub [u8; 32],
     issuer_pk_y: pub [u8; 32],
     sig: [u8; 64],
@@ -33,6 +34,7 @@ fn main(
     authority_key_identifier_index: u32,
     basic_constraints_ca_index: u32,
     key_usage_key_cert_sign_index: u32,
+    // for ee
     sig2: [u8; 64],
     serial_number2: [u8; 20],
     serial_number_len2: u32,
