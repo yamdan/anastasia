@@ -712,7 +712,7 @@ pub fn prove_chain_composed_as_key_attestation_jwt(
 
     let header = serde_json::json!({
         "typ": "key-attestation+jwt",
-        "alg": "ANASTASIA-AKA",
+        "alg": "ANASTASIA-AKA-COM",
         "x5c": x5c,
     });
 
