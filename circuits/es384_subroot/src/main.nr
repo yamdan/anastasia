@@ -10,7 +10,7 @@ fn main(
     serial_number: [u8; 20],
     serial_number_len: u32,
     issuer: pub [u8; 124],
-    issuer_len: u32,
+    issuer_len: pub u32,
     subject: [u8; 124],
     subject_len: u32,
     subject_pk_x: [u8; 32],
