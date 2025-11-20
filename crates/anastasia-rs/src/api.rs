@@ -890,12 +890,13 @@ mod tests {
     #[serial]
     fn test_prove_es256_chain_ca_ee_b64() {
         let version = "0.2.0";
+        let version_subroot = "0.3.0";
 
         let meta_subroot = CircuitMeta::new(
-            format!("es256_subroot/{version}"),
-            format!("data/es256_subroot/{version}/circuit.json"),
-            format!("data/es256_subroot/{version}/vk"),
-            format!("data/es256_subroot/{version}/keccak.vk"),
+            format!("es256_subroot/{version_subroot}"),
+            format!("data/es256_subroot/{version_subroot}/circuit.json"),
+            format!("data/es256_subroot/{version_subroot}/vk"),
+            format!("data/es256_subroot/{version_subroot}/keccak.vk"),
             format!("data/default_20.srs"),
         );
         let meta_ee = CircuitMeta::new(
@@ -940,12 +941,13 @@ mod tests {
     #[serial]
     fn test_prove_es256_chain_ca_ee_key_attestation_jwt() {
         let version = "0.2.0";
+        let version_subroot = "0.3.0";
 
         let meta_subroot = CircuitMeta::new(
-            format!("es256_subroot/{version}"),
-            format!("data/es256_subroot/{version}/circuit.json"),
-            format!("data/es256_subroot/{version}/vk"),
-            format!("data/es256_subroot/{version}/keccak.vk"),
+            format!("es256_subroot/{version_subroot}"),
+            format!("data/es256_subroot/{version_subroot}/circuit.json"),
+            format!("data/es256_subroot/{version_subroot}/vk"),
+            format!("data/es256_subroot/{version_subroot}/keccak.vk"),
             format!("data/default_20.srs"),
         );
         let meta_ee = CircuitMeta::new(
@@ -985,7 +987,7 @@ mod tests {
         let header_b64 = result.split('.').next().unwrap();
         let header_bytes = URL_SAFE_NO_PAD.decode(header_b64).unwrap();
         let expected_header = format!(
-            "{{\"alg\":\"ANASTASIA-AKA\",\"typ\":\"key-attestation+jwt\",\"x5c\":[\"es256_ee/{version}\",\"es256_subroot/{version}\",\"MIIB2DCCAV2gAwIBAgIUAJ19meQCjvEEFLN5qjsLMf1cfVMwCgYIKoZIzj0EAwMwKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EyMB4XDTI1MTAyODE4MzQ1N1oXDTI2MDEwNjE4MzQ1NlowKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIGcwn1GkNtohhe4Zx2DdCmI8gv7W5usAT+9gBEM0CEcY3YDagSgiuAjKaANz6hRpevzIEdCdZ3UtrnHAQF5OqNjMGEwDgYDVR0PAQH/BAQDAgIEMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFIk/1d9OYGmE8ndhdTiMRMp8UfBMMB8GA1UdIwQYMBaAFLv4Nq2Jrmzi5Z6U8NWy19J65HxBMAoGCCqGSM49BAMDA2kAMGYCMQDFQ5kHySB6Gbk4wNZ5URlBDK+wO6xVe3m4QEsxbGGB/THfNGRN2E9HvlzzxoyAs9kCMQDOzYdB2aMFZLUkPy+Ije0VVyfVG/G/Zip8TTghDWIgsyoh776VHEp+PddfMAkGqYQ=\"]}}"
+            "{{\"alg\":\"ANASTASIA-AKA\",\"typ\":\"key-attestation+jwt\",\"x5c\":[\"es256_ee/{version}\",\"es256_subroot/{version_subroot}\",\"MIIB2DCCAV2gAwIBAgIUAJ19meQCjvEEFLN5qjsLMf1cfVMwCgYIKoZIzj0EAwMwKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EyMB4XDTI1MTAyODE4MzQ1N1oXDTI2MDEwNjE4MzQ1NlowKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQIGcwn1GkNtohhe4Zx2DdCmI8gv7W5usAT+9gBEM0CEcY3YDagSgiuAjKaANz6hRpevzIEdCdZ3UtrnHAQF5OqNjMGEwDgYDVR0PAQH/BAQDAgIEMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFIk/1d9OYGmE8ndhdTiMRMp8UfBMMB8GA1UdIwQYMBaAFLv4Nq2Jrmzi5Z6U8NWy19J65HxBMAoGCCqGSM49BAMDA2kAMGYCMQDFQ5kHySB6Gbk4wNZ5URlBDK+wO6xVe3m4QEsxbGGB/THfNGRN2E9HvlzzxoyAs9kCMQDOzYdB2aMFZLUkPy+Ije0VVyfVG/G/Zip8TTghDWIgsyoh776VHEp+PddfMAkGqYQ=\"]}}"
         );
         assert_eq!(String::from_utf8_lossy(&header_bytes), expected_header);
 
@@ -1012,7 +1014,7 @@ mod tests {
     #[serial]
     fn test_prove_es384_256_chain_b64() {
         let version = "0.2.0";
-        let version_subroot = "0.1.1";
+        let version_subroot = "0.2.0";
 
         let meta_subroot = CircuitMeta::new(
             format!("es384_subroot/{version_subroot}"),
@@ -1072,7 +1074,7 @@ mod tests {
     #[serial]
     fn test_prove_es384_256_chain_key_attestation_jwt() {
         let version = "0.2.0";
-        let version_subroot = "0.1.1";
+        let version_subroot = "0.2.0";
 
         let meta_subroot = CircuitMeta::new(
             format!("es384_subroot/{version_subroot}"),

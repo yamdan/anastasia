@@ -80,7 +80,7 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             val leafCert = chain[0]
 
             // TODO: avoid hardcoded circuit IDs
-            val subrootCircuit = selectAppropriateCircuit(application.applicationContext, "es384_subroot/0.1.0")
+            val subrootCircuit = selectAppropriateCircuit(application.applicationContext, "es384_subroot/0.2.0")
             val caCircuits = listOf(selectAppropriateCircuit(application.applicationContext, "es256_ca/0.2.0"))
             val leafCircuit = selectAppropriateCircuit(application.applicationContext, "es256_ee/0.2.0")
 
@@ -110,7 +110,7 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             val leafCert = chain[0]
 
             // TODO: avoid hardcoded circuit IDs
-            val subrootCircuit = selectAppropriateCircuit(application.applicationContext, "es256_subroot/0.2.0")
+            val subrootCircuit = selectAppropriateCircuit(application.applicationContext, "es256_subroot/0.3.0")
             val leafCircuit = selectAppropriateCircuit(application.applicationContext, "es256_ee/0.2.0")
 
             proofStartTime = System.currentTimeMillis()
