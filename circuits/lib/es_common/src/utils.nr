@@ -26,6 +26,20 @@ pub fn encode_length(length: u32) -> ([u8; 3], u32) {
     (len_encoded, len_encoded_size)
 }
 
+pub fn encode_length_1(length: u32) -> u8 {
+    assert(length <= 127, "Length must be <= 127");
+    length as u8
+}
+
+pub fn encode_length_2(length: u32) -> [u8; 2] {
+    assert(length <= 255, "Length must be <= 255");
+    [0x81, length as u8]
+}
+
+pub fn encode_length_3(length: u32) -> [u8; 3] {
+    assert(length <= 65535, "Length must be <= 65535");
+    [0x82, (length >> 8) as u8, length as u8]
+}
 pub struct UtcTime {
     year: u16,
     month: u8,

@@ -1,0 +1,11 @@
+[package]
+name = "es384_composed_aka"
+version = "0.1.0"
+type = "bin"
+authors = ["yamdan"]
+
+[dependencies]
+es256_common = { path = "../lib/es256_common" }
+es256_strongbox = { path = "../lib/es256_strongbox" }
+es384_common = { path = "../lib/es384_common" }
+es384_droid_ca3 = { path = "../lib/es384_droid_ca3" }
