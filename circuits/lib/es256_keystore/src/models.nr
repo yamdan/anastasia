@@ -111,7 +111,7 @@ pub fn prepare_extensions_header(
     (extensions_header, extensions_header_len)
 }
 
-pub fn prepare_tbs(
+pub fn reserialize(
     issuer: [u8; ISSUER_LEN],
     subject_pk_x: [u8; 32],
     subject_pk_y: [u8; 32],

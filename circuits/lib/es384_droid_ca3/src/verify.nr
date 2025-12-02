@@ -3,7 +3,7 @@ use bignum::BigNum;
 use noir_ecdsa::ecdsa::verify_secp384r1_ecdsa;
 use sha512::sha384::sha384_var;
 
-use crate::models::prepare_tbs;
+use crate::models::reserialize;
 use es_common::utils::to_bignum_limbs;
 
 pub fn verify(
@@ -21,7 +21,7 @@ pub fn verify(
     now: [u8; 7],
 ) {
     // Re-Serialize
-    let (tbs, tbs_len) = prepare_tbs(
+    let (tbs, tbs_len) = reserialize(
         serial_number,
         serial_number_len,
         subject_pk_x,

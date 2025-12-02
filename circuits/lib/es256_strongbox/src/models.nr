@@ -132,7 +132,7 @@ pub fn prepare_extensions_header(
     (extensions_header, extensions_header_len)
 }
 
-pub fn prepare_tbs(
+pub fn reserialize(
     serial_number: [u8; MAX_SERIAL_NUMBER_LEN],
     serial_number_len: u32,
     subject: [u8; SUBJECT_LEN],

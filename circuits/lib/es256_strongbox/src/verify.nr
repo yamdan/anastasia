@@ -1,7 +1,7 @@
 use sha256::sha256_var;
 use std::ecdsa_secp256r1::verify_signature;
 
-use super::models::{MAX_EXTRA_EXT_LEN, prepare_tbs, SUBJECT_LEN};
+use super::models::{MAX_EXTRA_EXT_LEN, reserialize, SUBJECT_LEN};
 
 pub fn verify(
     issuer_pk_x: [u8; 32],
@@ -21,7 +21,7 @@ pub fn verify(
     now: [u8; 7],
 ) {
     // Re-Serialize
-    let (tbs, tbs_len) = prepare_tbs(
+    let (tbs, tbs_len) = reserialize(
         serial_number,
         serial_number_len,
         subject,

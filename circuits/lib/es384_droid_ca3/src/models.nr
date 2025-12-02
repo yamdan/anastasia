@@ -102,7 +102,7 @@ pub fn prepare_std_extensions(
     std_extensions
 }
 
-pub fn prepare_tbs(
+pub fn reserialize(
     serial_number: [u8; MAX_SERIAL_NUMBER_LEN],
     serial_number_len: u32,
     subject_pk_x: [u8; 32],
