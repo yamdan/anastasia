@@ -160,7 +160,6 @@ pub fn prepare_tbs(
         + STD_EXT_LEN
         + extra_extension_len;
     assert(tbs_len <= MAX_TBS_LEN, "tbsCertificate length exceeds MAX_TBS_LEN");
-
     let tbs_value_len = tbs_len - 4;
     // Assume tbsCertificate length fits in 2 bytes
     assert(tbs_value_len >= 256);
