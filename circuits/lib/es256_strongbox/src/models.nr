@@ -1,13 +1,15 @@
 use es_common::{
     models::{
         authority_key_identifier_extension, basic_constraints_ca_extension,
-        key_usage_key_cert_sign_extension, subject_key_identifier_extension,
+        key_usage_key_cert_sign_extension, prepare_serial_number,
+        prepare_subject_public_key_info_es256, prepare_validity, subject_key_identifier_extension,
     },
-    utils::{encode_length, encode_length_3},
+    utils::{encode_length, encode_length_3, UtcTime},
 };
 
 global VERSION_LEN: u32 = 5;
-global MAX_SERIAL_NUMBER_LEN: u32 = 22;
+global MAX_SERIAL_NUMBER_LEN: u32 = 20;
+global MAX_ENCODED_SERIAL_NUMBER_LEN: u32 = MAX_SERIAL_NUMBER_LEN + 2;
 global SIGNATURE_LEN: u32 = 12;
 global ISSUER_LEN: u32 = 43;
 pub global SUBJECT_LEN: u32 = 65; // TODO: adjust subject length
@@ -19,7 +21,7 @@ global KEY_IDENTIFIER_LEN: u32 = 20;
 pub global MAX_EXTRA_EXT_LEN: u32 = 30;
 global MAX_TBS_LEN: u32 = 4
     + VERSION_LEN
-    + MAX_SERIAL_NUMBER_LEN
+    + MAX_ENCODED_SERIAL_NUMBER_LEN
     + SIGNATURE_LEN
     + ISSUER_LEN
     + VALIDITY_LEN
@@ -34,7 +36,7 @@ global FIXED_LEN_CHUNK_0_LEN: u32 = 4 + VERSION_LEN;
 
 // Variable length chunk 0: serial number
 global VAR_LEN_CHUNK_0_START_LOWER_BOUND: u32 = FIXED_LEN_CHUNK_0_LEN;
-global VAR_LEN_CHUNK_0_END_UPPER_BOUND: u32 = FIXED_LEN_CHUNK_0_LEN + MAX_SERIAL_NUMBER_LEN;
+global VAR_LEN_CHUNK_0_END_UPPER_BOUND: u32 = FIXED_LEN_CHUNK_0_LEN + MAX_ENCODED_SERIAL_NUMBER_LEN;
 
 // Fixed length chunk 1: signature, issuer, validity, subject, subject_public_key_info
 global FIXED_LEN_CHUNK_1_LEN: u32 =
@@ -133,14 +135,31 @@ pub fn prepare_extensions_header(
 pub fn prepare_tbs(
     serial_number: [u8; MAX_SERIAL_NUMBER_LEN],
     serial_number_len: u32,
-    validity: [u8; VALIDITY_LEN],
     subject: [u8; SUBJECT_LEN],
-    subject_public_key_info: [u8; SPKI_LEN],
+    subject_pk_x: [u8; 32],
+    subject_pk_y: [u8; 32],
     subject_key_identifier: [u8; KEY_IDENTIFIER_LEN],
     authority_key_identifier: [u8; KEY_IDENTIFIER_LEN],
     extra_extension: [u8; MAX_EXTRA_EXT_LEN],
     extra_extension_len: u32,
+    not_before: [u8; 7],
+    not_after: [u8; 7],
+    now: [u8; 7],
 ) -> ([u8; MAX_TBS_LEN], u32) {
+    // Prepare serial number
+    let (serial_number, serial_number_len) =
+        prepare_serial_number(serial_number, serial_number_len);
+
+    // Prepare validity
+    let not_before = UtcTime::from_bytes(not_before);
+    let not_after = UtcTime::from_bytes(not_after);
+    let now = UtcTime::from_bytes(now);
+    let (validity, _validity_len) = prepare_validity(not_before, not_after, now);
+
+    // Prepare subject_public_key_info
+    let (subject_public_key_info, _subject_public_key_info_len) =
+        prepare_subject_public_key_info_es256(subject_pk_x, subject_pk_y);
+
     // Prepare extensions header
     let (extensions_header, extensions_header_len) =
         prepare_extensions_header(STD_EXT_LEN, extra_extension_len);
@@ -238,8 +257,8 @@ pub fn prepare_tbs(
     for i in 0..MAX_EXTRA_EXT_LEN {
         if i < extra_extension_len {
             fixed_len_chunk_2_bytes[fixed_len_chunk_2_index] = extra_extension[i];
-            fixed_len_chunk_2_index += 1;
         }
+        fixed_len_chunk_2_index += 1;
     }
 
     println("es256_strongbox::models::prepare_tbs debug info:");

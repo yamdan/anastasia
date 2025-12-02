@@ -1,19 +1,15 @@
 use sha256::sha256_var;
 use std::ecdsa_secp256r1::verify_signature;
 
-use super::models::{MAX_EXTRA_EXT_LEN, prepare_tbs, SUBJECT_LEN};
+use super::models::{ISSUER_LEN, MAX_EXTRA_EXT_LEN, prepare_tbs};
 
 pub fn verify(
     issuer_pk_x: [u8; 32],
     issuer_pk_y: [u8; 32],
     sig: [u8; 64],
-    serial_number: [u8; 20],
-    serial_number_len: u32,
-    subject: [u8; SUBJECT_LEN],
+    issuer: [u8; ISSUER_LEN],
     subject_pk_x: [u8; 32],
     subject_pk_y: [u8; 32],
-    subject_key_identifier: [u8; 20],
-    authority_key_identifier: [u8; 20],
     extra_extension: [u8; MAX_EXTRA_EXT_LEN],
     extra_extension_len: u32,
     not_before: [u8; 7],
@@ -22,13 +18,9 @@ pub fn verify(
 ) {
     // Re-Serialize
     let (tbs, tbs_len) = prepare_tbs(
-        serial_number,
-        serial_number_len,
-        subject,
+        issuer,
         subject_pk_x,
         subject_pk_y,
-        subject_key_identifier,
-        authority_key_identifier,
         extra_extension,
         extra_extension_len,
         not_before,

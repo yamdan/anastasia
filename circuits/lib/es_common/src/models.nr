@@ -1,4 +1,4 @@
-use super::utils::{encode_length, UtcTime};
+use super::utils::{encode_length, encode_length_1, UtcTime};
 
 // RFC 5280, Section 4.1.2.2
 // "Given the uniqueness requirements above, serial numbers can be
@@ -13,11 +13,11 @@ pub fn prepare_serial_number(
 ) -> ([u8; MAX_SERIAL_NUMBER_LEN + 2], u32) {
     assert(serial_number_len <= MAX_SERIAL_NUMBER_LEN, "Serial number length exceeds maximum");
 
-    let serial_number_len_bytes: [u8; 1] = (serial_number_len as Field).to_be_bytes();
+    let serial_number_len_bytes = encode_length_1(serial_number_len);
 
     let mut serial_number = [0; MAX_SERIAL_NUMBER_LEN + 2];
     serial_number[0] = 0x02; // ASN.1 INTEGER tag
-    serial_number[1] = serial_number_len_bytes[0]; // Length of the serial number
+    serial_number[1] = serial_number_len_bytes; // Length of the serial number
     for i in 0..MAX_SERIAL_NUMBER_LEN {
         if i < serial_number_len {
             serial_number[i + 2] = given_serial_number[i];

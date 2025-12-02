@@ -1,8 +1,7 @@
-use es256_common::{check_nyms, prepare_std_ee_extensions, verify_es256_256};
+use es256_common::check_nyms;
 
 global SUBJECT_LEN_CA: u32 = 65; // TODO: adjust subject length
 global MAX_EXTRA_EXT_LEN_CA: u32 = 30;
-global MAX_TBS_LEN_EE: u32 = 700;
 global MAX_EXTRA_EXT_LEN_EE: u32 = 500;
 
 fn main(
@@ -27,8 +26,6 @@ fn main(
     serial_number_ca: [u8; 20],
     serial_number_len_ca: u32,
     subject_ca: [u8; SUBJECT_LEN_CA],
-    subject_ca_old: [u8; 124],
-    subject_len_ca: u32,
     subject_pk_x_ca: [u8; 32],
     subject_pk_y_ca: [u8; 32],
     extra_extension_ca: [u8; MAX_EXTRA_EXT_LEN_CA],
@@ -38,10 +35,6 @@ fn main(
     subject_key_identifier_ca: [u8; 20],
     // for ee (Android Key Store)
     sig_ee: [u8; 64],
-    serial_number_ee: [u8; 20],
-    serial_number_len_ee: u32,
-    subject_ee: [u8; 124],
-    subject_len_ee: u32,
     subject_pk_x_ee: [u8; 32],
     subject_pk_y_ee: [u8; 32],
     extra_extension_ee: [u8; MAX_EXTRA_EXT_LEN_EE],
@@ -85,31 +78,21 @@ fn main(
         now,
     );
 
-    // Verify pseudonym
-    check_nyms(subject_pk_x_ee, subject_pk_y_ee, user_sk, context, nym);
-
-    // Prepare standard extensions
-    let (std_extensions_ee, std_extensions_len_ee) = prepare_std_ee_extensions();
-
     // Verify ee cert
-    verify_es256_256::<MAX_TBS_LEN_EE, _, _>(
+    es256_keystore::verify(
         subject_pk_x_ca,
         subject_pk_y_ca,
         sig_ee,
-        serial_number_ee,
-        serial_number_len_ee,
-        subject_ca_old,
-        subject_len_ca,
-        subject_ee,
-        subject_len_ee,
+        subject_ca,
         subject_pk_x_ee,
         subject_pk_y_ee,
-        std_extensions_ee,
-        std_extensions_len_ee,
         extra_extension_ee,
         extra_extension_len_ee,
         not_before_ee,
         not_after_ee,
         now,
-    )
+    );
+
+    // Verify pseudonym
+    check_nyms(subject_pk_x_ee, subject_pk_y_ee, user_sk, context, nym);
 }
