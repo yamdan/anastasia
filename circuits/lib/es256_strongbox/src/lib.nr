@@ -1,7 +1,4 @@
 pub mod models;
 mod verify;
 
-pub use es_common::{
-    check_commitments, check_nyms, prepare_std_ca_extensions, prepare_std_ee_extensions,
-};
 pub use verify::verify;
