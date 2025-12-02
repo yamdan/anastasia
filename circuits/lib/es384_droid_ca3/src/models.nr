@@ -30,9 +30,9 @@ global MAX_TBS_LEN: u32 = 4
 // Fixed length chunk 0: header, version
 global FIXED_LEN_CHUNK_0_LEN: u32 = 4 + VERSION_LEN;
 
-// Variable length chunk 1: serial number
-global VAR_LEN_CHUNK_1_START: u32 = FIXED_LEN_CHUNK_0_LEN;
-global VAR_LEN_CHUNK_1_END: u32 = FIXED_LEN_CHUNK_0_LEN + MAX_SERIAL_NUMBER_LEN;
+// Variable length chunk 0: serial number
+global VAR_LEN_CHUNK_0_START_LOWER_BOUND: u32 = FIXED_LEN_CHUNK_0_LEN;
+global VAR_LEN_CHUNK_0_END_UPPER_BOUND: u32 = FIXED_LEN_CHUNK_0_LEN + MAX_SERIAL_NUMBER_LEN;
 
 // Fixed length chunk 1: signature, issuer, validity, subject, subject_public_key_info, extensions header, standard extensions, extra extension
 global FIXED_LEN_CHUNK_1_LEN: u32 = SIGNATURE_LEN
@@ -131,18 +131,6 @@ pub fn prepare_tbs(
     // Fixed length chunk 0: header, version
     let fixed_len_chunk_0_start = 0;
     let fixed_len_chunk_0_end = fixed_len_chunk_0_start + FIXED_LEN_CHUNK_0_LEN;
-
-    // Fixed length chunk 1: signature, issuer, validity, subject, subject_public_key_info, extensions header, standard extensions, extra extension
-    let fixed_len_chunk_1_start = fixed_len_chunk_0_end + serial_number_len;
-    let fixed_len_chunk_1_end = fixed_len_chunk_1_start + FIXED_LEN_CHUNK_1_LEN;
-
-    println(
-        f"var_len_chunk_1_start: {VAR_LEN_CHUNK_1_START}, var_len_chunk_1_end: {VAR_LEN_CHUNK_1_END}",
-    );
-    println(
-        f"fixed_len_chunk_1_start: {fixed_len_chunk_1_start}, fixed_len_chunk_1_end: {fixed_len_chunk_1_end}",
-    );
-
     let mut fixed_len_chunk_0_bytes = [0; FIXED_LEN_CHUNK_0_LEN];
     fixed_len_chunk_0_bytes[0] = 0x30;
     fixed_len_chunk_0_bytes[1] = tbs_len_bytes[0];
@@ -152,16 +140,17 @@ pub fn prepare_tbs(
         fixed_len_chunk_0_bytes[4 + i] = VERSION[i];
     }
 
+    // Variable length chunk 0: serial number
+    let var_len_chunk_0_start = fixed_len_chunk_0_end;
+    let var_len_chunk_0_end = var_len_chunk_0_start + serial_number_len;
+    assert(var_len_chunk_0_start >= VAR_LEN_CHUNK_0_START_LOWER_BOUND);
+    assert(var_len_chunk_0_end <= VAR_LEN_CHUNK_0_END_UPPER_BOUND);
+
+    // Fixed length chunk 1: signature, issuer, validity, subject, subject_public_key_info, extensions header, standard extensions, extra extension
+    let fixed_len_chunk_1_start = fixed_len_chunk_0_end + serial_number_len;
+    let fixed_len_chunk_1_end = fixed_len_chunk_1_start + FIXED_LEN_CHUNK_1_LEN;
     let mut fixed_len_chunk_1_index = 0;
-    let mut fixed_len_chunk_1_bytes = [
-        0; SIGNATURE_LEN
-            + ISSUER_LEN
-            + VALIDITY_LEN
-            + SUBJECT_LEN
-            + SPKI_LEN
-            + EXT_HEADER_LEN
-            + STD_EXT_LEN
-    ];
+    let mut fixed_len_chunk_1_bytes = [0; FIXED_LEN_CHUNK_1_LEN];
     // signature
     for i in 0..SIGNATURE_LEN {
         fixed_len_chunk_1_bytes[fixed_len_chunk_1_index] = SIGNATURE[i];
@@ -198,20 +187,30 @@ pub fn prepare_tbs(
         fixed_len_chunk_1_index += 1;
     }
 
+    println(
+        f"VAR_LEN_CHUNK_0_START_LOWER_BOUND: {VAR_LEN_CHUNK_0_START_LOWER_BOUND}, VAR_LEN_CHUNK_0_END_UPPER_BOUND: {VAR_LEN_CHUNK_0_END_UPPER_BOUND}",
+    );
+    println(
+        f"var_len_chunk_0_start: {var_len_chunk_0_start}, var_len_chunk_0_end: {var_len_chunk_0_end}",
+    );
+    println(
+        f"fixed_len_chunk_1_start: {fixed_len_chunk_1_start}, fixed_len_chunk_1_end: {fixed_len_chunk_1_end}",
+    );
+
     let mut buf: [u8; MAX_TBS_LEN] = [0; MAX_TBS_LEN];
 
-    for i in 0..VAR_LEN_CHUNK_1_START {
+    for i in 0..VAR_LEN_CHUNK_0_START_LOWER_BOUND {
         let fixed_len_chunk_0_byte = fixed_len_chunk_0_bytes[i - fixed_len_chunk_0_start];
 
         buf[i] = fixed_len_chunk_0_byte;
     }
 
-    for i in VAR_LEN_CHUNK_1_START..VAR_LEN_CHUNK_1_END {
-        let in_var_len_chunk_1 = i < fixed_len_chunk_1_start;
+    for i in VAR_LEN_CHUNK_0_START_LOWER_BOUND..VAR_LEN_CHUNK_0_END_UPPER_BOUND {
+        let in_var_len_chunk_0 = i < fixed_len_chunk_1_start;
         let in_fixed_len_chunk_1 = i >= fixed_len_chunk_1_start & i < fixed_len_chunk_1_end;
 
-        let var_len_chunk_1_byte = if in_var_len_chunk_1 {
-            serial_number[i - VAR_LEN_CHUNK_1_START]
+        let var_len_chunk_0_byte = if in_var_len_chunk_0 {
+            serial_number[i - VAR_LEN_CHUNK_0_START_LOWER_BOUND]
         } else {
             0
         };
@@ -222,10 +221,10 @@ pub fn prepare_tbs(
             0
         };
 
-        buf[i] = var_len_chunk_1_byte + fixed_len_chunk_1_byte;
+        buf[i] = var_len_chunk_0_byte + fixed_len_chunk_1_byte;
     }
 
-    for i in VAR_LEN_CHUNK_1_END..MAX_TBS_LEN {
+    for i in VAR_LEN_CHUNK_0_END_UPPER_BOUND..MAX_TBS_LEN {
         let fixed_len_chunk_1_byte = fixed_len_chunk_1_bytes[i - fixed_len_chunk_1_start];
 
         buf[i] = fixed_len_chunk_1_byte;
