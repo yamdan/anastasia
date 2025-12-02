@@ -125,6 +125,7 @@ pub fn prepare_tbs(
     let tbs_value_len = tbs_len - 4;
     // Assume tbsCertificate length fits in 2 bytes
     assert(tbs_value_len >= 256);
+    assert(tbs_value_len <= 65535);
     let tbs_len_bytes = encode_length_3(tbs_value_len);
 
     // Fixed length chunk 0: header, version
@@ -187,6 +188,7 @@ pub fn prepare_tbs(
         fixed_len_chunk_1_index += 1;
     }
 
+    println("es384_droid_ca3::models::prepare_tbs debug info:");
     println(
         f"VAR_LEN_CHUNK_0_START_LOWER_BOUND: {VAR_LEN_CHUNK_0_START_LOWER_BOUND}, VAR_LEN_CHUNK_0_END_UPPER_BOUND: {VAR_LEN_CHUNK_0_END_UPPER_BOUND}",
     );
@@ -196,6 +198,7 @@ pub fn prepare_tbs(
     println(
         f"fixed_len_chunk_1_start: {fixed_len_chunk_1_start}, fixed_len_chunk_1_end: {fixed_len_chunk_1_end}",
     );
+    println("");
 
     let mut buf: [u8; MAX_TBS_LEN] = [0; MAX_TBS_LEN];
 
