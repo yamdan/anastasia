@@ -142,6 +142,7 @@ pub fn prepare_tbs(
     // Variable length chunk 0: serial number
     let var_len_chunk_0_start = fixed_len_chunk_0_end;
     let var_len_chunk_0_end = var_len_chunk_0_start + serial_number_len;
+    let var_len_chunk_0_bytes = serial_number;
     assert(var_len_chunk_0_start >= VAR_LEN_CHUNK_0_START_LOWER_BOUND);
     assert(var_len_chunk_0_end <= VAR_LEN_CHUNK_0_END_UPPER_BOUND);
 
@@ -209,7 +210,7 @@ pub fn prepare_tbs(
         let in_fixed_len_chunk_1 = i >= fixed_len_chunk_1_start & i < fixed_len_chunk_1_end;
 
         let var_len_chunk_0_byte = if in_var_len_chunk_0 {
-            serial_number[i - VAR_LEN_CHUNK_0_START_LOWER_BOUND]
+            var_len_chunk_0_bytes[i - VAR_LEN_CHUNK_0_START_LOWER_BOUND]
         } else {
             0
         };
