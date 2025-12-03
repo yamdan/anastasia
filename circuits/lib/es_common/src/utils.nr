@@ -157,6 +157,101 @@ pub fn to_bignum_limbs<let N: u32>(bytes: [u8; N]) -> [u128; (N - 1) / 15 + 1] {
     limbs
 }
 
+pub fn concat_chunks_3<let CHUNK_0_FIXED_LEN: u32, let CHUNK_0_VAR_LEN: u32, let CHUNK_1_FIXED_LEN: u32, let CHUNK_1_VAR_LEN: u32, let LEN_0: u32, let LEN_1: u32, let LEN_2: u32, let OUT_LEN: u32>(
+    chunk_0_bytes: [u8; LEN_0],
+    boundary_0: u32,
+    chunk_1_bytes: [u8; LEN_1],
+    boundary_1: u32,
+    chunk_2_bytes: [u8; LEN_2],
+    boundary_2: u32,
+) -> [u8; OUT_LEN] {
+    let MIN_BOUNDARY_0: u32 = CHUNK_0_FIXED_LEN;
+    let MAX_BOUNDARY_0: u32 = CHUNK_0_FIXED_LEN + CHUNK_0_VAR_LEN;
+    let MIN_BOUNDARY_1: u32 = MIN_BOUNDARY_0 + 1 + CHUNK_1_FIXED_LEN;
+    let MAX_BOUNDARY_1: u32 = MAX_BOUNDARY_0 + CHUNK_1_FIXED_LEN + CHUNK_1_VAR_LEN;
+
+    println(f"chunk_0_start: 0, chunk_0_end: {boundary_0}");
+    println(
+        f"CHUNK_0_END_MIN: {MIN_BOUNDARY_0}, CHUNK_0_END_MAX: {MAX_BOUNDARY_0}",
+    );
+    println(f"chunk_1_start: {boundary_0}, chunk_1_end: {boundary_1}");
+    println(
+        f"CHUNK_1_END_MIN: {MIN_BOUNDARY_1}, CHUNK_1_END_MAX: {MAX_BOUNDARY_1}",
+    );
+    println(f"chunk_2_start: {boundary_1}, chunk_2_end: {boundary_2}");
+    println("");
+
+    assert(boundary_0 >= MIN_BOUNDARY_0);
+    assert(boundary_0 <= MAX_BOUNDARY_0);
+    assert(boundary_1 >= MIN_BOUNDARY_1);
+    assert(boundary_1 <= MAX_BOUNDARY_1);
+    assert(boundary_2 <= OUT_LEN);
+
+    let mut buf: [u8; OUT_LEN] = [0; OUT_LEN];
+
+    // Copy chunk 0
+    for i in 0..MIN_BOUNDARY_0 {
+        let chunk_0_byte = chunk_0_bytes[i];
+
+        buf[i] = chunk_0_byte;
+    }
+
+    // Copy chunk 0 and chunk 1
+    for i in MIN_BOUNDARY_0..MAX_BOUNDARY_0 {
+        let in_chunk_0 = i < boundary_0;
+
+        let chunk_0_byte = if in_chunk_0 { chunk_0_bytes[i] } else { 0 };
+
+        let chunk_1_byte = if !in_chunk_0 {
+            chunk_1_bytes[i - boundary_0]
+        } else {
+            0
+        };
+
+        buf[i] = chunk_0_byte + chunk_1_byte;
+    }
+
+    // Copy chunk 1
+    for i in MAX_BOUNDARY_0..MIN_BOUNDARY_1 {
+        let chunk_1_byte = chunk_1_bytes[i - boundary_0];
+
+        buf[i] = chunk_1_byte;
+    }
+
+    // Copy chunk 1 and chunk 2
+    for i in MIN_BOUNDARY_1..MAX_BOUNDARY_1 {
+        let in_chunk_1 = i < boundary_1;
+
+        let chunk_1_byte = if in_chunk_1 {
+            chunk_1_bytes[i - boundary_0]
+        } else {
+            0
+        };
+        let chunk_2_byte = if !in_chunk_1 {
+            chunk_2_bytes[i - boundary_1]
+        } else {
+            0
+        };
+
+        buf[i] = chunk_1_byte + chunk_2_byte;
+    }
+
+    // Copy chunk 2
+    for i in MAX_BOUNDARY_1..OUT_LEN {
+        let in_chunk_2 = i < boundary_2;
+
+        let chunk_2_byte = if in_chunk_2 {
+            chunk_2_bytes[i - boundary_1]
+        } else {
+            0
+        };
+
+        buf[i] = chunk_2_byte;
+    }
+
+    buf
+}
+
 #[test]
 fn test_to_bignum_limbs() {
     let bytes: [u8; 1] = [0x01];
