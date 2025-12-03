@@ -157,35 +157,79 @@ pub fn to_bignum_limbs<let N: u32>(bytes: [u8; N]) -> [u128; (N - 1) / 15 + 1] {
     limbs
 }
 
-pub fn concat_chunks_3<let CHUNK_0_FIXED_LEN: u32, let CHUNK_0_VAR_LEN: u32, let CHUNK_1_FIXED_LEN: u32, let CHUNK_1_VAR_LEN: u32, let LEN_0: u32, let LEN_1: u32, let LEN_2: u32, let OUT_LEN: u32>(
-    chunk_0_bytes: [u8; LEN_0],
+pub fn concat_chunks_2<let FIXED_LEN_0: u32, let VAR_LEN_0: u32, let OUT_LEN: u32>(
+    chunk_0_bytes: [u8; FIXED_LEN_0 + VAR_LEN_0],
     boundary_0: u32,
-    chunk_1_bytes: [u8; LEN_1],
-    boundary_1: u32,
-    chunk_2_bytes: [u8; LEN_2],
-    boundary_2: u32,
+    chunk_1_bytes: [u8; OUT_LEN - FIXED_LEN_0],
 ) -> [u8; OUT_LEN] {
-    let MIN_BOUNDARY_0: u32 = CHUNK_0_FIXED_LEN;
-    let MAX_BOUNDARY_0: u32 = CHUNK_0_FIXED_LEN + CHUNK_0_VAR_LEN;
-    let MIN_BOUNDARY_1: u32 = MIN_BOUNDARY_0 + 1 + CHUNK_1_FIXED_LEN;
-    let MAX_BOUNDARY_1: u32 = MAX_BOUNDARY_0 + CHUNK_1_FIXED_LEN + CHUNK_1_VAR_LEN;
+    let MIN_BOUNDARY_0: u32 = FIXED_LEN_0;
+    let MAX_BOUNDARY_0: u32 = FIXED_LEN_0 + VAR_LEN_0;
 
-    println(f"chunk_0_start: 0, chunk_0_end: {boundary_0}");
-    println(
-        f"CHUNK_0_END_MIN: {MIN_BOUNDARY_0}, CHUNK_0_END_MAX: {MAX_BOUNDARY_0}",
-    );
-    println(f"chunk_1_start: {boundary_0}, chunk_1_end: {boundary_1}");
-    println(
-        f"CHUNK_1_END_MIN: {MIN_BOUNDARY_1}, CHUNK_1_END_MAX: {MAX_BOUNDARY_1}",
-    );
-    println(f"chunk_2_start: {boundary_1}, chunk_2_end: {boundary_2}");
+    println(f"chunk_0:    0 -- {boundary_0}");
+    println(f"BOUNDARY_0: {MIN_BOUNDARY_0} -- {MAX_BOUNDARY_0}");
+    println(f"chunk_1:    {boundary_0} -- {OUT_LEN}");
+    println("");
+
+    assert(boundary_0 >= MIN_BOUNDARY_0);
+    assert(boundary_0 <= MAX_BOUNDARY_0);
+
+    let mut buf: [u8; OUT_LEN] = [0; OUT_LEN];
+
+    // Copy chunk 0
+    for i in 0..MIN_BOUNDARY_0 {
+        let chunk_0_byte = chunk_0_bytes[i];
+
+        buf[i] = chunk_0_byte;
+    }
+
+    // Copy chunk 0 and chunk 1
+    for i in MIN_BOUNDARY_0..MAX_BOUNDARY_0 {
+        let in_chunk_0 = i < boundary_0;
+
+        let chunk_0_byte = if in_chunk_0 { chunk_0_bytes[i] } else { 0 };
+
+        let chunk_1_byte = if !in_chunk_0 {
+            chunk_1_bytes[i - boundary_0]
+        } else {
+            0
+        };
+
+        buf[i] = chunk_0_byte + chunk_1_byte;
+    }
+
+    // Copy chunk 1
+    for i in MAX_BOUNDARY_0..OUT_LEN {
+        let chunk_1_byte = chunk_1_bytes[i - boundary_0];
+
+        buf[i] = chunk_1_byte;
+    }
+
+    buf
+}
+
+pub fn concat_chunks_3<let FIXED_LEN_0: u32, let VAR_LEN_0: u32, let FIXED_LEN_1: u32, let VAR_LEN_1: u32, let OUT_LEN: u32>(
+    chunk_0_bytes: [u8; FIXED_LEN_0 + VAR_LEN_0],
+    boundary_0: u32,
+    chunk_1_bytes: [u8; FIXED_LEN_1 + VAR_LEN_1],
+    boundary_1: u32,
+    chunk_2_bytes: [u8; OUT_LEN - FIXED_LEN_0 - FIXED_LEN_1],
+) -> [u8; OUT_LEN] {
+    let MIN_BOUNDARY_0: u32 = FIXED_LEN_0;
+    let MAX_BOUNDARY_0: u32 = FIXED_LEN_0 + VAR_LEN_0;
+    let MIN_BOUNDARY_1: u32 = MIN_BOUNDARY_0 + 1 + FIXED_LEN_1;
+    let MAX_BOUNDARY_1: u32 = MAX_BOUNDARY_0 + FIXED_LEN_1 + VAR_LEN_1;
+
+    println(f"chunk_0:    0 -- {boundary_0}");
+    println(f"BOUNDARY_0: {MIN_BOUNDARY_0} -- {MAX_BOUNDARY_0}");
+    println(f"chunk_1:    {boundary_0} -- {boundary_1}");
+    println(f"BOUNDARY_1: {MIN_BOUNDARY_1} -- {MAX_BOUNDARY_1}");
+    println(f"chunk_2:    {boundary_1} -- {OUT_LEN}");
     println("");
 
     assert(boundary_0 >= MIN_BOUNDARY_0);
     assert(boundary_0 <= MAX_BOUNDARY_0);
     assert(boundary_1 >= MIN_BOUNDARY_1);
     assert(boundary_1 <= MAX_BOUNDARY_1);
-    assert(boundary_2 <= OUT_LEN);
 
     let mut buf: [u8; OUT_LEN] = [0; OUT_LEN];
 
@@ -238,13 +282,7 @@ pub fn concat_chunks_3<let CHUNK_0_FIXED_LEN: u32, let CHUNK_0_VAR_LEN: u32, let
 
     // Copy chunk 2
     for i in MAX_BOUNDARY_1..OUT_LEN {
-        let in_chunk_2 = i < boundary_2;
-
-        let chunk_2_byte = if in_chunk_2 {
-            chunk_2_bytes[i - boundary_1]
-        } else {
-            0
-        };
+        let chunk_2_byte = chunk_2_bytes[i - boundary_1];
 
         buf[i] = chunk_2_byte;
     }
@@ -290,3 +328,54 @@ fn test_to_bignum_limbs() {
     assert_eq(limbs[2], 0x0405060708090a0b0c0d0e0f111213);
     assert_eq(limbs[3], 0x010203);
 }
+
+#[test]
+fn test_concat_chunks_2() {
+    // FIXED_LEN_0: u32 = 3;
+    // VAR_LEN_0: u32 = 7;
+    let chunk_0 = [1, 1, 1, 2, 2, 2, 2, 2, 0, 0];
+    let boundary_0 = 8;
+    let chunk_1 = [3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+    let result = concat_chunks_2::<3, 7, _>(chunk_0, boundary_0, chunk_1);
+    let expected = [1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0];
+    assert_eq(result, expected);
+}
+
+#[test]
+fn test_concat_chunks_3() {
+    // FIXED_LEN_0: u32 = 3;
+    // VAR_LEN_0: u32 = 7;
+    // FIXED_LEN_1: u32 = 12;
+    // VAR_LEN_1: u32 = 8;
+    let chunk_0 = [1, 1, 1, 2, 2, 2, 2, 2, 0, 0];
+    let boundary_0 = 8;
+    let chunk_1 = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 0, 0, 0, 0, 0, 0];
+    let boundary_1 = 22;
+    let chunk_2 = [5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    let result =
+        concat_chunks_3::<3, 7, 12, 8, _>(chunk_0, boundary_0, chunk_1, boundary_1, chunk_2);
+    let expected =
+        [1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 5, 5, 5, 5, 5, 0, 0, 0];
+    assert_eq(result, expected);
+}
+
+// #[test]
+// fn test_concat_chunks_3_collision() {
+//     // FIXED_LEN_0: u32 = 2;
+//     // VAR_LEN_0: u32 = 8;
+//     // FIXED_LEN_1: u32 = 5;
+//     // VAR_LEN_1: u32 = 15;
+//     let chunk_0 = [1, 1, 2, 2, 2, 2, 2, 2, 2, 0];
+//     let boundary_0 = 9;
+//     let chunk_1 = [3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0];
+//     let boundary_1 = 23;
+//     let chunk_2 = [5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+//     let result =
+//         concat_chunks_3::<2, 8, 5, 15, _>(chunk_0, boundary_0, chunk_1, boundary_1, chunk_2);
+//     let expected =
+//         [1, 1, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 0, 0];
+//     println(f"result:   {result}");
+//     println(f"expected: {expected}");
+//     assert_eq(result, expected);
+// }

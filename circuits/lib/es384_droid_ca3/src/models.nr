@@ -4,9 +4,10 @@ use es_common::{
         key_usage_key_cert_sign_extension, prepare_serial_number,
         prepare_subject_public_key_info_es256, prepare_validity, subject_key_identifier_extension,
     },
-    utils::{encode_length_1, encode_length_3, UtcTime},
+    utils::{concat_chunks_2, encode_length_1, encode_length_3, UtcTime},
 };
 
+global HEADER_LEN: u32 = 4;
 global VERSION_LEN: u32 = 5;
 global MAX_SERIAL_NUMBER_LEN: u32 = 20;
 global MAX_ENCODED_SERIAL_NUMBER_LEN: u32 = MAX_SERIAL_NUMBER_LEN + 2;
@@ -18,32 +19,23 @@ global SPKI_LEN: u32 = 91;
 global EXT_HEADER_LEN: u32 = 4;
 global STD_EXT_LEN: u32 = 97; // 31 + 33 + 17 + 16
 global KEY_IDENTIFIER_LEN: u32 = 20;
-global MAX_TBS_LEN: u32 = 4
-    + VERSION_LEN
-    + MAX_ENCODED_SERIAL_NUMBER_LEN
-    + SIGNATURE_LEN
+global MAX_EXTRA_EXT_LEN: u32 = 0;
+
+// Chunk 0: header, version, *serial number*
+global CHUNK_0_FIXED_LEN: u32 = HEADER_LEN + VERSION_LEN;
+global CHUNK_0_VAR_LEN: u32 = MAX_ENCODED_SERIAL_NUMBER_LEN;
+
+// Chunk 1: signature, issuer, validity, subject, subject_public_key_info, extensions header, standard extensions, *extra extension*
+global CHUNK_1_FIXED_LEN: u32 = SIGNATURE_LEN
     + ISSUER_LEN
     + VALIDITY_LEN
     + SUBJECT_LEN
     + SPKI_LEN
     + EXT_HEADER_LEN
     + STD_EXT_LEN;
+global CHUNK_1_VAR_LEN: u32 = MAX_EXTRA_EXT_LEN;
 
-// Fixed length chunk 0: header, version
-global FIXED_LEN_CHUNK_0_LEN: u32 = 4 + VERSION_LEN;
-
-// Variable length chunk 0: serial number
-global VAR_LEN_CHUNK_0_START_LOWER_BOUND: u32 = FIXED_LEN_CHUNK_0_LEN;
-global VAR_LEN_CHUNK_0_END_UPPER_BOUND: u32 = FIXED_LEN_CHUNK_0_LEN + MAX_ENCODED_SERIAL_NUMBER_LEN;
-
-// Fixed length chunk 1: signature, issuer, validity, subject, subject_public_key_info, extensions header, standard extensions, extra extension
-global FIXED_LEN_CHUNK_1_LEN: u32 = SIGNATURE_LEN
-    + ISSUER_LEN
-    + VALIDITY_LEN
-    + SUBJECT_LEN
-    + SPKI_LEN
-    + EXT_HEADER_LEN
-    + STD_EXT_LEN;
+global MAX_TBS_LEN: u32 = CHUNK_0_FIXED_LEN + CHUNK_0_VAR_LEN + CHUNK_1_FIXED_LEN + CHUNK_1_VAR_LEN;
 
 // version = v3
 global VERSION: [u8; VERSION_LEN] = [0xa0, 0x03, 0x02, 0x01, 0x02];
@@ -130,6 +122,7 @@ pub fn reserialize(
     // Prepare standard extensions
     let std_extensions = prepare_std_extensions(subject_key_identifier, authority_key_identifier);
 
+    // Calculate tbs length
     let tbs_len = 4
         + VERSION_LEN
         + serial_number_len
@@ -147,110 +140,79 @@ pub fn reserialize(
     assert(tbs_value_len <= 65535);
     let tbs_len_bytes = encode_length_3(tbs_value_len);
 
-    // Fixed length chunk 0: header, version
-    let fixed_len_chunk_0_start = 0;
-    let fixed_len_chunk_0_end = fixed_len_chunk_0_start + FIXED_LEN_CHUNK_0_LEN;
-    let mut fixed_len_chunk_0_bytes = [0; FIXED_LEN_CHUNK_0_LEN];
-    fixed_len_chunk_0_bytes[0] = 0x30;
-    fixed_len_chunk_0_bytes[1] = tbs_len_bytes[0];
-    fixed_len_chunk_0_bytes[2] = tbs_len_bytes[1];
-    fixed_len_chunk_0_bytes[3] = tbs_len_bytes[2];
-    for i in 0..5 {
-        fixed_len_chunk_0_bytes[4 + i] = VERSION[i];
+    // Chunk 0: header, version, serial number
+    let mut chunk_0_index = 0;
+    let mut chunk_0_bytes = [0; CHUNK_0_FIXED_LEN + CHUNK_0_VAR_LEN];
+    // header
+    chunk_0_bytes[0] = 0x30;
+    chunk_0_index += 1;
+    for i in 0..3 {
+        chunk_0_bytes[chunk_0_index] = tbs_len_bytes[i];
+        chunk_0_index += 1;
+    }
+    // version
+    for i in 0..VERSION_LEN {
+        chunk_0_bytes[chunk_0_index] = VERSION[i];
+        chunk_0_index += 1;
+    }
+    // *serial number* (variable length)
+    for i in 0..CHUNK_0_VAR_LEN {
+        chunk_0_bytes[chunk_0_index] = if i < serial_number_len {
+            serial_number[i]
+        } else {
+            0
+        };
+        chunk_0_index += 1;
     }
 
-    // Variable length chunk 0: serial number
-    let var_len_chunk_0_start = fixed_len_chunk_0_end;
-    let var_len_chunk_0_end = var_len_chunk_0_start + serial_number_len;
-    let var_len_chunk_0_bytes = serial_number;
-    assert(var_len_chunk_0_start >= VAR_LEN_CHUNK_0_START_LOWER_BOUND);
-    assert(var_len_chunk_0_end <= VAR_LEN_CHUNK_0_END_UPPER_BOUND);
+    let boundary_0 = CHUNK_0_FIXED_LEN + serial_number_len;
 
-    // Fixed length chunk 1: signature, issuer, validity, subject, subject_public_key_info, extensions header, standard extensions, extra extension
-    let fixed_len_chunk_1_start = fixed_len_chunk_0_end + serial_number_len;
-    let fixed_len_chunk_1_end = fixed_len_chunk_1_start + FIXED_LEN_CHUNK_1_LEN;
-    let mut fixed_len_chunk_1_index = 0;
-    let mut fixed_len_chunk_1_bytes = [0; FIXED_LEN_CHUNK_1_LEN];
+    // Chunk 1: signature, issuer, validity, subject, subject_public_key_info, extensions header
+    let mut chunk_1_index = 0;
+    let mut chunk_1_bytes = [0; MAX_TBS_LEN - CHUNK_0_FIXED_LEN];
     // signature
     for i in 0..SIGNATURE_LEN {
-        fixed_len_chunk_1_bytes[fixed_len_chunk_1_index] = SIGNATURE[i];
-        fixed_len_chunk_1_index += 1;
+        chunk_1_bytes[chunk_1_index] = SIGNATURE[i];
+        chunk_1_index += 1;
     }
     // issuer
     for i in 0..ISSUER_LEN {
-        fixed_len_chunk_1_bytes[fixed_len_chunk_1_index] = ISSUER[i];
-        fixed_len_chunk_1_index += 1;
+        chunk_1_bytes[chunk_1_index] = ISSUER[i];
+        chunk_1_index += 1;
     }
     // validity
     for i in 0..VALIDITY_LEN {
-        fixed_len_chunk_1_bytes[fixed_len_chunk_1_index] = validity[i];
-        fixed_len_chunk_1_index += 1;
+        chunk_1_bytes[chunk_1_index] = validity[i];
+        chunk_1_index += 1;
     }
     // subject
     for i in 0..SUBJECT_LEN {
-        fixed_len_chunk_1_bytes[fixed_len_chunk_1_index] = SUBJECT[i];
-        fixed_len_chunk_1_index += 1;
+        chunk_1_bytes[chunk_1_index] = SUBJECT[i];
+        chunk_1_index += 1;
     }
     // subject_public_key_info
     for i in 0..SPKI_LEN {
-        fixed_len_chunk_1_bytes[fixed_len_chunk_1_index] = subject_public_key_info[i];
-        fixed_len_chunk_1_index += 1;
+        chunk_1_bytes[chunk_1_index] = subject_public_key_info[i];
+        chunk_1_index += 1;
     }
     // extensions header
     for i in 0..EXT_HEADER_LEN {
-        fixed_len_chunk_1_bytes[fixed_len_chunk_1_index] = EXTENSIONS_HEADER[i];
-        fixed_len_chunk_1_index += 1;
+        chunk_1_bytes[chunk_1_index] = EXTENSIONS_HEADER[i];
+        chunk_1_index += 1;
     }
     // standard extensions
     for i in 0..STD_EXT_LEN {
-        fixed_len_chunk_1_bytes[fixed_len_chunk_1_index] = std_extensions[i];
-        fixed_len_chunk_1_index += 1;
+        chunk_1_bytes[chunk_1_index] = std_extensions[i];
+        chunk_1_index += 1;
     }
 
     println("es384_droid_ca3::models::prepare_tbs debug info:");
-    println(
-        f"VAR_LEN_CHUNK_0_START_LOWER_BOUND: {VAR_LEN_CHUNK_0_START_LOWER_BOUND}, VAR_LEN_CHUNK_0_END_UPPER_BOUND: {VAR_LEN_CHUNK_0_END_UPPER_BOUND}",
+
+    let buf = concat_chunks_2::<CHUNK_0_FIXED_LEN, CHUNK_0_VAR_LEN, _>(
+        chunk_0_bytes,
+        boundary_0,
+        chunk_1_bytes,
     );
-    println(
-        f"var_len_chunk_0_start: {var_len_chunk_0_start}, var_len_chunk_0_end: {var_len_chunk_0_end}",
-    );
-    println(
-        f"fixed_len_chunk_1_start: {fixed_len_chunk_1_start}, fixed_len_chunk_1_end: {fixed_len_chunk_1_end}",
-    );
-    println("");
-
-    let mut buf: [u8; MAX_TBS_LEN] = [0; MAX_TBS_LEN];
-
-    for i in 0..VAR_LEN_CHUNK_0_START_LOWER_BOUND {
-        let fixed_len_chunk_0_byte = fixed_len_chunk_0_bytes[i - fixed_len_chunk_0_start];
-
-        buf[i] = fixed_len_chunk_0_byte;
-    }
-
-    for i in VAR_LEN_CHUNK_0_START_LOWER_BOUND..VAR_LEN_CHUNK_0_END_UPPER_BOUND {
-        let in_var_len_chunk_0 = i < fixed_len_chunk_1_start;
-        let in_fixed_len_chunk_1 = i >= fixed_len_chunk_1_start & i < fixed_len_chunk_1_end;
-
-        let var_len_chunk_0_byte = if in_var_len_chunk_0 {
-            var_len_chunk_0_bytes[i - VAR_LEN_CHUNK_0_START_LOWER_BOUND]
-        } else {
-            0
-        };
-
-        let fixed_len_chunk_1_byte = if in_fixed_len_chunk_1 {
-            fixed_len_chunk_1_bytes[i - fixed_len_chunk_1_start]
-        } else {
-            0
-        };
-
-        buf[i] = var_len_chunk_0_byte + fixed_len_chunk_1_byte;
-    }
-
-    for i in VAR_LEN_CHUNK_0_END_UPPER_BOUND..MAX_TBS_LEN {
-        let fixed_len_chunk_1_byte = fixed_len_chunk_1_bytes[i - fixed_len_chunk_1_start];
-
-        buf[i] = fixed_len_chunk_1_byte;
-    }
 
     (buf, tbs_len)
 }

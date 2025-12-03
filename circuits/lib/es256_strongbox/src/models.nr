@@ -23,22 +23,22 @@ pub global MAX_EXTRA_EXT_LEN: u32 = 30;
 
 // Chunk 0: header, version, *serial number*
 global CHUNK_0_FIXED_LEN: u32 = HEADER_LEN + VERSION_LEN;
-global CHUNK_0_VAR_LEN: u32 = MAX_ENCODED_SERIAL_NUMBER_LEN;
+global CHUNK_0_MAX_VAR_LEN: u32 = MAX_ENCODED_SERIAL_NUMBER_LEN;
 
 // Chunk 1: signature, issuer, validity, subject, subject_public_key_info, *extensions header*
 global CHUNK_1_FIXED_LEN: u32 = SIGNATURE_LEN + ISSUER_LEN + VALIDITY_LEN + SUBJECT_LEN + SPKI_LEN;
-global CHUNK_1_VAR_LEN: u32 = MAX_EXT_HEADER_LEN;
+global CHUNK_1_MAX_VAR_LEN: u32 = MAX_EXT_HEADER_LEN;
 
 // Chunk 2: standard extensions, *extra extension*
 global CHUNK_2_FIXED_LEN: u32 = STD_EXT_LEN;
-global CHUNK_2_VAR_LEN: u32 = MAX_EXTRA_EXT_LEN;
+global CHUNK_2_MAX_VAR_LEN: u32 = MAX_EXTRA_EXT_LEN;
 
 global MAX_TBS_LEN: u32 = CHUNK_0_FIXED_LEN
-    + CHUNK_0_VAR_LEN
+    + CHUNK_0_MAX_VAR_LEN
     + CHUNK_1_FIXED_LEN
-    + CHUNK_1_VAR_LEN
+    + CHUNK_1_MAX_VAR_LEN
     + CHUNK_2_FIXED_LEN
-    + CHUNK_2_VAR_LEN;
+    + CHUNK_2_MAX_VAR_LEN;
 
 // version = v3
 global VERSION: [u8; VERSION_LEN] = [0xa0, 0x03, 0x02, 0x01, 0x02];
@@ -177,7 +177,7 @@ pub fn reserialize(
 
     // Chunk 0: header, version, serial number
     let mut chunk_0_index = 0;
-    let mut chunk_0_bytes = [0; CHUNK_0_FIXED_LEN + CHUNK_0_VAR_LEN];
+    let mut chunk_0_bytes = [0; CHUNK_0_FIXED_LEN + CHUNK_0_MAX_VAR_LEN];
     // header
     chunk_0_bytes[0] = 0x30;
     chunk_0_index += 1;
@@ -191,7 +191,7 @@ pub fn reserialize(
         chunk_0_index += 1;
     }
     // *serial number* (variable length)
-    for i in 0..CHUNK_0_VAR_LEN {
+    for i in 0..CHUNK_0_MAX_VAR_LEN {
         chunk_0_bytes[chunk_0_index] = if i < serial_number_len {
             serial_number[i]
         } else {
@@ -204,7 +204,7 @@ pub fn reserialize(
 
     // Chunk 1: signature, issuer, validity, subject, subject_public_key_info, extensions header
     let mut chunk_1_index = 0;
-    let mut chunk_1_bytes = [0; CHUNK_1_FIXED_LEN + CHUNK_1_VAR_LEN];
+    let mut chunk_1_bytes = [0; CHUNK_1_FIXED_LEN + CHUNK_1_MAX_VAR_LEN];
     // signature
     for i in 0..SIGNATURE_LEN {
         chunk_1_bytes[chunk_1_index] = SIGNATURE[i];
@@ -231,7 +231,7 @@ pub fn reserialize(
         chunk_1_index += 1;
     }
     // *extensions header* (variable length)
-    for i in 0..CHUNK_1_VAR_LEN {
+    for i in 0..CHUNK_1_MAX_VAR_LEN {
         chunk_1_bytes[chunk_1_index] = if i < extensions_header_len {
             extensions_header[i]
         } else {
@@ -244,14 +244,14 @@ pub fn reserialize(
 
     // Chunk 2: standard extensions, extra extension
     let mut chunk_2_index = 0;
-    let mut chunk_2_bytes = [0; CHUNK_2_FIXED_LEN + CHUNK_2_VAR_LEN];
+    let mut chunk_2_bytes = [0; MAX_TBS_LEN - CHUNK_0_FIXED_LEN - CHUNK_1_FIXED_LEN];
     // standard extensions
     for i in 0..STD_EXT_LEN {
         chunk_2_bytes[chunk_2_index] = std_extensions[i];
         chunk_2_index += 1;
     }
     // *extra extension* (variable length)
-    for i in 0..CHUNK_2_VAR_LEN {
+    for i in 0..CHUNK_2_MAX_VAR_LEN {
         chunk_2_bytes[chunk_2_index] = if i < extra_extension_len {
             extra_extension[i]
         } else {
@@ -260,17 +260,14 @@ pub fn reserialize(
         chunk_2_index += 1;
     }
 
-    let boundary_2 = boundary_1 + CHUNK_2_FIXED_LEN + extra_extension_len;
-
     println("es256_strongbox::models::prepare_tbs debug info:");
 
-    let buf = concat_chunks_3::<CHUNK_0_FIXED_LEN, CHUNK_0_VAR_LEN, CHUNK_1_FIXED_LEN, CHUNK_1_VAR_LEN, _, _, _, _>(
+    let buf = concat_chunks_3::<CHUNK_0_FIXED_LEN, CHUNK_0_MAX_VAR_LEN, CHUNK_1_FIXED_LEN, CHUNK_1_MAX_VAR_LEN, _>(
         chunk_0_bytes,
         boundary_0,
         chunk_1_bytes,
         boundary_1,
         chunk_2_bytes,
-        boundary_2,
     );
 
     (buf, tbs_len)
