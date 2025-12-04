@@ -22,20 +22,20 @@ global KEY_IDENTIFIER_LEN: u32 = 20;
 global MAX_EXTRA_EXT_LEN: u32 = 0;
 
 // Chunk 0: header, version, *serial number*
-global CHUNK_0_FIXED_LEN: u32 = HEADER_LEN + VERSION_LEN;
-global CHUNK_0_VAR_LEN: u32 = MAX_ENCODED_SERIAL_NUMBER_LEN;
+global MIN_LEN_0: u32 = HEADER_LEN + VERSION_LEN;
+global MAX_LEN_0: u32 = MIN_LEN_0 + MAX_ENCODED_SERIAL_NUMBER_LEN;
 
 // Chunk 1: signature, issuer, validity, subject, subject_public_key_info, extensions header, standard extensions, *extra extension*
-global CHUNK_1_FIXED_LEN: u32 = SIGNATURE_LEN
+global MIN_LEN_1: u32 = SIGNATURE_LEN
     + ISSUER_LEN
     + VALIDITY_LEN
     + SUBJECT_LEN
     + SPKI_LEN
     + EXT_HEADER_LEN
     + STD_EXT_LEN;
-global CHUNK_1_VAR_LEN: u32 = MAX_EXTRA_EXT_LEN;
+global MAX_LEN_1: u32 = MIN_LEN_1 + MAX_EXTRA_EXT_LEN;
 
-global MAX_TBS_LEN: u32 = CHUNK_0_FIXED_LEN + CHUNK_0_VAR_LEN + CHUNK_1_FIXED_LEN + CHUNK_1_VAR_LEN;
+global MAX_TBS_LEN: u32 = MAX_LEN_0 + MAX_LEN_1;
 
 // version = v3
 global VERSION: [u8; VERSION_LEN] = [0xa0, 0x03, 0x02, 0x01, 0x02];
@@ -142,7 +142,7 @@ pub fn reserialize(
 
     // Chunk 0: header, version, serial number
     let mut chunk_0_index = 0;
-    let mut chunk_0_bytes = [0; CHUNK_0_FIXED_LEN + CHUNK_0_VAR_LEN];
+    let mut chunk_0_bytes = [0; MAX_LEN_0];
     // header
     chunk_0_bytes[0] = 0x30;
     chunk_0_index += 1;
@@ -156,7 +156,7 @@ pub fn reserialize(
         chunk_0_index += 1;
     }
     // *serial number* (variable length)
-    for i in 0..CHUNK_0_VAR_LEN {
+    for i in 0..MAX_LEN_0 - MIN_LEN_0 {
         chunk_0_bytes[chunk_0_index] = if i < serial_number_len {
             serial_number[i]
         } else {
@@ -165,11 +165,11 @@ pub fn reserialize(
         chunk_0_index += 1;
     }
 
-    let boundary_0 = CHUNK_0_FIXED_LEN + serial_number_len;
+    let boundary_0 = MIN_LEN_0 + serial_number_len;
 
     // Chunk 1: signature, issuer, validity, subject, subject_public_key_info, extensions header
     let mut chunk_1_index = 0;
-    let mut chunk_1_bytes = [0; MAX_TBS_LEN - CHUNK_0_FIXED_LEN];
+    let mut chunk_1_bytes = [0; MAX_TBS_LEN - MIN_LEN_0];
     // signature
     for i in 0..SIGNATURE_LEN {
         chunk_1_bytes[chunk_1_index] = SIGNATURE[i];
@@ -208,11 +208,7 @@ pub fn reserialize(
 
     println("es384_droid_ca3::models::prepare_tbs debug info:");
 
-    let buf = concat_chunks_2::<CHUNK_0_FIXED_LEN, CHUNK_0_VAR_LEN, _>(
-        chunk_0_bytes,
-        boundary_0,
-        chunk_1_bytes,
-    );
+    let buf = concat_chunks_2(chunk_0_bytes, boundary_0, chunk_1_bytes);
 
     (buf, tbs_len)
 }

@@ -157,13 +157,13 @@ pub fn to_bignum_limbs<let N: u32>(bytes: [u8; N]) -> [u128; (N - 1) / 15 + 1] {
     limbs
 }
 
-pub fn concat_chunks_2<let FIXED_LEN_0: u32, let VAR_LEN_0: u32, let OUT_LEN: u32>(
-    chunk_0_bytes: [u8; FIXED_LEN_0 + VAR_LEN_0],
+pub fn concat_chunks_2<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let OUT_LEN: u32>(
+    chunk_0_bytes: [u8; MAX_LEN_0],
     boundary_0: u32,
-    chunk_1_bytes: [u8; OUT_LEN - FIXED_LEN_0],
+    chunk_1_bytes: [u8; OUT_LEN - MIN_LEN_0],
 ) -> [u8; OUT_LEN] {
-    let MIN_BOUNDARY_0: u32 = FIXED_LEN_0;
-    let MAX_BOUNDARY_0: u32 = FIXED_LEN_0 + VAR_LEN_0;
+    let MIN_BOUNDARY_0: u32 = MIN_LEN_0;
+    let MAX_BOUNDARY_0: u32 = MAX_LEN_0;
 
     println(f"chunk_0:    0 -- {boundary_0}");
     println(f"BOUNDARY_0: {MIN_BOUNDARY_0} -- {MAX_BOUNDARY_0}");
@@ -207,17 +207,17 @@ pub fn concat_chunks_2<let FIXED_LEN_0: u32, let VAR_LEN_0: u32, let OUT_LEN: u3
     buf
 }
 
-pub fn concat_chunks_3<let FIXED_LEN_0: u32, let VAR_LEN_0: u32, let FIXED_LEN_1: u32, let VAR_LEN_1: u32, let OUT_LEN: u32>(
-    chunk_0_bytes: [u8; FIXED_LEN_0 + VAR_LEN_0],
+pub fn concat_chunks_3<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let MIN_LEN_1: u32, let MAX_LEN_1: u32, let OUT_LEN: u32>(
+    chunk_0_bytes: [u8; MAX_LEN_0],
     boundary_0: u32,
-    chunk_1_bytes: [u8; FIXED_LEN_1 + VAR_LEN_1],
+    chunk_1_bytes: [u8; MAX_LEN_1],
     boundary_1: u32,
-    chunk_2_bytes: [u8; OUT_LEN - FIXED_LEN_0 - FIXED_LEN_1],
+    chunk_2_bytes: [u8; OUT_LEN - MIN_LEN_0 - MIN_LEN_1],
 ) -> [u8; OUT_LEN] {
-    let MIN_BOUNDARY_0: u32 = FIXED_LEN_0;
-    let MAX_BOUNDARY_0: u32 = FIXED_LEN_0 + VAR_LEN_0;
-    let MIN_BOUNDARY_1: u32 = MIN_BOUNDARY_0 + 1 + FIXED_LEN_1;
-    let MAX_BOUNDARY_1: u32 = MAX_BOUNDARY_0 + FIXED_LEN_1 + VAR_LEN_1;
+    let MIN_BOUNDARY_0: u32 = MIN_LEN_0;
+    let MAX_BOUNDARY_0: u32 = MAX_LEN_0;
+    let MIN_BOUNDARY_1: u32 = MIN_BOUNDARY_0 + 1 + MIN_LEN_1;
+    let MAX_BOUNDARY_1: u32 = MAX_BOUNDARY_0 + MAX_LEN_1;
 
     println(f"chunk_0:    0 -- {boundary_0}");
     println(f"BOUNDARY_0: {MIN_BOUNDARY_0} -- {MAX_BOUNDARY_0}");
@@ -337,7 +337,7 @@ fn test_concat_chunks_2() {
     let boundary_0 = 8;
     let chunk_1 = [3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-    let result = concat_chunks_2::<3, 7, _>(chunk_0, boundary_0, chunk_1);
+    let result = concat_chunks_2::<3, _, _>(chunk_0, boundary_0, chunk_1);
     let expected = [1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0];
     assert_eq(result, expected);
 }
@@ -354,7 +354,7 @@ fn test_concat_chunks_3() {
     let boundary_1 = 22;
     let chunk_2 = [5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     let result =
-        concat_chunks_3::<3, 7, 12, 8, _>(chunk_0, boundary_0, chunk_1, boundary_1, chunk_2);
+        concat_chunks_3::<3, _, 12, _, _>(chunk_0, boundary_0, chunk_1, boundary_1, chunk_2);
     let expected =
         [1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 5, 5, 5, 5, 5, 0, 0, 0];
     assert_eq(result, expected);
