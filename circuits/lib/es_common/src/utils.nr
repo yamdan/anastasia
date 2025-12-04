@@ -331,32 +331,31 @@ fn test_to_bignum_limbs() {
 
 #[test]
 fn test_concat_chunks_2() {
-    // FIXED_LEN_0: u32 = 3;
-    // VAR_LEN_0: u32 = 7;
-    let chunk_0 = [1, 1, 1, 2, 2, 2, 2, 2, 0, 0];
-    let boundary_0 = 8;
-    let chunk_1 = [3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    let chunk_0 = [1, 1, 1, 0, 0];
+    let boundary_0 = 3;
+    let chunk_1 = [2, 2, 2, 2, 2, 0, 0];
 
-    let result = concat_chunks_2::<3, _, _>(chunk_0, boundary_0, chunk_1);
-    let expected = [1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0];
+    let result = concat_chunks_2::<2, _, _>(chunk_0, boundary_0, chunk_1);
+    let expected = [1, 1, 1, 2, 2, 2, 2, 2, 0];
     assert_eq(result, expected);
 }
 
 #[test]
 fn test_concat_chunks_3() {
-    // FIXED_LEN_0: u32 = 3;
-    // VAR_LEN_0: u32 = 7;
-    // FIXED_LEN_1: u32 = 12;
-    // VAR_LEN_1: u32 = 8;
-    let chunk_0 = [1, 1, 1, 2, 2, 2, 2, 2, 0, 0];
-    let boundary_0 = 8;
-    let chunk_1 = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 0, 0, 0, 0, 0, 0];
-    let boundary_1 = 22;
-    let chunk_2 = [5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 4;
+    // MAX_LEN_1: u32 = 6;
+    let chunk_0 = [1, 1, 1, 0, 0];
+    let boundary_0 = 3;
+    let chunk_1 = [2, 2, 2, 2, 2, 0];
+    let boundary_1 = 8;
+    let chunk_2 = [3, 3, 0, 0, 0];
     let result =
-        concat_chunks_3::<3, _, 12, _, _>(chunk_0, boundary_0, chunk_1, boundary_1, chunk_2);
-    let expected =
-        [1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 5, 5, 5, 5, 5, 0, 0, 0];
+        concat_chunks_3::<2, _, _, _, _>(chunk_0, boundary_0, chunk_1, boundary_1, chunk_2);
+    let expected = [1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 0];
     assert_eq(result, expected);
 }
 
