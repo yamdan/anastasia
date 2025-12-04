@@ -208,7 +208,11 @@ pub fn reserialize(
 
     println("es384_droid_ca3::models::prepare_tbs debug info:");
 
-    let buf = concat_chunks_2(chunk_0_bytes, boundary_0, chunk_1_bytes);
+    let buf = concat_chunks_2::<MIN_LEN_0, MAX_LEN_0, MAX_TBS_LEN>(
+        chunk_0_bytes,
+        boundary_0,
+        chunk_1_bytes,
+    );
 
     (buf, tbs_len)
 }
