@@ -216,7 +216,7 @@ pub fn concat_chunks_3<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let MIN_LEN_1: u3
 ) -> [u8; OUT_LEN] {
     let MIN_BOUNDARY_0: u32 = MIN_LEN_0;
     let MAX_BOUNDARY_0: u32 = MAX_LEN_0;
-    let MIN_BOUNDARY_1: u32 = MIN_BOUNDARY_0 + 1 + MIN_LEN_1;
+    let MIN_BOUNDARY_1: u32 = MIN_BOUNDARY_0 + MIN_LEN_1;
     let MAX_BOUNDARY_1: u32 = MAX_BOUNDARY_0 + MAX_LEN_1;
 
     println(f"chunk_0:    0 -- {boundary_0}");
