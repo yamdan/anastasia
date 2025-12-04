@@ -195,7 +195,7 @@ pub fn reserialize(
         chunk_0_index += 1;
     }
 
-    let boundary_0 = MIN_LEN_0 + serial_number_len;
+    let len_0 = MIN_LEN_0 + serial_number_len;
 
     // Chunk 1: signature, issuer, validity, subject, subject_public_key_info, extensions header
     let mut chunk_1_index = 0;
@@ -235,7 +235,7 @@ pub fn reserialize(
         chunk_1_index += 1;
     }
 
-    let boundary_1 = boundary_0 + MIN_LEN_1 + extensions_header_len;
+    let len_1 = MIN_LEN_1 + extensions_header_len;
 
     // Chunk 2: standard extensions, extra extension
     let mut chunk_2_index = 0;
@@ -259,9 +259,9 @@ pub fn reserialize(
 
     let buf = concat_chunks_3::<MIN_LEN_0, _, _, _, _>(
         chunk_0_bytes,
-        boundary_0,
+        len_0,
         chunk_1_bytes,
-        boundary_1,
+        len_1,
         chunk_2_bytes,
     );
 
