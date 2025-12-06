@@ -16,6 +16,7 @@ import org.ethtokyo.hackathon.anastasia.data.AppSettings
 import org.ethtokyo.hackathon.anastasia.data.ProofGenerationResult
 import org.ethtokyo.hackathon.anastasia.data.ProofGenerationTime
 import uniffi.mopro.CircuitMeta
+import uniffi.mopro.proveChainComposedAkaJwt
 import uniffi.mopro.proveChainComposedJwt
 import uniffi.mopro.proveChainJwt
 import java.security.cert.Certificate
@@ -145,6 +146,30 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
                 rootCert.encoded,
                 subRootCert.encoded,
                 caCerts.map { caCert -> caCert.encoded },
+                leafCert.encoded,
+                null,
+                appSettings.getUserSk(),
+                proofAudience,
+                false
+            )
+            proofEndTime = System.currentTimeMillis()
+        } else if (circuitType == "es384-composed-aka") {
+            require(chain != null && chain.size > 3) { "Attestation chain must contain at least 4 certificates" }
+
+            val rootCert = chain[3]
+            val subRootCert = chain[2]
+            val caCert = chain[1]
+            val leafCert = chain[0]
+
+            // TODO: avoid hardcoded circuit IDs
+            val circuit = selectAppropriateCircuit(application.applicationContext, "es384_composed_aka/0.1.0")
+
+            proofStartTime = System.currentTimeMillis()
+            jwt = proveChainComposedAkaJwt(
+                circuit,
+                rootCert.encoded,
+                subRootCert.encoded,
+                caCert.encoded,
                 leafCert.encoded,
                 null,
                 appSettings.getUserSk(),

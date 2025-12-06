@@ -70,16 +70,19 @@ class ProofGenerationFragment : Fragment() {
             binding.btnStart.isEnabled = !isLoading && !isNavigating && hasInput
             binding.btnStart384.isEnabled = !isLoading && !isNavigating && hasInput
             binding.btnStart384Composed.isEnabled = !isLoading && !isNavigating && hasInput
+            binding.btnStart384ComposedAka.isEnabled = !isLoading && !isNavigating && hasInput
             binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
 
             if (isLoading || isNavigating) {
                 binding.btnStart.text = "Processing..."
                 binding.btnStart384.text = "Processing..."
                 binding.btnStart384Composed.text = "Processing..."
+                binding.btnStart384ComposedAka.text = "Processing..."
             } else {
                 binding.btnStart.text = "Start with ES256"
                 binding.btnStart384.text = "Start with ES384 and ES256"
                 binding.btnStart384Composed.text = "Start with ES384 and ES256 (Composed Circuits)"
+                binding.btnStart384ComposedAka.text = "Start with ES384 and ES256 (Optimized Circuits)"
             }
         }
 
@@ -98,6 +101,7 @@ class ProofGenerationFragment : Fragment() {
         binding.btnStart.isEnabled = false
         binding.btnStart384.isEnabled = false
         binding.btnStart384Composed.isEnabled = false
+        binding.btnStart384ComposedAka.isEnabled = false
 
         // URL入力フィールドの変更を監視
         binding.etUrlInput.addTextChangedListener(object : TextWatcher {
@@ -110,6 +114,7 @@ class ProofGenerationFragment : Fragment() {
                 binding.btnStart.isEnabled = hasInput && !isLoading && !isNavigating
                 binding.btnStart384.isEnabled = hasInput && !isLoading && !isNavigating
                 binding.btnStart384Composed.isEnabled = hasInput && !isLoading && !isNavigating
+                binding.btnStart384ComposedAka.isEnabled = hasInput && !isLoading && !isNavigating
             }
 
             override fun afterTextChanged(s: Editable?) {}
@@ -155,6 +160,19 @@ class ProofGenerationFragment : Fragment() {
             binding.tvProgressMessage.visibility = View.GONE
             viewModel.generateProof(url, "es384-composed")
         }
+
+        binding.btnStart384ComposedAka.setOnClickListener {
+            val url = binding.etUrlInput.text.toString()
+
+            // 3つの要素を表示
+            binding.tvProcessTimeMessage.visibility = View.VISIBLE
+            binding.proofGenerationImage.visibility = View.VISIBLE
+
+            hasNavigated = false
+            isNavigating = false
+            binding.tvProgressMessage.visibility = View.GONE
+            viewModel.generateProof(url, "es384-composed-aka")
+        }
     }
 
     override fun onResume() {
@@ -174,9 +192,12 @@ class ProofGenerationFragment : Fragment() {
         val hasInput = !binding.etUrlInput.text.isNullOrBlank()
         binding.btnStart.isEnabled = hasInput
         binding.btnStart384.isEnabled = hasInput
+        binding.btnStart384Composed.isEnabled = hasInput
+        binding.btnStart384ComposedAka.isEnabled = hasInput
         binding.btnStart.text = "Start with ES256"
         binding.btnStart384.text = "Start with ES384 and ES256"
         binding.btnStart384Composed.text = "Start with ES384 and ES256 (Composed Circuits)"
+        binding.btnStart384ComposedAka.text = "Start with ES384 and ES256 (Optimized Circuits)"
         binding.progressBar.visibility = View.GONE
         binding.tvProgressMessage.visibility = View.GONE
         binding.tvProcessTimeMessage.visibility = View.GONE
