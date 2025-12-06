@@ -210,6 +210,51 @@ pub fn prove_composed(
     Ok((proof_with_public_inputs, nym))
 }
 
+pub fn prove_composed_aka(
+    circuit: &Circuit,
+    now: &DateTime<Utc>,
+    root_pk_x: &[u8],
+    root_pk_y: &[u8],
+    context: &str,
+    user_sk: &Fr,
+    parsed_cert_subroot: &ParsedCert,
+    parsed_cert_ca: &ParsedCert,
+    parsed_cert_ee: &ParsedCert,
+    is_keccak_mode: bool,
+) -> Result<(ProofWithPublicInputs, Fr), String> {
+    let start_nym = Instant::now();
+    let (nym, context_field) = generate_nym_and_context_field(user_sk, parsed_cert_ee, context)?;
+    let duration_nym = start_nym.elapsed();
+    println!("prove_composed: generate_nym took {:?}", duration_nym);
+
+    let start_witness = Instant::now();
+    let initial_witness = generate_initial_witness_composed_aka(
+        now,
+        root_pk_x,
+        root_pk_y,
+        &context_field,
+        &nym,
+        user_sk,
+        parsed_cert_subroot,
+        parsed_cert_ca,
+        MAX_EXTRA_EXTENSION_LEN_CA,
+        parsed_cert_ee,
+        MAX_EXTRA_EXTENSION_LEN_EE,
+    )?;
+    let duration_witness = start_witness.elapsed();
+    println!(
+        "prove_composed: generate_initial_witness took {:?}",
+        duration_witness
+    );
+
+    let start_proof = Instant::now();
+    let proof_with_public_inputs = generate_proof(circuit, initial_witness, is_keccak_mode)?;
+    let duration_proof = start_proof.elapsed();
+    println!("prove_composed: generate_proof took {:?}", duration_proof);
+
+    Ok((proof_with_public_inputs, nym))
+}
+
 fn generate_commitment(parsed_cert: &ParsedCert) -> Result<(Fr, Fr, Fr), String> {
     let mut rng = OsRng;
     let r = Fr::rand(&mut rng);
@@ -590,4 +635,124 @@ fn generate_initial_witness_common_composed(
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.not_after));
 
     Ok(witness)
+}
+
+const SUBJECT_CA_LEN: usize = 65;
+fn generate_initial_witness_composed_aka(
+    now: &DateTime<Utc>,
+    root_pk_x: &[u8],
+    root_pk_y: &[u8],
+    context: &Fr,
+    nym: &Fr,
+    user_sk: &Fr,
+    parsed_cert_subroot: &ParsedCert,
+    parsed_cert_ca: &ParsedCert,
+    max_extra_extension_len_ca: usize,
+    parsed_cert_ee: &ParsedCert,
+    max_extra_extension_len_ee: usize,
+) -> Result<WitnessMap<GenericFieldElement<Fr>>, String> {
+    let mut witness = Vec::new();
+
+    // public inputs
+    let now = UtcTime {
+        year: now.year() as u16,
+        month: now.month() as u8,
+        day: now.day() as u8,
+        hour: now.hour() as u8,
+        minute: now.minute() as u8,
+        second: now.second() as u8,
+    };
+    let root_pk_x = root_pk_x
+        .try_into()
+        .map_err(|e| format!("root_pk_x must be 32 bytes: failed to convert: {}", e))?;
+    let root_pk_y = root_pk_y
+        .try_into()
+        .map_err(|e| format!("root_pk_y must be 32 bytes: failed to convert: {}", e))?;
+    witness.extend(from_u8_array_to_fr_vec(&now.to_bytes()));
+    witness.extend(from_u8_array_to_fr_vec(root_pk_x));
+    witness.extend(from_u8_array_to_fr_vec(root_pk_y));
+    witness.extend(from_u8_array_to_fr_vec(
+        &parsed_cert_subroot.authority_key_identifier,
+    ));
+    witness.push(*context);
+    witness.push(*nym);
+
+    // subroot
+    if parsed_cert_subroot.algorithm_oid != OID_SIG_ECDSA_WITH_SHA384 {
+        return Err(format!(
+            "Subroot certificate must use ECDSA with SHA384: found OID {}",
+            parsed_cert_subroot.algorithm_oid
+        ));
+    };
+    let signature = parsed_cert_subroot.extract_normalized_ecdsa_sig()?;
+    witness.extend(from_u8_array_to_fr_vec(&signature));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert_subroot.serial_number));
+    witness.push(parsed_cert_subroot.serial_number_len.into());
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert_subroot.subject_pk_x));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert_subroot.subject_pk_y));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert_subroot.not_before));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert_subroot.not_after));
+    witness.extend(from_u8_array_to_fr_vec(
+        &parsed_cert_subroot.subject_key_identifier,
+    ));
+
+    // ca
+    if parsed_cert_ca.algorithm_oid != OID_SIG_ECDSA_WITH_SHA256 {
+        return Err(format!(
+            "CA certificate must use ECDSA with SHA256: found OID {}",
+            parsed_cert_ca.algorithm_oid
+        ));
+    };
+    let signature = parsed_cert_ca.extract_normalized_ecdsa_sig()?;
+    witness.extend(from_u8_array_to_fr_vec(&signature));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert_ca.serial_number));
+    witness.push(parsed_cert_ca.serial_number_len.into());
+    witness.extend(from_u8_array_to_fr_vec(
+        &parsed_cert_ca.subject[..SUBJECT_CA_LEN],
+    ));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert_ca.subject_pk_x));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert_ca.subject_pk_y));
+    let mut extra_extension_array = vec![0u8; max_extra_extension_len_ca];
+    let copy_len = std::cmp::min(
+        parsed_cert_ca.extra_extension.len(),
+        max_extra_extension_len_ca,
+    );
+    extra_extension_array[..copy_len].copy_from_slice(&parsed_cert_ca.extra_extension[..copy_len]);
+    witness.extend(from_u8_array_to_fr_vec(&extra_extension_array));
+    witness.push(parsed_cert_ca.extra_extension_len.into());
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert_ca.not_before));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert_ca.not_after));
+    witness.extend(from_u8_array_to_fr_vec(
+        &parsed_cert_ca.subject_key_identifier,
+    ));
+
+    // ee
+    if parsed_cert_ee.algorithm_oid != OID_SIG_ECDSA_WITH_SHA256 {
+        return Err(format!(
+            "EE certificate must use ECDSA with SHA256: found OID {}",
+            parsed_cert_ee.algorithm_oid
+        ));
+    };
+    let signature = parsed_cert_ee.extract_normalized_ecdsa_sig()?;
+    witness.extend(from_u8_array_to_fr_vec(&signature));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert_ee.subject_pk_x));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert_ee.subject_pk_y));
+    let mut extra_extension_array = vec![0u8; max_extra_extension_len_ee];
+    let copy_len = std::cmp::min(
+        parsed_cert_ee.extra_extension.len(),
+        max_extra_extension_len_ee,
+    );
+    extra_extension_array[..copy_len].copy_from_slice(&parsed_cert_ee.extra_extension[..copy_len]);
+    witness.extend(from_u8_array_to_fr_vec(&extra_extension_array));
+    witness.push(parsed_cert_ee.extra_extension_len.into());
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert_ee.not_before));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert_ee.not_after));
+    witness.push(*user_sk);
+
+    let mut witness_map = WitnessMap::new();
+    for (i, witness) in witness.iter().enumerate() {
+        witness_map.insert(Witness(i as u32), FieldElement::from_repr(*witness));
+    }
+
+    Ok(witness_map)
 }

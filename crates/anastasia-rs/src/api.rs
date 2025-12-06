@@ -741,6 +741,183 @@ pub fn prove_chain_composed_as_key_attestation_jwt(
     Ok(jwt)
 }
 
+pub fn prove_chain_composed_aka(
+    circuit_meta: &CircuitMeta,
+    root_cert: &[u8],
+    subroot_cert: &[u8],
+    intermediate_cert: &[u8],
+    leaf_cert: &[u8],
+    now: Option<i64>,
+    user_sk: &Fr,
+    context: &str,
+    is_keccak_mode: bool,
+) -> Result<ChainProofResult, String> {
+    let now_datetime = match now {
+        Some(ts) => chrono::DateTime::from_timestamp_secs(ts)
+            .ok_or_else(|| "Invalid timestamp".to_string())?
+            .with_timezone(&chrono::Utc),
+        None => chrono::Utc::now(),
+    };
+
+    // Parse the root certificate to get the initial issuer public key and authority key identifier
+    let start_parse_cert = Instant::now();
+    let parsed_cert_root = ParsedCert::from_der(&root_cert)
+        .map_err(|e| format!("Failed to parse root cert: {}", e))?;
+    let root_pk_x = parsed_cert_root.subject_pk_x;
+    let root_pk_y = parsed_cert_root.subject_pk_y;
+    let parsed_cert_subroot =
+        ParsedCert::from_der(&subroot_cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
+    let parsed_cert_ca = ParsedCert::from_der(&intermediate_cert)
+        .map_err(|e| format!("Failed to parse cert: {}", e))?;
+    let parsed_cert_ee =
+        ParsedCert::from_der(&leaf_cert).map_err(|e| format!("Failed to parse cert: {}", e))?;
+    let duration_parse_cert = start_parse_cert.elapsed();
+    println!("Parsing subroot cert took {:?}", duration_parse_cert);
+
+    let start_gen_circuit = Instant::now();
+    let circuit = Circuit::new(&circuit_meta)?;
+    let duration_gen_circuit = start_gen_circuit.elapsed();
+    println!("Generating subroot circuit took {:?}", duration_gen_circuit);
+
+    let (proof_with_public_inputs, nym) = crate::prove::prove_composed_aka(
+        &circuit,
+        &now_datetime,
+        &root_pk_x.to_vec(),
+        &root_pk_y.to_vec(),
+        context,
+        user_sk,
+        &parsed_cert_subroot,
+        &parsed_cert_ca,
+        &parsed_cert_ee,
+        is_keccak_mode,
+    )?;
+    println!("Composed proof generated: {}", circuit.id);
+    println!("");
+
+    let proof = proof_with_public_inputs.proof;
+
+    // compress the CBOR data with gzip
+    let start_compression = Instant::now();
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    encoder
+        .write_all(&proof)
+        .map_err(|e| format!("Failed to write proof to compression encoder: {}", e))?;
+    let compressed_proof = encoder
+        .finish()
+        .map_err(|e| format!("Failed to finish compression of proof: {}", e))?;
+    let duration_compression = start_compression.elapsed();
+    println!(
+        "Compressing proofs and commitments took {:?}",
+        duration_compression
+    );
+    println!("");
+
+    Ok(ChainProofResult {
+        now: now_datetime.timestamp(),
+        nym,
+        proofs_and_commitments: compressed_proof,
+    })
+}
+
+pub fn prove_chain_composed_aka_base64(
+    circuit_meta: &CircuitMeta,
+    root_cert: &[u8],
+    subroot_cert: &[u8],
+    intermediate_cert: &[u8],
+    leaf_cert: &[u8],
+    now: Option<i64>,
+    user_sk: &str,
+    context: &str,
+    is_keccak_mode: bool,
+) -> Result<ChainProofResultBase64, String> {
+    let user_sk_bytes =
+        hex::decode(user_sk).map_err(|e| format!("Failed to decode user_sk: {}", e))?;
+    if user_sk_bytes.len() > 32 {
+        return Err(format!(
+            "user_sk must be at most 32 bytes (64 hex characters), got {} bytes",
+            user_sk_bytes.len()
+        ));
+    }
+    let user_sk = Fr::from_be_bytes_mod_order(&user_sk_bytes);
+
+    let result = prove_chain_composed_aka(
+        circuit_meta,
+        root_cert,
+        subroot_cert,
+        intermediate_cert,
+        leaf_cert,
+        now,
+        &user_sk,
+        context,
+        is_keccak_mode,
+    )?;
+    let proofs_and_commitments = URL_SAFE_NO_PAD.encode(result.proofs_and_commitments);
+
+    Ok(ChainProofResultBase64 {
+        now: result.now,
+        nym: result.nym.to_base64_url_string(),
+        proofs_and_commitments,
+    })
+}
+
+pub fn prove_chain_composed_aka_as_key_attestation_jwt(
+    circuits_meta: &CircuitMeta,
+    root_cert: &[u8],
+    subroot_cert: &[u8],
+    intermediate_cert: &[u8],
+    leaf_cert: &[u8],
+    now: Option<i64>,
+    user_sk: &str,
+    context: &str,
+    is_keccak_mode: bool,
+) -> Result<String, String> {
+    let result = prove_chain_composed_aka_base64(
+        circuits_meta,
+        root_cert,
+        subroot_cert,
+        intermediate_cert,
+        leaf_cert,
+        now,
+        user_sk,
+        context,
+        is_keccak_mode,
+    )?;
+
+    let mut x5c = Vec::new();
+    x5c.push(circuits_meta.id.clone());
+    x5c.push(STANDARD.encode(root_cert));
+
+    let header = serde_json::json!({
+        "typ": "key-attestation+jwt",
+        "alg": "ANASTASIA-AKA-COM",
+        "x5c": x5c,
+    });
+
+    let payload = serde_json::json!({
+        "iat": result.now,
+        "attested_keys": [
+            {
+                "kty": "oct",
+                "k": result.nym,
+                "kid": context,
+            }
+        ],
+    });
+
+    let header_bytes =
+        serde_json::to_vec(&header).map_err(|e| format!("Failed to serialize header: {}", e))?;
+    let payload_bytes =
+        serde_json::to_vec(&payload).map_err(|e| format!("Failed to serialize payload: {}", e))?;
+
+    let jwt = format!(
+        "{}.{}.{}",
+        URL_SAFE_NO_PAD.encode(header_bytes),
+        URL_SAFE_NO_PAD.encode(payload_bytes),
+        result.proofs_and_commitments
+    );
+    Ok(jwt)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1181,6 +1358,48 @@ mod tests {
             &cert_root,
             &cert_subroot,
             &[&cert_ca],
+            &cert_ee,
+            Some(now),
+            &user_sk,
+            context,
+            false,
+        )
+        .unwrap();
+
+        assert_eq!(result.now, now);
+        assert!(!result.nym.is_empty());
+        assert!(!result.proofs_and_commitments.is_empty());
+    }
+
+    #[test]
+    #[serial]
+    fn test_prove_es384_256_chain_composed_aka_b64() {
+        let version = "0.1.0";
+
+        let meta = CircuitMeta::new(
+            format!("es384_composed_aka/{version}"),
+            format!("data/es384_composed_aka/{version}/circuit.json"),
+            format!("data/es384_composed_aka/{version}/vk"),
+            format!("data/es384_composed_aka/{version}/keccak.vk"),
+            format!("data/default_20.srs"),
+        );
+
+        let cert_root = std::fs::read("test_data/droid_ca2.der").unwrap();
+        let cert_subroot = std::fs::read("test_data/droid_ca3.der").unwrap();
+        let cert_ca = std::fs::read("test_data/strongbox.der").unwrap();
+        let cert_ee = std::fs::read("test_data/keystore.der").unwrap();
+
+        let now = 1763028507; // 2025-11-13T10:08:27Z
+        let user_sk = "deadbeef";
+        let context = "https://credential-issuer.example.com";
+
+        setup("data/default_20.srs").unwrap();
+
+        let result = prove_chain_composed_aka_base64(
+            &meta,
+            &cert_root,
+            &cert_subroot,
+            &cert_ca,
             &cert_ee,
             Some(now),
             &user_sk,
