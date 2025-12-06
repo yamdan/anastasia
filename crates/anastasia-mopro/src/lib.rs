@@ -270,6 +270,62 @@ fn prove_chain_composed_jwt(
     Ok(chain_proof)
 }
 
+#[uniffi::export]
+fn prove_chain_composed_aka_base64(
+    circuit_meta: CircuitMeta,
+    root_cert: Vec<u8>,
+    subroot_cert: Vec<u8>,
+    intermediate_cert: Vec<u8>,
+    leaf_cert: Vec<u8>,
+    now: Option<i64>,
+    user_sk: &str,
+    context: &str,
+    is_keccak_mode: Option<bool>,
+) -> Result<ChainProofResultBase64, MoproError> {
+    let chain_proof = anastasia_rs::prove_chain_composed_aka_base64(
+        &circuit_meta.into(),
+        &root_cert,
+        &subroot_cert,
+        &intermediate_cert,
+        &leaf_cert,
+        now,
+        user_sk,
+        context,
+        is_keccak_mode.unwrap_or(false),
+    )
+    .map_err(|e| MoproError::NoirError(e.to_string()))?;
+
+    Ok(chain_proof.into())
+}
+
+#[uniffi::export]
+fn prove_chain_composed_aka_jwt(
+    circuit_meta: CircuitMeta,
+    root_cert: Vec<u8>,
+    subroot_cert: Vec<u8>,
+    intermediate_cert: Vec<u8>,
+    leaf_cert: Vec<u8>,
+    now: Option<i64>,
+    user_sk: &str,
+    context: &str,
+    is_keccak_mode: Option<bool>,
+) -> Result<String, MoproError> {
+    let chain_proof = anastasia_rs::prove_chain_composed_aka_as_key_attestation_jwt(
+        &circuit_meta.into(),
+        &root_cert,
+        &subroot_cert,
+        &intermediate_cert,
+        &leaf_cert,
+        now,
+        user_sk,
+        context,
+        is_keccak_mode.unwrap_or(false),
+    )
+    .map_err(|e| MoproError::NoirError(e.to_string()))?;
+
+    Ok(chain_proof)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -609,6 +665,44 @@ mod tests {
             cert_root,
             cert_subroot,
             vec![cert_ca],
+            cert_ee,
+            Some(now),
+            user_sk,
+            context,
+            Some(false),
+        )
+        .unwrap();
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    #[serial]
+    fn test_prove_es384_256_chain_composed_aka_jwt_keccak_false() {
+        let version = "0.1.0";
+
+        let meta = CircuitMeta::new(
+            format!("es384_composed_aka/{version}"),
+            format!("../anastasia-rs/data/es384_composed_aka/{version}/circuit.json"),
+            format!("../anastasia-rs/data/es384_composed_aka/{version}/vk"),
+            format!("../anastasia-rs/data/es384_composed_aka/{version}/keccak.vk"),
+            "../anastasia-rs/data/default_20.srs".to_string(),
+        );
+
+        let cert_root = std::fs::read("../anastasia-rs/test_data/droid_ca2.der").unwrap();
+        let cert_subroot = std::fs::read("../anastasia-rs/test_data/droid_ca3.der").unwrap();
+        let cert_ca = std::fs::read("../anastasia-rs/test_data/strongbox.der").unwrap();
+        let cert_ee = std::fs::read("../anastasia-rs/test_data/keystore.der").unwrap();
+
+        let now = 1763028507; // 2025-11-13T10:08:27Z
+        let user_sk = "deadbeef";
+        let context = "https://credential-issuer.example.com";
+
+        // keccak mode == true
+        let result = prove_chain_composed_aka_jwt(
+            meta,
+            cert_root,
+            cert_subroot,
+            cert_ca,
             cert_ee,
             Some(now),
             user_sk,
