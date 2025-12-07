@@ -4,7 +4,7 @@ use es_common::{
         key_usage_key_cert_sign_extension, prepare_serial_number,
         prepare_subject_public_key_info_es256, prepare_validity, subject_key_identifier_extension,
     },
-    utils::{concat_chunks_3, encode_length, encode_length_3, UtcTime},
+    utils::{encode_length, encode_length_3, meta_concat_chunks_3, UtcTime},
 };
 
 global HEADER_LEN: u32 = 4;
@@ -257,7 +257,7 @@ pub fn reserialize(
 
     println("es256_strongbox::models::prepare_tbs debug info:");
 
-    let buf = concat_chunks_3::<MIN_LEN_0, MAX_LEN_0, MIN_LEN_1, MAX_LEN_1, MAX_TBS_LEN>(
+    let buf = meta_concat_chunks_3!(MIN_LEN_0, MAX_LEN_0, MIN_LEN_1, MAX_LEN_1, MAX_TBS_LEN)(
         chunk_0_bytes,
         len_0,
         chunk_1_bytes,
