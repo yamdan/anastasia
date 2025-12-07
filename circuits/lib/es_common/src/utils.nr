@@ -1,3 +1,5 @@
+use std::convert::AsPrimitive;
+
 fn u8_to_two_ascii_bytes(mut n: u8) -> [u8; 2] {
     assert(n < 100);
     let mut buf: [u8; 2] = [0; 2];
@@ -207,70 +209,135 @@ pub fn concat_chunks_2<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let OUT_LEN: u32>
     buf
 }
 
-// pub comptime fn build_concat_chunks_3(in_1: u32, in_2: u32, out_0: u32, out_1: u32) -> Quoted {
-//     let in_0_block = quote {
-//         let chunk_0_byte = chunk_0_bytes[i];
-//     };
+global ADD: str<3> = "add";
+global DEL: str<3> = "del";
 
-//     let in_1_block = quote {
-//         let in_chunk_0 = i < acc_len_0;
-//         let chunk_1_byte = if !in_chunk_0 {
-//             chunk_1_bytes[i - acc_len_0]
-//         } else {
-//             0
-//        };
-//     };
+pub comptime fn meta_concat_chunks_3(
+    min_len_0: u32,
+    max_len_0: u32,
+    min_len_1: u32,
+    max_len_1: u32,
+    out_len: u32,
+) -> Quoted {
+    let ADD_1: u32 = min_len_0;
+    let ADD_2: u32 = ADD_1 + min_len_1;
+    let DEL_0: u32 = max_len_0;
+    let DEL_1: u32 = DEL_0 + max_len_1;
 
-//     let in_2_block = quote {
-//         let in_chunk_1 = i < acc_len_1;
-//         let chunk_2_byte = if !in_chunk_1 {
-//             chunk_2_bytes[i - acc_len_1]
-//         } else {
-//             0
-//         };
-//     };
+    assert(min_len_0 <= max_len_0, "min_len_0 must be <= max_len_0");
+    assert(min_len_1 <= max_len_1, "min_len_1 must be <= max_len_1");
+    assert(DEL_1 <= out_len, "max_len_0 + max_len_1 must be <= out_len");
 
-//     let arr = [(in_1, in_1_block), (1, in_2), (2, out_0), (3, out_1)];
-//     let sorted_arr = arr.sort_via(|a, b| a.1 < b.1);
+    let arr = [(ADD_1, (ADD, 1)), (ADD_2, (ADD, 2)), (DEL_0, (DEL, 0)), (DEL_1, (DEL, 1))];
+    let sorted_arr = arr.sort_via(|a, b| a.0 < b.0);
 
-//     for x in sorted_arr {
-//         let x0 = x.0;
-//         let x1 = x.1;
-//         println(f"Index: {x0}, Value: {x1}");
+    let mut buf = Vec::from_slice(&[0]);
+    let mut sequences = Vec::new();
+    let mut from_index = 0;
+    for inst in sorted_arr {
+        let to_index = inst.0;
+        let action = inst.1;
+        sequences.push(((from_index, to_index), buf));
 
-//         let block = if x.0 == 0 {
-//             quote {
-//                 let chunk_1_byte = if !in_chunk_0 {
-//                     chunk_1_bytes[i - acc_len_0]
-//                 } else {
-//                     0
-//                };
-//             }
-//         } else if x.0 == 1 {
-//             quote {
-//                 let chunk_2_byte = if !in_chunk_1 {
-//                     chunk_2_bytes[i - acc_len_1]
-//                 } else {
-//                     0
-//                 };
-//             }
-//         } else if x.0 == 2 {
-//             quote {
-//                 let chunk_0_byte = if in_chunk_0 { chunk_0_bytes[i] } else { 0 };
-//             }
-//         } else {
-//             quote {
-//                 let chunk_1_byte = if in_chunk_1 {
-//                     chunk_1_bytes[i - acc_len_0]
-//                 } else {
-//                     0
-//                 };
-//             }
-//         };
-//         println(f"Generated block for index {x0}:\n{block}");
-//     }
-//     quote {}
-// }
+        if action.0 == ADD {
+            buf.push(action.1);
+        } else {
+            let _ = buf.remove(0);
+        }
+        from_index = to_index;
+    }
+    sequences.push(((from_index, out_len), buf));
+
+    let mut inner_buf = quote {
+        let mut buf: [u8; $out_len] = [0; $out_len];
+        let mut acc_len: [u32; 4] = [0; 4];
+        let mut chunk_byte: [u8; 3] = [0; 3];
+
+        acc_len[0] = 0;
+        acc_len[1] = len_0;
+        acc_len[2] = acc_len[1] + len_1;
+
+        assert(acc_len[1] >= $min_len_0);
+        assert(acc_len[1] <= $max_len_0);
+        assert(acc_len[2] >= $min_len_0 + $min_len_1);
+        assert(acc_len[2] <= $max_len_0 + $max_len_1);
+    };
+    loop {
+        let sequence = sequences.remove(0);
+        let range = sequence.0;
+        let mut operations = sequence.1;
+
+        let mut cond_part = quote {
+            let mut in_chunk: [bool; 3] = [false; 3];
+            let mut acc_in_chunk = true;
+        };
+        let mut byte_part = quote {};
+
+        loop {
+            let op = operations.remove(0);
+
+            cond_part = if operations.len() == 0 {
+                quote {
+                    $cond_part
+                    in_chunk[$op] = acc_in_chunk;
+                }
+            } else {
+                quote {
+                    $cond_part
+                    in_chunk[$op] = acc_in_chunk & i < acc_len[$op + 1];
+                    acc_in_chunk &= !in_chunk[$op];
+                }
+            };
+
+            let op32: u32 = op.as_();
+            let bytes = f"chunk_{op32}_bytes".quoted_contents();
+            byte_part = quote {
+                $byte_part
+
+                chunk_byte[$op] = if in_chunk[$op] {
+                    $bytes[i - acc_len[$op]]
+                } else {
+                    0
+                };
+
+                buf[i] += chunk_byte[$op];
+            };
+
+            if operations.len() == 0 { break };
+        }
+
+        inner_buf = quote {
+            $inner_buf
+
+            for i in $range.0..$range.1 {
+                $cond_part
+
+                $byte_part
+            }
+        };
+
+        if sequences.len() == 0 {
+            break;
+        }
+    }
+
+    let quote_buf = quote {
+        |
+            chunk_0_bytes: [u8; $max_len_0],
+            len_0: u32,
+            chunk_1_bytes: [u8; $max_len_1],
+            len_1: u32,
+            chunk_2_bytes: [u8; $out_len - $min_len_0 - $min_len_1],
+        |
+        {
+            $inner_buf
+
+            buf
+        }
+    };
+
+    quote_buf
+}
 
 pub fn concat_chunks_3<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let MIN_LEN_1: u32, let MAX_LEN_1: u32, let OUT_LEN: u32>(
     chunk_0_bytes: [u8; MAX_LEN_0],
@@ -844,3 +911,308 @@ fn test_concat_chunks_3_2_beyond_max_boundary_1() {
     let _result = concat_chunks_3_2::<2, 5, 2, 6, 14>(chunk_0, len_0, chunk_1, len_1, chunk_2);
 }
 
+#[test]
+fn test_meta_concat_chunks_3() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 4;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 1, 1, 0];
+    let len_0 = 4;
+    let chunk_1 = [2, 2, 2, 2, 2, 0];
+    let len_1 = 5;
+    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0];
+    let result = meta_concat_chunks_3!(2u32, 5u32, 4u32, 6u32, 14u32)(
+        chunk_0,
+        len_0,
+        chunk_1,
+        len_1,
+        chunk_2,
+    );
+    let expected = [1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 0, 0, 0];
+    assert_eq(result, expected);
+}
+
+#[test]
+fn test_meta_concat_chunks_3_min_boundary() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 4;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 0, 0, 0];
+    let len_0 = 2;
+    let chunk_1 = [2, 2, 2, 2, 0, 0];
+    let len_1 = 4;
+    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0];
+    let result = meta_concat_chunks_3!(2u32, 5u32, 4u32, 6u32, 14u32)(
+        chunk_0,
+        len_0,
+        chunk_1,
+        len_1,
+        chunk_2,
+    );
+    let expected = [1, 1, 2, 2, 2, 2, 3, 3, 0, 0, 0, 0, 0, 0];
+    assert_eq(result, expected);
+}
+
+#[test(should_fail_with = "Failed constraint")]
+fn test_meta_concat_chunks_3_beyond_min_boundary_0() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 4;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 0, 0, 0, 0];
+    let len_0 = 1;
+    let chunk_1 = [2, 2, 2, 2, 0, 0];
+    let len_1 = 4;
+    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0];
+    let _result = meta_concat_chunks_3!(2u32, 5u32, 4u32, 6u32, 14u32)(
+        chunk_0,
+        len_0,
+        chunk_1,
+        len_1,
+        chunk_2,
+    );
+}
+
+#[test(should_fail_with = "Failed constraint")]
+fn test_meta_concat_chunks_3_beyond_min_boundary_1() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 4;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 0, 0, 0];
+    let len_0 = 2;
+    let chunk_1 = [2, 2, 2, 0, 0, 0];
+    let len_1 = 3;
+    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0];
+    let _result = meta_concat_chunks_3!(2u32, 5u32, 4u32, 6u32, 14u32)(
+        chunk_0,
+        len_0,
+        chunk_1,
+        len_1,
+        chunk_2,
+    );
+}
+
+#[test]
+fn test_meta_concat_chunks_3_max_boundary() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 4;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 1, 1, 1];
+    let len_0 = 5;
+    let chunk_1 = [2, 2, 2, 2, 2, 2];
+    let len_1 = 6;
+    let chunk_2 = [3, 3, 3, 0, 0, 0, 0, 0];
+    let result = meta_concat_chunks_3!(2u32, 5u32, 4u32, 6u32, 14u32)(
+        chunk_0,
+        len_0,
+        chunk_1,
+        len_1,
+        chunk_2,
+    );
+    let expected = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3];
+    assert_eq(result, expected);
+}
+
+#[test(should_fail_with = "Failed constraint")]
+fn test_meta_concat_chunks_3_beyond_max_boundary_0() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 4;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 1, 1, 1];
+    let len_0 = 6;
+    let chunk_1 = [2, 2, 2, 2, 2, 2];
+    let len_1 = 6;
+    let chunk_2 = [3, 3, 3, 0, 0, 0, 0, 0];
+    let _result = meta_concat_chunks_3!(2u32, 5u32, 4u32, 6u32, 14u32)(
+        chunk_0,
+        len_0,
+        chunk_1,
+        len_1,
+        chunk_2,
+    );
+}
+
+#[test(should_fail_with = "Failed constraint")]
+fn test_meta_concat_chunks_3_beyond_max_boundary_1() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 4;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 1, 1, 1];
+    let len_0 = 5;
+    let chunk_1 = [2, 2, 2, 2, 2, 2];
+    let len_1 = 7;
+    let chunk_2 = [3, 3, 3, 0, 0, 0, 0, 0];
+    let _result = meta_concat_chunks_3!(2u32, 5u32, 4u32, 6u32, 14u32)(
+        chunk_0,
+        len_0,
+        chunk_1,
+        len_1,
+        chunk_2,
+    );
+}
+
+#[test]
+fn test_meta_concat_chunks_3_2() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 2;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 1, 1, 0];
+    let len_0 = 4;
+    let chunk_1 = [2, 2, 2, 2, 2, 0];
+    let len_1 = 5;
+    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
+    let result = meta_concat_chunks_3!(2u32, 5u32, 2u32, 6u32, 14u32)(
+        chunk_0,
+        len_0,
+        chunk_1,
+        len_1,
+        chunk_2,
+    );
+    let expected = [1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 0, 0, 0];
+    assert_eq(result, expected);
+}
+
+#[test]
+fn test_meta_concat_chunks_3_2_min_boundary() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 2;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 0, 0, 0];
+    let len_0 = 2;
+    let chunk_1 = [2, 2, 0, 0, 0, 0];
+    let len_1 = 2;
+    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
+    let result = meta_concat_chunks_3!(2u32, 5u32, 2u32, 6u32, 14u32)(
+        chunk_0,
+        len_0,
+        chunk_1,
+        len_1,
+        chunk_2,
+    );
+    let expected = [1, 1, 2, 2, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
+    assert_eq(result, expected);
+}
+
+#[test(should_fail_with = "Failed constraint")]
+fn test_meta_concat_chunks_3_2_beyond_min_boundary_0() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 2;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 0, 0, 0, 0];
+    let len_0 = 1;
+    let chunk_1 = [2, 2, 2, 2, 0, 0];
+    let len_1 = 4;
+    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
+    let _result = meta_concat_chunks_3!(2u32, 5u32, 2u32, 6u32, 14u32)(
+        chunk_0,
+        len_0,
+        chunk_1,
+        len_1,
+        chunk_2,
+    );
+}
+
+#[test(should_fail_with = "Failed constraint")]
+fn test_meta_concat_chunks_3_2_beyond_min_boundary_1() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 2;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 0, 0, 0];
+    let len_0 = 2;
+    let chunk_1 = [2, 0, 0, 0, 0, 0];
+    let len_1 = 1;
+    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
+    let _result = meta_concat_chunks_3!(2u32, 5u32, 2u32, 6u32, 14u32)(
+        chunk_0,
+        len_0,
+        chunk_1,
+        len_1,
+        chunk_2,
+    );
+}
+
+#[test]
+fn test_meta_concat_chunks_3_2_max_boundary() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 2;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 1, 1, 1];
+    let len_0 = 5;
+    let chunk_1 = [2, 2, 2, 2, 2, 2];
+    let len_1 = 6;
+    let chunk_2 = [3, 3, 3, 0, 0, 0, 0, 0, 0, 0];
+    let result = meta_concat_chunks_3!(2u32, 5u32, 2u32, 6u32, 14u32)(
+        chunk_0,
+        len_0,
+        chunk_1,
+        len_1,
+        chunk_2,
+    );
+    let expected = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3];
+    assert_eq(result, expected);
+}
+
+#[test(should_fail_with = "Failed constraint")]
+fn test_meta_concat_chunks_3_2_beyond_max_boundary_0() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 2;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 1, 1, 1];
+    let len_0 = 6;
+    let chunk_1 = [2, 2, 2, 2, 2, 2];
+    let len_1 = 6;
+    let chunk_2 = [3, 3, 3, 0, 0, 0, 0, 0, 0, 0];
+    let _result = meta_concat_chunks_3!(2u32, 5u32, 2u32, 6u32, 14u32)(
+        chunk_0,
+        len_0,
+        chunk_1,
+        len_1,
+        chunk_2,
+    );
+}
+
+#[test(should_fail_with = "Failed constraint")]
+fn test_meta_concat_chunks_3_2_beyond_max_boundary_1() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 2;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 1, 1, 1];
+    let len_0 = 5;
+    let chunk_1 = [2, 2, 2, 2, 2, 2];
+    let len_1 = 7;
+    let chunk_2 = [3, 3, 3, 0, 0, 0, 0, 0, 0, 0];
+    let _result = meta_concat_chunks_3!(2u32, 5u32, 2u32, 6u32, 14u32)(
+        chunk_0,
+        len_0,
+        chunk_1,
+        len_1,
+        chunk_2,
+    );
+}
