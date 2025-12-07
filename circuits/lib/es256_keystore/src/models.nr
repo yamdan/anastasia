@@ -1,9 +1,10 @@
 use es_common::{
+    concat::concat_chunks_2,
     models::{
         key_usage_digital_signature_extension, prepare_subject_public_key_info_es256,
         prepare_validity,
     },
-    utils::{concat_chunks_2, encode_length, encode_length_3, UtcTime},
+    utils::{encode_length, encode_length_3, UtcTime},
 };
 
 global HEADER_LEN: u32 = 4;

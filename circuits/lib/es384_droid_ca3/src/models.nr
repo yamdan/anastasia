@@ -1,10 +1,11 @@
 use es_common::{
+    concat::concat_chunks_2,
     models::{
         authority_key_identifier_extension, basic_constraints_ca_extension,
         key_usage_key_cert_sign_extension, prepare_serial_number,
         prepare_subject_public_key_info_es256, prepare_validity, subject_key_identifier_extension,
     },
-    utils::{concat_chunks_2, encode_length_1, encode_length_3, UtcTime},
+    utils::{encode_length_1, encode_length_3, UtcTime},
 };
 
 global HEADER_LEN: u32 = 4;

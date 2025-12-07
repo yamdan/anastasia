@@ -1,4 +1,5 @@
 pub mod commit;
+pub mod concat;
 pub mod models;
 pub mod nym;
 pub mod utils;
