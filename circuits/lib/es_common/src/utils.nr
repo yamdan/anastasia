@@ -280,9 +280,14 @@ pub fn concat_chunks_3<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let MIN_LEN_1: u3
     chunk_2_bytes: [u8; OUT_LEN - MIN_LEN_0 - MIN_LEN_1],
 ) -> [u8; OUT_LEN] {
     let ADD_1: u32 = MIN_LEN_0;
-    let DEL_0: u32 = MAX_LEN_0;
     let ADD_2: u32 = ADD_1 + MIN_LEN_1;
+    let DEL_0: u32 = MAX_LEN_0;
     let DEL_1: u32 = DEL_0 + MAX_LEN_1;
+
+    assert(MIN_LEN_0 <= MAX_LEN_0, "MIN_LEN_0 must be <= MAX_LEN_0");
+    assert(MIN_LEN_1 <= MAX_LEN_1, "MIN_LEN_1 must be <= MAX_LEN_1");
+    assert(DEL_0 <= ADD_2, "MAX_LEN_0 must be <= MIN_LEN_0 + MIN_LEN_1");
+    assert(DEL_1 <= OUT_LEN, "MAX_LEN_0 + MAX_LEN_1 must be <= OUT_LEN");
 
     let acc_len_0 = len_0;
     let acc_len_1 = len_0 + len_1;
@@ -293,16 +298,17 @@ pub fn concat_chunks_3<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let MIN_LEN_1: u3
     println(f"BOUNDARY_1: {ADD_2} -- {DEL_1}");
     println("");
 
-    assert(acc_len_0 >= ADD_1);
-    assert(acc_len_0 <= DEL_0);
-    assert(acc_len_1 >= ADD_2);
-    assert(acc_len_1 <= DEL_1);
+    assert(acc_len_0 >= MIN_LEN_0);
+    assert(acc_len_0 <= MAX_LEN_0);
+    assert(acc_len_1 >= MIN_LEN_0 + MIN_LEN_1);
+    assert(acc_len_1 <= MAX_LEN_0 + MAX_LEN_1);
 
     let mut buf: [u8; OUT_LEN] = [0; OUT_LEN];
 
     // Copy chunk 0
     for i in 0..ADD_1 {
-        let in_chunk_0 = true;
+        let mut acc_in_chunk = true;
+        let in_chunk_0 = acc_in_chunk;
 
         let chunk_0_byte = if in_chunk_0 { chunk_0_bytes[i] } else { 0 };
 
@@ -311,8 +317,10 @@ pub fn concat_chunks_3<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let MIN_LEN_1: u3
 
     // Copy chunk 0 and chunk 1
     for i in ADD_1..DEL_0 {
-        let in_chunk_0 = i < acc_len_0;
-        let in_chunk_1 = !in_chunk_0;
+        let mut acc_in_chunk = true;
+        let in_chunk_0 = acc_in_chunk & i < acc_len_0;
+        acc_in_chunk &= !in_chunk_0;
+        let in_chunk_1 = acc_in_chunk;
 
         let chunk_0_byte = if in_chunk_0 { chunk_0_bytes[i] } else { 0 };
 
@@ -328,7 +336,8 @@ pub fn concat_chunks_3<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let MIN_LEN_1: u3
 
     // Copy chunk 1
     for i in DEL_0..ADD_2 {
-        let in_chunk_1 = true;
+        let mut acc_in_chunk = true;
+        let in_chunk_1 = acc_in_chunk;
 
         let chunk_1_byte = if in_chunk_1 {
             chunk_1_bytes[i - acc_len_0]
@@ -341,8 +350,10 @@ pub fn concat_chunks_3<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let MIN_LEN_1: u3
 
     // Copy chunk 1 and chunk 2
     for i in ADD_2..DEL_1 {
-        let in_chunk_1 = i < acc_len_1;
-        let in_chunk_2 = !in_chunk_1;
+        let mut acc_in_chunk = true;
+        let in_chunk_1 = acc_in_chunk & i < acc_len_1;
+        acc_in_chunk &= !in_chunk_1;
+        let in_chunk_2 = acc_in_chunk;
 
         let chunk_1_byte = if in_chunk_1 {
             chunk_1_bytes[i - acc_len_0]
@@ -361,7 +372,8 @@ pub fn concat_chunks_3<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let MIN_LEN_1: u3
 
     // Copy chunk 2
     for i in DEL_1..OUT_LEN {
-        let in_chunk_2 = true;
+        let mut acc_in_chunk = true;
+        let in_chunk_2 = acc_in_chunk;
 
         let chunk_2_byte = if in_chunk_2 {
             chunk_2_bytes[i - acc_len_1]
@@ -369,7 +381,7 @@ pub fn concat_chunks_3<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let MIN_LEN_1: u3
             0
         };
 
-        buf[i] = chunk_2_byte;
+        buf[i] += chunk_2_byte;
     }
 
     buf
@@ -387,6 +399,11 @@ pub fn concat_chunks_3_2<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let MIN_LEN_1: 
     let DEL_0: u32 = MAX_LEN_0;
     let DEL_1: u32 = DEL_0 + MAX_LEN_1;
 
+    assert(MIN_LEN_0 <= MAX_LEN_0, "MIN_LEN_0 must be <= MAX_LEN_0");
+    assert(MIN_LEN_1 <= MAX_LEN_1, "MIN_LEN_1 must be <= MAX_LEN_1");
+    assert(ADD_2 <= DEL_0, "MIN_LEN_0 + MIN_LEN_1 must be <= MAX_LEN_0");
+    assert(DEL_1 <= OUT_LEN, "MAX_LEN_0 + MAX_LEN_1 must be <= OUT_LEN");
+
     let acc_len_0 = len_0;
     let acc_len_1 = len_0 + len_1;
 
@@ -396,16 +413,17 @@ pub fn concat_chunks_3_2<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let MIN_LEN_1: 
     println(f"BOUNDARY_1: {ADD_2} -- {DEL_1}");
     println("");
 
-    assert(acc_len_0 >= ADD_1);
-    assert(acc_len_0 <= ADD_2);
-    assert(acc_len_1 >= DEL_0);
-    assert(acc_len_1 <= DEL_1);
+    assert(acc_len_0 >= MIN_LEN_0);
+    assert(acc_len_0 <= MAX_LEN_0);
+    assert(acc_len_1 >= MIN_LEN_0 + MIN_LEN_1);
+    assert(acc_len_1 <= MAX_LEN_0 + MAX_LEN_1);
 
     let mut buf: [u8; OUT_LEN] = [0; OUT_LEN];
 
     // Copy chunk 0
     for i in 0..ADD_1 {
-        let in_chunk_0 = true;
+        let mut acc_in_chunk = true;
+        let in_chunk_0 = acc_in_chunk;
 
         let chunk_0_byte = if in_chunk_0 { chunk_0_bytes[i] } else { 0 };
 
@@ -414,8 +432,10 @@ pub fn concat_chunks_3_2<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let MIN_LEN_1: 
 
     // Copy chunk 0 and chunk 1
     for i in ADD_1..ADD_2 {
-        let in_chunk_0 = i < acc_len_0;
-        let in_chunk_1 = !in_chunk_0;
+        let mut acc_in_chunk = true;
+        let in_chunk_0 = acc_in_chunk & i < acc_len_0;
+        acc_in_chunk &= !in_chunk_0;
+        let in_chunk_1 = acc_in_chunk;
 
         let chunk_0_byte = if in_chunk_0 { chunk_0_bytes[i] } else { 0 };
 
@@ -431,9 +451,12 @@ pub fn concat_chunks_3_2<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let MIN_LEN_1: 
 
     // Copy chunk 0 and chunk 1 and chunk 2
     for i in ADD_2..DEL_0 {
-        let in_chunk_0 = i < acc_len_0;
-        let in_chunk_1 = !in_chunk_0 & i < acc_len_1;
-        let in_chunk_2 = !in_chunk_0 & !in_chunk_1;
+        let mut acc_in_chunk = true;
+        let in_chunk_0 = acc_in_chunk & i < acc_len_0;
+        acc_in_chunk &= !in_chunk_0;
+        let in_chunk_1 = acc_in_chunk & i < acc_len_1;
+        acc_in_chunk &= !in_chunk_1;
+        let in_chunk_2 = acc_in_chunk;
 
         let chunk_0_byte = if in_chunk_0 { chunk_0_bytes[i] } else { 0 };
 
@@ -454,31 +477,19 @@ pub fn concat_chunks_3_2<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let MIN_LEN_1: 
         buf[i] += chunk_2_byte;
     }
 
-    // TODO!!!!!!!!!!!!!!!
-    
-    // Copy chunk 1
-    for i in DEL_0..ADD_2 {
-        let in_chunk_1 = true;
-
-        let chunk_1_byte = if in_chunk_1 {
-            chunk_1_bytes[i - acc_len_0]
-        } else {
-            0
-        };
-
-        buf[i] += chunk_1_byte;
-    }
-
     // Copy chunk 1 and chunk 2
-    for i in ADD_2..DEL_1 {
-        let in_chunk_1 = i < acc_len_1;
-        let in_chunk_2 = !in_chunk_1;
+    for i in DEL_0..DEL_1 {
+        let mut acc_in_chunk = true;
+        let in_chunk_1 = acc_in_chunk & i < acc_len_1;
+        acc_in_chunk &= !in_chunk_1;
+        let in_chunk_2 = acc_in_chunk;
 
         let chunk_1_byte = if in_chunk_1 {
             chunk_1_bytes[i - acc_len_0]
         } else {
             0
         };
+
         let chunk_2_byte = if in_chunk_2 {
             chunk_2_bytes[i - acc_len_1]
         } else {
@@ -491,7 +502,8 @@ pub fn concat_chunks_3_2<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let MIN_LEN_1: 
 
     // Copy chunk 2
     for i in DEL_1..OUT_LEN {
-        let in_chunk_2 = true;
+        let mut acc_in_chunk = true;
+        let in_chunk_2 = acc_in_chunk;
 
         let chunk_2_byte = if in_chunk_2 {
             chunk_2_bytes[i - acc_len_1]
@@ -499,7 +511,7 @@ pub fn concat_chunks_3_2<let MIN_LEN_0: u32, let MAX_LEN_0: u32, let MIN_LEN_1: 
             0
         };
 
-        buf[i] = chunk_2_byte;
+        buf[i] += chunk_2_byte;
     }
 
     buf
@@ -720,3 +732,115 @@ fn test_concat_chunks_3_beyond_max_boundary_1() {
     let chunk_2 = [3, 3, 3, 0, 0, 0, 0, 0];
     let _result = concat_chunks_3::<2, 5, 4, 6, 14>(chunk_0, len_0, chunk_1, len_1, chunk_2);
 }
+
+#[test]
+fn test_concat_chunks_3_2() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 2;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 1, 1, 0];
+    let len_0 = 4;
+    let chunk_1 = [2, 2, 2, 2, 2, 0];
+    let len_1 = 5;
+    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
+    let result = concat_chunks_3_2::<2, 5, 2, 6, 14>(chunk_0, len_0, chunk_1, len_1, chunk_2);
+    let expected = [1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 0, 0, 0];
+    assert_eq(result, expected);
+}
+
+#[test]
+fn test_concat_chunks_3_2_min_boundary() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 2;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 0, 0, 0];
+    let len_0 = 2;
+    let chunk_1 = [2, 2, 0, 0, 0, 0];
+    let len_1 = 2;
+    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
+    let result = concat_chunks_3_2::<2, 5, 2, 6, 14>(chunk_0, len_0, chunk_1, len_1, chunk_2);
+    let expected = [1, 1, 2, 2, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
+    assert_eq(result, expected);
+}
+
+#[test(should_fail_with = "Failed constraint")]
+fn test_concat_chunks_3_2_beyond_min_boundary_0() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 2;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 0, 0, 0, 0];
+    let len_0 = 1;
+    let chunk_1 = [2, 2, 2, 2, 0, 0];
+    let len_1 = 4;
+    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
+    let _result = concat_chunks_3_2::<2, 5, 2, 6, 14>(chunk_0, len_0, chunk_1, len_1, chunk_2);
+}
+
+#[test(should_fail_with = "Failed constraint")]
+fn test_concat_chunks_3_2_beyond_min_boundary_1() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 2;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 0, 0, 0];
+    let len_0 = 2;
+    let chunk_1 = [2, 0, 0, 0, 0, 0];
+    let len_1 = 1;
+    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
+    let _result = concat_chunks_3_2::<2, 5, 2, 6, 14>(chunk_0, len_0, chunk_1, len_1, chunk_2);
+}
+
+#[test]
+fn test_concat_chunks_3_2_max_boundary() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 2;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 1, 1, 1];
+    let len_0 = 5;
+    let chunk_1 = [2, 2, 2, 2, 2, 2];
+    let len_1 = 6;
+    let chunk_2 = [3, 3, 3, 0, 0, 0, 0, 0, 0, 0];
+    let result = concat_chunks_3_2::<2, 5, 2, 6, 14>(chunk_0, len_0, chunk_1, len_1, chunk_2);
+    let expected = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3];
+    assert_eq(result, expected);
+}
+
+#[test(should_fail_with = "Failed constraint")]
+fn test_concat_chunks_3_2_beyond_max_boundary_0() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 2;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 1, 1, 1];
+    let len_0 = 6;
+    let chunk_1 = [2, 2, 2, 2, 2, 2];
+    let len_1 = 6;
+    let chunk_2 = [3, 3, 3, 0, 0, 0, 0, 0, 0, 0];
+    let _result = concat_chunks_3_2::<2, 5, 2, 6, 14>(chunk_0, len_0, chunk_1, len_1, chunk_2);
+}
+
+#[test(should_fail_with = "Failed constraint")]
+fn test_concat_chunks_3_2_beyond_max_boundary_1() {
+    // MIN_LEN_0: u32 = 2;
+    // MAX_LEN_0: u32 = 5;
+    // MIN_LEN_1: u32 = 2;
+    // MAX_LEN_1: u32 = 6;
+    // (MAX_LEN_2: u32 = 3)
+    let chunk_0 = [1, 1, 1, 1, 1];
+    let len_0 = 5;
+    let chunk_1 = [2, 2, 2, 2, 2, 2];
+    let len_1 = 7;
+    let chunk_2 = [3, 3, 3, 0, 0, 0, 0, 0, 0, 0];
+    let _result = concat_chunks_3_2::<2, 5, 2, 6, 14>(chunk_0, len_0, chunk_1, len_1, chunk_2);
+}
+
