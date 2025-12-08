@@ -1,5 +1,5 @@
 use es_common::{
-    concat::concat_chunks_2,
+    concat::meta_concat_chunks,
     models::{
         authority_key_identifier_extension, basic_constraints_ca_extension,
         key_usage_key_cert_sign_extension, prepare_serial_number,
@@ -209,10 +209,10 @@ pub fn reserialize(
 
     println("es384_droid_ca3::models::prepare_tbs debug info:");
 
-    let buf = concat_chunks_2::<MIN_LEN_0, MAX_LEN_0, MAX_TBS_LEN>(
+    let buf = meta_concat_chunks!([MIN_LEN_0], [MAX_LEN_0], MAX_TBS_LEN)(
         chunk_0_bytes,
-        boundary_0,
         chunk_1_bytes,
+        [boundary_0]
     );
 
     (buf, tbs_len)
