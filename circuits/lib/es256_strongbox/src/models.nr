@@ -1,5 +1,5 @@
 use es_common::{
-    concat::meta_concat_chunks,
+    concat::concat_chunks,
     models::{
         authority_key_identifier_extension, basic_constraints_ca_extension,
         key_usage_key_cert_sign_extension, prepare_serial_number,
@@ -258,7 +258,7 @@ pub fn reserialize(
 
     println("es256_strongbox::models::prepare_tbs debug info:");
 
-    let buf = meta_concat_chunks!([MIN_LEN_0, MIN_LEN_1], [MAX_LEN_0, MAX_LEN_1], MAX_TBS_LEN)(
+    let buf = concat_chunks!([MIN_LEN_0, MIN_LEN_1], [MAX_LEN_0, MAX_LEN_1], MAX_TBS_LEN)(
         chunk_0_bytes,
         chunk_1_bytes,
         chunk_2_bytes,
