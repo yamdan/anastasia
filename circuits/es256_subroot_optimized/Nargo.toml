@@ -1,0 +1,9 @@
+[package]
+name = "es256_subroot_optimized"
+version = "0.3.0"
+type = "bin"
+authors = ["yamdan"]
+
+[dependencies]
+es256_common = { path = "../lib/es256_common" }
+es256_subroot_optimized = { path = "../lib/es256_subroot_optimized" }
