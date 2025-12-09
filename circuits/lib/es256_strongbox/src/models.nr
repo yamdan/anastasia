@@ -240,7 +240,7 @@ pub fn reserialize(
 
     // Chunk 2: standard extensions, extra extension
     let mut chunk_2_index = 0;
-    let mut chunk_2_bytes = [0; MAX_TBS_LEN - MIN_LEN_0 - MIN_LEN_1];
+    let mut chunk_2_bytes = [0; MAX_LEN_2];
     // standard extensions
     for i in 0..STD_EXT_LEN {
         chunk_2_bytes[chunk_2_index] = std_extensions[i];
@@ -256,13 +256,15 @@ pub fn reserialize(
         chunk_2_index += 1;
     }
 
-    println("es256_strongbox::models::prepare_tbs debug info:");
-
-    let buf = concat_chunks!([MIN_LEN_0, MIN_LEN_1], [MAX_LEN_0, MAX_LEN_1], MAX_TBS_LEN)(
+    let buf = concat_chunks!([
+        (MIN_LEN_0, MAX_LEN_0),
+        (MIN_LEN_1, MAX_LEN_1),
+        (MIN_LEN_2, MAX_LEN_2),
+    ])(
         chunk_0_bytes,
         chunk_1_bytes,
         chunk_2_bytes,
-        [len_0, len_1]
+        [len_0, len_1],
     );
 
     (buf, tbs_len)

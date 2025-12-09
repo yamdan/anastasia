@@ -166,11 +166,11 @@ pub fn reserialize(
         chunk_0_index += 1;
     }
 
-    let boundary_0 = MIN_LEN_0 + serial_number_len;
+    let len_0 = MIN_LEN_0 + serial_number_len;
 
     // Chunk 1: signature, issuer, validity, subject, subject_public_key_info, extensions header
     let mut chunk_1_index = 0;
-    let mut chunk_1_bytes = [0; MAX_TBS_LEN - MIN_LEN_0];
+    let mut chunk_1_bytes = [0; MAX_LEN_1];
     // signature
     for i in 0..SIGNATURE_LEN {
         chunk_1_bytes[chunk_1_index] = SIGNATURE[i];
@@ -207,12 +207,10 @@ pub fn reserialize(
         chunk_1_index += 1;
     }
 
-    println("es384_droid_ca3::models::prepare_tbs debug info:");
-
-    let buf = concat_chunks!([MIN_LEN_0], [MAX_LEN_0], MAX_TBS_LEN)(
+    let buf = concat_chunks!([(MIN_LEN_0, MAX_LEN_0), (MIN_LEN_1, MAX_LEN_1)])(
         chunk_0_bytes,
         chunk_1_bytes,
-        [boundary_0]
+        [len_0],
     );
 
     (buf, tbs_len)
