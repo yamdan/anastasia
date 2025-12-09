@@ -142,7 +142,7 @@ pub comptime fn concat_chunks<let N: u32>(ranges: [(u32, u32); N]) -> Quoted {
 
     // Parameters part
     let mut params = quote {};
-    for i in 0..N - 1 {
+    for i in 0..N {
         let chunk_i = f"chunk_{i}".quoted_contents();
         let max_len_i = max_len[i];
         params = quote {
@@ -150,13 +150,8 @@ pub comptime fn concat_chunks<let N: u32>(ranges: [(u32, u32); N]) -> Quoted {
             $chunk_i: [u8; $max_len_i],
         };
     }
-    let len_params: u32 = (N - 1).as_();
-    let chunk_i = f"chunk_{len_params}".quoted_contents();
-    let max_len_i = max_len[N - 1];
-    let last_add_position = add_positions[N - 1];
     params = quote {
         $params
-        $chunk_i: [u8; $max_len_i],
         len: [u32; $N - 1],
     };
 
