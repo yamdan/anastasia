@@ -3,11 +3,11 @@ use std::convert::AsPrimitive;
 global ADD: str<3> = "add";
 global DEL: str<3> = "del";
 
-pub comptime fn concat_chunks<let N: u32>(
-    min_len: [u32; N - 1],
-    max_len: [u32; N - 1],
-    out_len: u32,
-) -> Quoted {
+pub comptime fn concat_chunks<let N: u32>(ranges: [(u32, u32); N]) -> Quoted {
+    let min_len = ranges.map(|r| r.0);
+    let max_len = ranges.map(|r| r.1);
+    let out_len = max_len.reduce(|a, b| a + b);
+
     let mut add_positions = [0; N];
     add_positions[0] = 0;
     for i in 0..N - 1 {
@@ -53,10 +53,19 @@ pub comptime fn concat_chunks<let N: u32>(
     let range = (from_index, out_len);
     sequences.push((range, operations));
 
+    // Zero-pad the last chunk
+    let last_index: u32 = (N - 1).as_();
+    let last_chunk = f"chunk_{last_index}".quoted_contents();
+    let last_chunk_len = out_len - add_positions[N - 1] - max_len[N - 1];
+
+    // Header part
     let header_buf = quote {
         let mut buf = [0; $out_len];
         let mut head = [0; $N];
         let mut chunk_byte = [0; $N];
+
+        // Zero-pad the last chunk
+        let $last_chunk = $last_chunk.concat([0; $last_chunk_len]);
 
         for i in 0..$N - 1 {
             assert(len[i] >= $min_len[i]);
@@ -75,8 +84,8 @@ pub comptime fn concat_chunks<let N: u32>(
         assert(head[$N - 1] >= $add_positions[$N - 1]);
     };
 
-    let mut inner_buf = quote{};
-
+    // Inner part
+    let mut inner_buf = quote {};
     // for (range, operations) in sequences
     while sequences.len() != 0 {
         let sequence = sequences.remove(0);
@@ -93,16 +102,17 @@ pub comptime fn concat_chunks<let N: u32>(
         while operations.len() != 0 {
             let op = operations.remove(0);
 
-            cond_part = if operations.len() == 0 {
-                quote {
-                    $cond_part
-                    in_chunk[$op] = acc_in_chunk;
-                }
-            } else {
+            cond_part = if operations.len() != 0 {
                 quote {
                     $cond_part
                     in_chunk[$op] = acc_in_chunk & i < head[$op + 1];
                     acc_in_chunk &= !in_chunk[$op];
+                }
+            } else {
+                // last operation
+                quote {
+                    $cond_part
+                    in_chunk[$op] = acc_in_chunk;
                 }
             };
 
@@ -116,7 +126,6 @@ pub comptime fn concat_chunks<let N: u32>(
                 } else {
                     0
                 };
-
                 buf[i] += chunk_byte[$op];
             };
         }
@@ -126,12 +135,12 @@ pub comptime fn concat_chunks<let N: u32>(
 
             for i in $range.0..$range.1 {
                 $cond_part
-
                 $byte_part
             }
         };
     }
 
+    // Parameters part
     let mut params = quote {};
     for i in 0..N - 1 {
         let chunk_i = f"chunk_{i}".quoted_contents();
@@ -143,10 +152,11 @@ pub comptime fn concat_chunks<let N: u32>(
     }
     let len_params: u32 = (N - 1).as_();
     let chunk_i = f"chunk_{len_params}".quoted_contents();
+    let max_len_i = max_len[N - 1];
     let last_add_position = add_positions[N - 1];
     params = quote {
         $params
-        $chunk_i: [u8; $out_len - $last_add_position],
+        $chunk_i: [u8; $max_len_i],
         len: [u32; $N - 1],
     };
 
@@ -157,6 +167,7 @@ pub comptime fn concat_chunks<let N: u32>(
         {
             $header_buf
             $inner_buf
+
             buf
         }
     };
@@ -171,9 +182,9 @@ fn test_concat_chunks_2() {
     // (MAX_LEN_1: u32 = 6)
     let chunk_0 = [1, 1, 1, 1, 0];
     let len_0 = 4;
-    let chunk_1 = [2, 2, 2, 2, 2, 0, 0, 0, 0];
+    let chunk_1 = [2, 2, 2, 2, 2, 0];
 
-    let result = concat_chunks!([2u32], [5u32], 11u32)(chunk_0, chunk_1, [len_0]);
+    let result = concat_chunks!([(2u32, 5u32), (4u32, 6u32)])(chunk_0, chunk_1, [len_0]);
     let expected = [1, 1, 1, 1, 2, 2, 2, 2, 2, 0, 0];
     assert_eq(result, expected);
 }
@@ -185,9 +196,9 @@ fn test_concat_chunks_2_min_boundary() {
     // (MAX_LEN_1: u32 = 6)
     let chunk_0 = [1, 1, 0, 0, 0];
     let len_0 = 2;
-    let chunk_1 = [2, 2, 2, 2, 2, 0, 0, 0, 0];
+    let chunk_1 = [2, 2, 2, 2, 2, 0];
 
-    let result = concat_chunks!([2u32], [5u32], 11u32)(chunk_0, chunk_1, [len_0]);
+    let result = concat_chunks!([(2u32, 5u32), (4u32, 6u32)])(chunk_0, chunk_1, [len_0]);
     let expected = [1, 1, 2, 2, 2, 2, 2, 0, 0, 0, 0];
     assert_eq(result, expected);
 }
@@ -199,9 +210,9 @@ fn test_concat_chunks_2_beyond_min_boundary() {
     // (MAX_LEN_1: u32 = 6)
     let chunk_0 = [1, 0, 0, 0, 0];
     let len_0 = 1;
-    let chunk_1 = [2, 2, 2, 2, 2, 0, 0, 0, 0];
+    let chunk_1 = [2, 2, 2, 2, 2, 0];
 
-    let _result = concat_chunks!([2u32], [5u32], 11u32)(chunk_0, chunk_1, [len_0]);
+    let _result = concat_chunks!([(2u32, 5u32), (4u32, 6u32)])(chunk_0, chunk_1, [len_0]);
 }
 
 #[test]
@@ -211,9 +222,9 @@ fn test_concat_chunks_2_max_boundary() {
     // (MAX_LEN_1: u32 = 6)
     let chunk_0 = [1, 1, 1, 1, 1];
     let len_0 = 5;
-    let chunk_1 = [2, 2, 2, 2, 2, 2, 0, 0, 0];
+    let chunk_1 = [2, 2, 2, 2, 2, 2];
 
-    let result = concat_chunks!([2u32], [5u32], 11u32)(chunk_0, chunk_1, [len_0]);
+    let result = concat_chunks!([(2u32, 5u32), (4u32, 6u32)])(chunk_0, chunk_1, [len_0]);
     let expected = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2];
     assert_eq(result, expected);
 }
@@ -225,9 +236,9 @@ fn test_concat_chunks_2_beyond_max_boundary() {
     // (MAX_LEN_1: u32 = 6)
     let chunk_0 = [1, 1, 1, 1, 1];
     let len_0 = 6;
-    let chunk_1 = [2, 2, 2, 2, 2, 2, 0, 0, 0];
+    let chunk_1 = [2, 2, 2, 2, 2, 2];
 
-    let _result = concat_chunks!([2u32], [5u32], 11u32)(chunk_0, chunk_1, [len_0]);
+    let _result = concat_chunks!([(2u32, 5u32), (4u32, 6u32)])(chunk_0, chunk_1, [len_0]);
 }
 
 #[test]
@@ -241,8 +252,8 @@ fn test_concat_chunks_3() {
     let len_0 = 4;
     let chunk_1 = [2, 2, 2, 2, 2, 0];
     let len_1 = 5;
-    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0];
-    let result = concat_chunks!([2u32, 4u32], [5u32, 6u32], 14u32)(
+    let chunk_2 = [3, 3, 0];
+    let result = concat_chunks!([(2u32, 5u32), (4u32, 6u32), (3u32, 3u32)])(
         chunk_0,
         chunk_1,
         chunk_2,
@@ -254,17 +265,16 @@ fn test_concat_chunks_3() {
 
 #[test]
 fn test_concat_chunks_3_min_boundary() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // MIN_LEN_1: u32 = 4;
-    // MAX_LEN_1: u32 = 6;
-    // (MAX_LEN_2: u32 = 3)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (4, 6)
+    // len range of chunk 2: (3, 3)
+    // expected sequence: ((0, 2), [0]), ((2, 5), [0, 1]), ((5, 6), [1]), ((6, 11), [1, 2]), ((11, 14), [2])
     let chunk_0 = [1, 1, 0, 0, 0];
     let len_0 = 2;
     let chunk_1 = [2, 2, 2, 2, 0, 0];
     let len_1 = 4;
-    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0];
-    let result = concat_chunks!([2u32, 4u32], [5u32, 6u32], 14u32)(
+    let chunk_2 = [3, 3, 0];
+    let result = concat_chunks!([(2u32, 5u32), (4u32, 6u32), (3u32, 3u32)])(
         chunk_0,
         chunk_1,
         chunk_2,
@@ -285,8 +295,8 @@ fn test_concat_chunks_3_beyond_min_boundary_0() {
     let len_0 = 1;
     let chunk_1 = [2, 2, 2, 2, 0, 0];
     let len_1 = 4;
-    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0];
-    let _result = concat_chunks!([2u32, 4u32], [5u32, 6u32], 14u32)(
+    let chunk_2 = [3, 3, 0];
+    let _result = concat_chunks!([(2u32, 5u32), (4u32, 6u32), (3u32, 3u32)])(
         chunk_0,
         chunk_1,
         chunk_2,
@@ -305,8 +315,8 @@ fn test_concat_chunks_3_beyond_min_boundary_1() {
     let len_0 = 2;
     let chunk_1 = [2, 2, 2, 0, 0, 0];
     let len_1 = 3;
-    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0];
-    let _result = concat_chunks!([2u32, 4u32], [5u32, 6u32], 14u32)(
+    let chunk_2 = [3, 3, 0];
+    let _result = concat_chunks!([(2u32, 5u32), (4u32, 6u32), (3u32, 3u32)])(
         chunk_0,
         chunk_1,
         chunk_2,
@@ -325,8 +335,8 @@ fn test_concat_chunks_3_max_boundary() {
     let len_0 = 5;
     let chunk_1 = [2, 2, 2, 2, 2, 2];
     let len_1 = 6;
-    let chunk_2 = [3, 3, 3, 0, 0, 0, 0, 0];
-    let result = concat_chunks!([2u32, 4u32], [5u32, 6u32], 14u32)(
+    let chunk_2 = [3, 3, 3];
+    let result = concat_chunks!([(2u32, 5u32), (4u32, 6u32), (3u32, 3u32)])(
         chunk_0,
         chunk_1,
         chunk_2,
@@ -347,8 +357,8 @@ fn test_concat_chunks_3_beyond_max_boundary_0() {
     let len_0 = 6;
     let chunk_1 = [2, 2, 2, 2, 2, 2];
     let len_1 = 6;
-    let chunk_2 = [3, 3, 3, 0, 0, 0, 0, 0];
-    let _result = concat_chunks!([2u32, 4u32], [5u32, 6u32], 14u32)(
+    let chunk_2 = [3, 3, 3];
+    let _result = concat_chunks!([(2u32, 5u32), (4u32, 6u32), (3u32, 3u32)])(
         chunk_0,
         chunk_1,
         chunk_2,
@@ -367,8 +377,8 @@ fn test_concat_chunks_3_beyond_max_boundary_1() {
     let len_0 = 5;
     let chunk_1 = [2, 2, 2, 2, 2, 2];
     let len_1 = 7;
-    let chunk_2 = [3, 3, 3, 0, 0, 0, 0, 0];
-    let _result = concat_chunks!([2u32, 4u32], [5u32, 6u32], 14u32)(
+    let chunk_2 = [3, 3, 3];
+    let _result = concat_chunks!([(2u32, 5u32), (4u32, 6u32), (3u32, 3u32)])(
         chunk_0,
         chunk_1,
         chunk_2,
@@ -387,8 +397,8 @@ fn test_concat_chunks_3_2() {
     let len_0 = 4;
     let chunk_1 = [2, 2, 2, 2, 2, 0];
     let len_1 = 5;
-    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
-    let result = concat_chunks!([2u32, 2u32], [5u32, 6u32], 14u32)(
+    let chunk_2 = [3, 3, 0];
+    let result = concat_chunks!([(2u32, 5u32), (2u32, 6u32), (3u32, 3u32)])(
         chunk_0,
         chunk_1,
         chunk_2,
@@ -409,8 +419,8 @@ fn test_concat_chunks_3_2_min_boundary() {
     let len_0 = 2;
     let chunk_1 = [2, 2, 0, 0, 0, 0];
     let len_1 = 2;
-    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
-    let result = concat_chunks!([2u32, 2u32], [5u32, 6u32], 14u32)(
+    let chunk_2 = [3, 3, 0];
+    let result = concat_chunks!([(2u32, 5u32), (2u32, 6u32), (3u32, 3u32)])(
         chunk_0,
         chunk_1,
         chunk_2,
@@ -431,8 +441,8 @@ fn test_concat_chunks_3_2_beyond_min_boundary_0() {
     let len_0 = 1;
     let chunk_1 = [2, 2, 2, 2, 0, 0];
     let len_1 = 4;
-    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
-    let _result = concat_chunks!([2u32, 2u32], [5u32, 6u32], 14u32)(
+    let chunk_2 = [3, 3, 0];
+    let _result = concat_chunks!([(2u32, 5u32), (2u32, 6u32), (3u32, 3u32)])(
         chunk_0,
         chunk_1,
         chunk_2,
@@ -451,8 +461,8 @@ fn test_concat_chunks_3_2_beyond_min_boundary_1() {
     let len_0 = 2;
     let chunk_1 = [2, 0, 0, 0, 0, 0];
     let len_1 = 1;
-    let chunk_2 = [3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
-    let _result = concat_chunks!([2u32, 2u32], [5u32, 6u32], 14u32)(
+    let chunk_2 = [3, 3, 0];
+    let _result = concat_chunks!([(2u32, 5u32), (2u32, 6u32), (3u32, 3u32)])(
         chunk_0,
         chunk_1,
         chunk_2,
@@ -471,8 +481,8 @@ fn test_concat_chunks_3_2_max_boundary() {
     let len_0 = 5;
     let chunk_1 = [2, 2, 2, 2, 2, 2];
     let len_1 = 6;
-    let chunk_2 = [3, 3, 3, 0, 0, 0, 0, 0, 0, 0];
-    let result = concat_chunks!([2u32, 2u32], [5u32, 6u32], 14u32)(
+    let chunk_2 = [3, 3, 3];
+    let result = concat_chunks!([(2u32, 5u32), (2u32, 6u32), (3u32, 3u32)])(
         chunk_0,
         chunk_1,
         chunk_2,
@@ -493,8 +503,8 @@ fn test_concat_chunks_3_2_beyond_max_boundary_0() {
     let len_0 = 6;
     let chunk_1 = [2, 2, 2, 2, 2, 2];
     let len_1 = 6;
-    let chunk_2 = [3, 3, 3, 0, 0, 0, 0, 0, 0, 0];
-    let _result = concat_chunks!([2u32, 2u32], [5u32, 6u32], 14u32)(
+    let chunk_2 = [3, 3, 3];
+    let _result = concat_chunks!([(2u32, 5u32), (2u32, 6u32), (3u32, 3u32)])(
         chunk_0,
         chunk_1,
         chunk_2,
@@ -513,8 +523,8 @@ fn test_concat_chunks_3_2_beyond_max_boundary_1() {
     let len_0 = 5;
     let chunk_1 = [2, 2, 2, 2, 2, 2];
     let len_1 = 7;
-    let chunk_2 = [3, 3, 3, 0, 0, 0, 0, 0, 0, 0];
-    let _result = concat_chunks!([2u32, 2u32], [5u32, 6u32], 14u32)(
+    let chunk_2 = [3, 3, 3];
+    let _result = concat_chunks!([(2u32, 5u32), (2u32, 6u32), (3u32, 3u32)])(
         chunk_0,
         chunk_1,
         chunk_2,
@@ -538,14 +548,14 @@ fn test_concat_chunks_4() {
     let len_1 = 5;
     let chunk_2 = [3, 3, 0];
     let len_2 = 2;
-    let chunk_3 = [4, 4, 4, 4, 0, 0, 0, 0];
-    let result = concat_chunks!([2u32, 4u32, 2u32], [5u32, 6u32, 3u32], 16u32)(
+    let chunk_3 = [4, 4, 4, 4, 0];
+    let result = concat_chunks!([(2u32, 5u32), (4u32, 6u32), (2u32, 3u32), (3u32, 5u32)])(
         chunk_0,
         chunk_1,
         chunk_2,
         chunk_3,
         [len_0, len_1, len_2],
     );
-    let expected = [1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 4, 4, 4, 4, 0];
+    let expected = [1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 4, 4, 4, 4, 0, 0, 0, 0];
     assert_eq(result, expected);
 }
