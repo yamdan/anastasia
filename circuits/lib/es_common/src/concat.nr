@@ -56,7 +56,7 @@ pub comptime fn concat_chunks<let N: u32>(ranges: [(u32, u32); N]) -> Quoted {
         {
             $func_body
 
-            (buf, offset)
+            buf
         }
     };
 
@@ -244,7 +244,7 @@ fn test_concat_chunks_2() {
 
     let result = concat_chunks!([(2u32, 5u32), (4u32, 6u32)])(chunk_0, chunk_1, [len_0, len_1]);
     let expected = [1, 1, 1, 1, 2, 2, 2, 2, 2, 0, 0];
-    assert_eq(result, (expected, len_0 + len_1));
+    assert_eq(result, expected);
 }
 
 #[test]
@@ -258,7 +258,7 @@ fn test_concat_chunks_2_dummy_suffix() {
 
     let result = concat_chunks!([(2u32, 5u32), (4u32, 6u32)])(chunk_0, chunk_1, [len_0, len_1]);
     let expected = [1, 1, 1, 1, 2, 2, 2, 2, 2, 0, 0];
-    assert_eq(result, (expected, len_0 + len_1));
+    assert_eq(result, expected);
 }
 
 #[test]
@@ -283,7 +283,7 @@ fn test_concat_chunks_2_min_boundary() {
 
     let result = concat_chunks!([(2u32, 5u32), (4u32, 6u32)])(chunk_0, chunk_1, [len_0, len_1]);
     let expected = [1, 1, 2, 2, 2, 2, 2, 0, 0, 0, 0];
-    assert_eq(result, (expected, len_0 + len_1));
+    assert_eq(result, expected);
 }
 
 #[test]
@@ -303,7 +303,7 @@ fn test_concat_chunks_2_beyond_min_boundary() {
     // len range of chunk 1: (4, 6)
     let chunk_0 = [1, 0, 0, 0, 0];
     let len_0 = 1;
-    let chunk_1 = [2, 2, 2, 2, 2, 0];
+    let chunk_1 = [2, 2, 2, 2, 2, 127];
     let len_1 = 5;
 
     let _result = concat_chunks!([(2u32, 5u32), (4u32, 6u32)])(chunk_0, chunk_1, [len_0, len_1]);
@@ -329,7 +329,7 @@ fn test_concat_chunks_2_max_boundary() {
 
     let result = concat_chunks!([(2u32, 5u32), (4u32, 6u32)])(chunk_0, chunk_1, [len_0, len_1]);
     let expected = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2];
-    assert_eq(result, (expected, len_0 + len_1));
+    assert_eq(result, expected);
 }
 
 #[test]
@@ -382,7 +382,7 @@ fn test_concat_chunks_3() {
         [len_0, len_1, len_2],
     );
     let expected = [1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 0, 0, 0];
-    assert_eq(result, (expected, len_0 + len_1 + len_2));
+    assert_eq(result, expected);
 }
 
 #[test]
@@ -420,7 +420,7 @@ fn test_concat_chunks_3_min_boundary() {
         [len_0, len_1, len_2],
     );
     let expected = [1, 1, 2, 2, 2, 2, 3, 3, 0, 0, 0, 0, 0, 0];
-    assert_eq(result, (expected, len_0 + len_1 + len_2));
+    assert_eq(result, expected);
 }
 
 #[test]
@@ -526,7 +526,7 @@ fn test_concat_chunks_3_max_boundary() {
         [len_0, len_1, len_2],
     );
     let expected = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3];
-    assert_eq(result, (expected, len_0 + len_1 + len_2));
+    assert_eq(result, expected);
 }
 
 #[test]
@@ -632,7 +632,7 @@ fn test_concat_chunks_3_2() {
         [len_0, len_1, len_2],
     );
     let expected = [1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 0, 0, 0];
-    assert_eq(result, (expected, len_0 + len_1 + len_2));
+    assert_eq(result, expected);
 }
 
 #[test]
@@ -670,7 +670,7 @@ fn test_concat_chunks_3_2_min_boundary() {
         [len_0, len_1, len_2],
     );
     let expected = [1, 1, 2, 2, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0];
-    assert_eq(result, (expected, len_0 + len_1 + len_2));
+    assert_eq(result, expected);
 }
 
 #[test]
@@ -776,7 +776,7 @@ fn test_concat_chunks_3_2_max_boundary() {
         [len_0, len_1, len_2],
     );
     let expected = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3];
-    assert_eq(result, (expected, len_0 + len_1 + len_2));
+    assert_eq(result, expected);
 }
 
 #[test]
@@ -886,7 +886,7 @@ fn test_concat_chunks_4() {
         [len_0, len_1, len_2, len_3],
     );
     let expected = [1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 4, 4, 4, 4, 0, 0, 0, 0];
-    assert_eq(result, (expected, len_0 + len_1 + len_2 + len_3));
+    assert_eq(result, expected);
 }
 
 #[test]
@@ -911,5 +911,5 @@ fn test_concat_chunks_4_dummy_suffix() {
         [len_0, len_1, len_2, len_3],
     );
     let expected = [1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 4, 4, 4, 4, 0, 0, 0, 0];
-    assert_eq(result, (expected, len_0 + len_1 + len_2 + len_3));
+    assert_eq(result, expected);
 }

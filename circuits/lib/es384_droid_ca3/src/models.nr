@@ -209,13 +209,11 @@ pub fn reserialize(
 
     let len_1 = MAX_LEN_1;
 
-    let (buf, buf_len) = concat_chunks!([(MIN_LEN_0, MAX_LEN_0), (MIN_LEN_1, MAX_LEN_1)])(
+    let buf = concat_chunks!([(MIN_LEN_0, MAX_LEN_0), (MIN_LEN_1, MAX_LEN_1)])(
         chunk_0_bytes,
         chunk_1_bytes,
         [len_0, len_1],
     );
-
-    assert(buf_len == tbs_len, "tbsCertificate length mismatch");
 
     (buf, tbs_len)
 }

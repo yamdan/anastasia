@@ -107,7 +107,7 @@ pub fn prepare_tbs_optimized(
     let all_chunks_len = chunk_0_len + chunk_1_len + chunk_2_len + chunk_3_len + chunk_4_len;
     assert(all_chunks_len == tbs_len, "tbsCertificate length mismatch");
 
-    let (buf, buf_len) = concat_chunks!([
+    let buf = concat_chunks!([
         (9 + 3, 9 + 22),
         (12 + 1, 12 + 124),
         (VALIDITY_LEN + 1, VALIDITY_LEN + 124),
@@ -121,8 +121,6 @@ pub fn prepare_tbs_optimized(
         chunk_4,
         [chunk_0_len, chunk_1_len, chunk_2_len, chunk_3_len, chunk_4_len],
     );
-
-    assert(buf_len == tbs_len, "tbsCertificate length mismatch");
 
     (buf, all_chunks_len)
 }

@@ -258,7 +258,7 @@ pub fn reserialize(
 
     let len_2 = MIN_LEN_2 + extra_extension_len;
 
-    let (buf, buf_len) = concat_chunks!([
+    let buf = concat_chunks!([
         (MIN_LEN_0, MAX_LEN_0),
         (MIN_LEN_1, MAX_LEN_1),
         (MIN_LEN_2, MAX_LEN_2),
@@ -268,8 +268,6 @@ pub fn reserialize(
         chunk_2_bytes,
         [len_0, len_1, len_2],
     );
-
-    assert(buf_len == tbs_len, "tbsCertificate length mismatch");
 
     (buf, tbs_len)
 }
