@@ -172,9 +172,9 @@ pub comptime fn concat_chunks<let N: u32>(ranges: [(u32, u32); N]) -> Quoted {
 
 #[test]
 fn test_concat_chunks_2() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // (MAX_LEN_1: u32 = 6)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (4, 6)
+    // expected sequence: ((0, 2), [0]), ((2, 5), [0, 1]), ((5, 11), [1])
     let chunk_0 = [1, 1, 1, 1, 0];
     let len_0 = 4;
     let chunk_1 = [2, 2, 2, 2, 2, 0];
@@ -186,9 +186,9 @@ fn test_concat_chunks_2() {
 
 #[test]
 fn test_concat_chunks_2_min_boundary() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // (MAX_LEN_1: u32 = 6)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (4, 6)
+    // expected sequence: ((0, 2), [0]), ((2, 5), [0, 1]), ((5, 11), [1])
     let chunk_0 = [1, 1, 0, 0, 0];
     let len_0 = 2;
     let chunk_1 = [2, 2, 2, 2, 2, 0];
@@ -200,9 +200,9 @@ fn test_concat_chunks_2_min_boundary() {
 
 #[test(should_fail_with = "Failed constraint")]
 fn test_concat_chunks_2_beyond_min_boundary() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // (MAX_LEN_1: u32 = 6)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (4, 6)
+    // expected sequence: ((0, 2), [0]), ((2, 5), [0, 1]), ((5, 11), [1])
     let chunk_0 = [1, 0, 0, 0, 0];
     let len_0 = 1;
     let chunk_1 = [2, 2, 2, 2, 2, 0];
@@ -212,9 +212,9 @@ fn test_concat_chunks_2_beyond_min_boundary() {
 
 #[test]
 fn test_concat_chunks_2_max_boundary() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // (MAX_LEN_1: u32 = 6)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (4, 6)
+    // expected sequence: ((0, 2), [0]), ((2, 5), [0, 1]), ((5, 11), [1])
     let chunk_0 = [1, 1, 1, 1, 1];
     let len_0 = 5;
     let chunk_1 = [2, 2, 2, 2, 2, 2];
@@ -226,9 +226,9 @@ fn test_concat_chunks_2_max_boundary() {
 
 #[test(should_fail_with = "Failed constraint")]
 fn test_concat_chunks_2_beyond_max_boundary() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // (MAX_LEN_1: u32 = 6)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (4, 6)
+    // expected sequence: ((0, 2), [0]), ((2, 5), [0, 1]), ((5, 11), [1])
     let chunk_0 = [1, 1, 1, 1, 1];
     let len_0 = 6;
     let chunk_1 = [2, 2, 2, 2, 2, 2];
@@ -238,11 +238,10 @@ fn test_concat_chunks_2_beyond_max_boundary() {
 
 #[test]
 fn test_concat_chunks_3() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // MIN_LEN_1: u32 = 4;
-    // MAX_LEN_1: u32 = 6;
-    // (MAX_LEN_2: u32 = 3)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (4, 6)
+    // len range of chunk 2: (3, 3)
+    // expected sequence: ((0, 2), [0]), ((2, 5), [0, 1]), ((5, 6), [1]), ((6, 11), [1, 2]), ((11, 14), [2])
     let chunk_0 = [1, 1, 1, 1, 0];
     let len_0 = 4;
     let chunk_1 = [2, 2, 2, 2, 2, 0];
@@ -281,11 +280,10 @@ fn test_concat_chunks_3_min_boundary() {
 
 #[test(should_fail_with = "Failed constraint")]
 fn test_concat_chunks_3_beyond_min_boundary_0() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // MIN_LEN_1: u32 = 4;
-    // MAX_LEN_1: u32 = 6;
-    // (MAX_LEN_2: u32 = 3)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (4, 6)
+    // len range of chunk 2: (3, 3)
+    // expected sequence: ((0, 2), [0]), ((2, 5), [0, 1]), ((5, 6), [1]), ((6, 11), [1, 2]), ((11, 14), [2])
     let chunk_0 = [1, 0, 0, 0, 0];
     let len_0 = 1;
     let chunk_1 = [2, 2, 2, 2, 0, 0];
@@ -301,11 +299,10 @@ fn test_concat_chunks_3_beyond_min_boundary_0() {
 
 #[test(should_fail_with = "Failed constraint")]
 fn test_concat_chunks_3_beyond_min_boundary_1() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // MIN_LEN_1: u32 = 4;
-    // MAX_LEN_1: u32 = 6;
-    // (MAX_LEN_2: u32 = 3)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (4, 6)
+    // len range of chunk 2: (3, 3)
+    // expected sequence: ((0, 2), [0]), ((2, 5), [0, 1]), ((5, 6), [1]), ((6, 11), [1, 2]), ((11, 14), [2])
     let chunk_0 = [1, 1, 0, 0, 0];
     let len_0 = 2;
     let chunk_1 = [2, 2, 2, 0, 0, 0];
@@ -321,11 +318,10 @@ fn test_concat_chunks_3_beyond_min_boundary_1() {
 
 #[test]
 fn test_concat_chunks_3_max_boundary() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // MIN_LEN_1: u32 = 4;
-    // MAX_LEN_1: u32 = 6;
-    // (MAX_LEN_2: u32 = 3)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (4, 6)
+    // len range of chunk 2: (3, 3)
+    // expected sequence: ((0, 2), [0]), ((2, 5), [0, 1]), ((5, 6), [1]), ((6, 11), [1, 2]), ((11, 14), [2])
     let chunk_0 = [1, 1, 1, 1, 1];
     let len_0 = 5;
     let chunk_1 = [2, 2, 2, 2, 2, 2];
@@ -343,11 +339,10 @@ fn test_concat_chunks_3_max_boundary() {
 
 #[test(should_fail_with = "Failed constraint")]
 fn test_concat_chunks_3_beyond_max_boundary_0() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // MIN_LEN_1: u32 = 4;
-    // MAX_LEN_1: u32 = 6;
-    // (MAX_LEN_2: u32 = 3)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (4, 6)
+    // len range of chunk 2: (3, 3)
+    // expected sequence: ((0, 2), [0]), ((2, 5), [0, 1]), ((5, 6), [1]), ((6, 11), [1, 2]), ((11, 14), [2])
     let chunk_0 = [1, 1, 1, 1, 1];
     let len_0 = 6;
     let chunk_1 = [2, 2, 2, 2, 2, 2];
@@ -363,11 +358,10 @@ fn test_concat_chunks_3_beyond_max_boundary_0() {
 
 #[test(should_fail_with = "Failed constraint")]
 fn test_concat_chunks_3_beyond_max_boundary_1() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // MIN_LEN_1: u32 = 4;
-    // MAX_LEN_1: u32 = 6;
-    // (MAX_LEN_2: u32 = 3)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (4, 6)
+    // len range of chunk 2: (3, 3)
+    // expected sequence: ((0, 2), [0]), ((2, 5), [0, 1]), ((5, 6), [1]), ((6, 11), [1, 2]), ((11, 14), [2])
     let chunk_0 = [1, 1, 1, 1, 1];
     let len_0 = 5;
     let chunk_1 = [2, 2, 2, 2, 2, 2];
@@ -383,11 +377,10 @@ fn test_concat_chunks_3_beyond_max_boundary_1() {
 
 #[test]
 fn test_concat_chunks_3_2() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // MIN_LEN_1: u32 = 2;
-    // MAX_LEN_1: u32 = 6;
-    // (MAX_LEN_2: u32 = 3)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (2, 6)
+    // len range of chunk 2: (3, 3)
+    // expected sequence: ((0, 2), [0]), ((2, 4), [0, 1]), ((4, 5), [0, 1, 2]), ((5, 11), [1, 2]), ((11, 14), [2])
     let chunk_0 = [1, 1, 1, 1, 0];
     let len_0 = 4;
     let chunk_1 = [2, 2, 2, 2, 2, 0];
@@ -405,11 +398,10 @@ fn test_concat_chunks_3_2() {
 
 #[test]
 fn test_concat_chunks_3_2_min_boundary() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // MIN_LEN_1: u32 = 2;
-    // MAX_LEN_1: u32 = 6;
-    // (MAX_LEN_2: u32 = 3)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (2, 6)
+    // len range of chunk 2: (3, 3)
+    // expected sequence: ((0, 2), [0]), ((2, 4), [0, 1]), ((4, 5), [0, 1, 2]), ((5, 11), [1, 2]), ((11, 14), [2])
     let chunk_0 = [1, 1, 0, 0, 0];
     let len_0 = 2;
     let chunk_1 = [2, 2, 0, 0, 0, 0];
@@ -427,11 +419,10 @@ fn test_concat_chunks_3_2_min_boundary() {
 
 #[test(should_fail_with = "Failed constraint")]
 fn test_concat_chunks_3_2_beyond_min_boundary_0() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // MIN_LEN_1: u32 = 2;
-    // MAX_LEN_1: u32 = 6;
-    // (MAX_LEN_2: u32 = 3)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (2, 6)
+    // len range of chunk 2: (3, 3)
+    // expected sequence: ((0, 2), [0]), ((2, 4), [0, 1]), ((4, 5), [0, 1, 2]), ((5, 11), [1, 2]), ((11, 14), [2])
     let chunk_0 = [1, 0, 0, 0, 0];
     let len_0 = 1;
     let chunk_1 = [2, 2, 2, 2, 0, 0];
@@ -447,11 +438,10 @@ fn test_concat_chunks_3_2_beyond_min_boundary_0() {
 
 #[test(should_fail_with = "Failed constraint")]
 fn test_concat_chunks_3_2_beyond_min_boundary_1() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // MIN_LEN_1: u32 = 2;
-    // MAX_LEN_1: u32 = 6;
-    // (MAX_LEN_2: u32 = 3)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (2, 6)
+    // len range of chunk 2: (3, 3)
+    // expected sequence: ((0, 2), [0]), ((2, 4), [0, 1]), ((4, 5), [0, 1, 2]), ((5, 11), [1, 2]), ((11, 14), [2])
     let chunk_0 = [1, 1, 0, 0, 0];
     let len_0 = 2;
     let chunk_1 = [2, 0, 0, 0, 0, 0];
@@ -467,11 +457,10 @@ fn test_concat_chunks_3_2_beyond_min_boundary_1() {
 
 #[test]
 fn test_concat_chunks_3_2_max_boundary() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // MIN_LEN_1: u32 = 2;
-    // MAX_LEN_1: u32 = 6;
-    // (MAX_LEN_2: u32 = 3)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (2, 6)
+    // len range of chunk 2: (3, 3)
+    // expected sequence: ((0, 2), [0]), ((2, 4), [0, 1]), ((4, 5), [0, 1, 2]), ((5, 11), [1, 2]), ((11, 14), [2])
     let chunk_0 = [1, 1, 1, 1, 1];
     let len_0 = 5;
     let chunk_1 = [2, 2, 2, 2, 2, 2];
@@ -489,11 +478,10 @@ fn test_concat_chunks_3_2_max_boundary() {
 
 #[test(should_fail_with = "Failed constraint")]
 fn test_concat_chunks_3_2_beyond_max_boundary_0() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // MIN_LEN_1: u32 = 2;
-    // MAX_LEN_1: u32 = 6;
-    // (MAX_LEN_2: u32 = 3)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (2, 6)
+    // len range of chunk 2: (3, 3)
+    // expected sequence: ((0, 2), [0]), ((2, 4), [0, 1]), ((4, 5), [0, 1, 2]), ((5, 11), [1, 2]), ((11, 14), [2])
     let chunk_0 = [1, 1, 1, 1, 1];
     let len_0 = 6;
     let chunk_1 = [2, 2, 2, 2, 2, 2];
@@ -509,11 +497,10 @@ fn test_concat_chunks_3_2_beyond_max_boundary_0() {
 
 #[test(should_fail_with = "Failed constraint")]
 fn test_concat_chunks_3_2_beyond_max_boundary_1() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // MIN_LEN_1: u32 = 2;
-    // MAX_LEN_1: u32 = 6;
-    // (MAX_LEN_2: u32 = 3)
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (2, 6)
+    // len range of chunk 2: (3, 3)
+    // expected sequence: ((0, 2), [0]), ((2, 4), [0, 1]), ((4, 5), [0, 1, 2]), ((5, 11), [1, 2]), ((11, 14), [2])
     let chunk_0 = [1, 1, 1, 1, 1];
     let len_0 = 5;
     let chunk_1 = [2, 2, 2, 2, 2, 2];
@@ -529,14 +516,11 @@ fn test_concat_chunks_3_2_beyond_max_boundary_1() {
 
 #[test]
 fn test_concat_chunks_4() {
-    // MIN_LEN_0: u32 = 2;
-    // MAX_LEN_0: u32 = 5;
-    // MIN_LEN_1: u32 = 4;
-    // MAX_LEN_1: u32 = 6;
-    // MIN_LEN_2: u32 = 2;
-    // MAX_LEN_2: u32 = 3;
-    // (MAX_LEN_3: u32 = 5)
-    // TOTAL_MAX_LEN: u32 = 16;
+    // len range of chunk 0: (2, 5)
+    // len range of chunk 1: (4, 6)
+    // len range of chunk 2: (2, 3)
+    // len range of chunk 3: (3, 5)
+    // expected sequence: ((0, 2), [0]), ((2, 5), [0, 1]), ((5, 6), [1]), ((6, 8), [1, 2]), ((8, 11), [1, 2, 3]), ((11, 14), [2, 3]), ((14, 19), [3])
     let chunk_0 = [1, 1, 1, 1, 0];
     let len_0 = 4;
     let chunk_1 = [2, 2, 2, 2, 2, 0];
