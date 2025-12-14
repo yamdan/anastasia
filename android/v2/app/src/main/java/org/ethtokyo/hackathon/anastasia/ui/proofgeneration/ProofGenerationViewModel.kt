@@ -162,7 +162,7 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
             val leafCert = chain[0]
 
             // TODO: avoid hardcoded circuit IDs
-            val circuit = selectAppropriateCircuit(application.applicationContext, "es384_composed_aka/0.1.0")
+            val circuit = selectAppropriateCircuit(application.applicationContext, "es384_composed_aka/0.1.1")
 
             proofStartTime = System.currentTimeMillis()
             jwt = proveChainComposedAkaJwt(
