@@ -1374,7 +1374,7 @@ mod tests {
     #[test]
     #[serial]
     fn test_prove_es384_256_chain_composed_aka_b64() {
-        let version = "0.1.0";
+        let version = "0.1.1";
 
         let meta = CircuitMeta::new(
             format!("es384_composed_aka/{version}"),
