@@ -1411,4 +1411,52 @@ mod tests {
         assert!(!result.nym.is_empty());
         assert!(!result.proofs_and_commitments.is_empty());
     }
+
+    #[test]
+    #[serial]
+    fn test_prove_es384_256_chain_composed_aka_key_attestation_jwt() {
+        let version = "0.1.1";
+
+        let meta = CircuitMeta::new(
+            format!("es384_composed_aka/{version}"),
+            format!("data/es384_composed_aka/{version}/circuit.json"),
+            format!("data/es384_composed_aka/{version}/vk"),
+            format!("data/es384_composed_aka/{version}/keccak.vk"),
+            format!("data/default_20.srs"),
+        );
+
+        let cert_root = std::fs::read("test_data/droid_ca2.der").unwrap();
+        let cert_subroot = std::fs::read("test_data/droid_ca3.der").unwrap();
+        let cert_ca = std::fs::read("test_data/strongbox.der").unwrap();
+        let cert_ee = std::fs::read("test_data/keystore.der").unwrap();
+
+        let now = 1763028507; // 2025-11-13T10:08:27Z
+        let user_sk = "deadbeef";
+        let context = "https://credential-issuer.example.com";
+
+        setup("data/default_20.srs").unwrap();
+
+        let result = prove_chain_composed_aka_as_key_attestation_jwt(
+            &meta,
+            &cert_root,
+            &cert_subroot,
+            &cert_ca,
+            &cert_ee,
+            Some(now),
+            &user_sk,
+            context,
+            false,
+        )
+        .unwrap();
+
+        println!("result: {:?}", result);
+        assert!(!result.is_empty());
+
+        let header_b64 = result.split('.').next().unwrap();
+        let header_bytes = URL_SAFE_NO_PAD.decode(header_b64).unwrap();
+        let expected_header = format!(
+            "{{\"alg\":\"ANASTASIA-AKA-COM\",\"typ\":\"key-attestation+jwt\",\"x5c\":[\"MIIDgDCCAWigAwIBAgIKA4gmZ2BliZaGDTANBgkqhkiG9w0BAQsFADAbMRkwFwYDVQQFExBmOTIwMDllODUzYjZiMDQ1MB4XDTIyMDEyNjIyNDc1MloXDTM3MDEyMjIyNDc1MlowKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EyMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEuppxbZvJgwNXXe6qQKidXqUt1ooT8M6Q+ysWIwpduM2EalST8v/Cy2JN10aqTfUSThJha/oCtG+F9TUUviOch6RahrpjVyBdhopM9MFDlCfkiCkPCPGu2ODMj7O/bKnko2YwZDAdBgNVHQ4EFgQUu/g2rYmubOLlnpTw1bLX0nrkfEEwHwYDVR0jBBgwFoAUNmHhAHyIBQlRi0RsR/8aTMnqTxIwEgYDVR0TAQH/BAgwBgEB/wIBAjAOBgNVHQ8BAf8EBAMCAQYwDQYJKoZIhvcNAQELBQADggIBAIFxUiFHYfObqrJM0eeXI+kZFT57wBplhq+TEjd+78nIWbKvKGUFlvt7IuXHzZ7YJdtSDs7lFtCsxXdrWEmLckxRDCRcth3Eb1leFespS35NAOd0Hekg8vy2G31OWAe567l6NdLjqytukcF4KAzHIRxoFivN+tlkEJmg7EQw9D2wPq4KpBtug4oJE53R9bLCT5wSVj63hlzEY3hC0NoSAtp0kdthow86UFVzLqxEjR2B1MPCMlyIfoGyBgkyAWhd2gWN6pVeQ8RZoO5gfPmQuCsn8m9kv/dclFMWLaOawgS4kyAn9iRi2yYjEAI0VVi7u3XDgBVnowtYAn4gma5q4BdXgbWbUTaMVVVZsepXKUpDpKzEfss6Iw0zx2Gql75zRDsgyuDyNUDzutvDMw8mgJmFkWjlkqkVM2diDZydzmgi8br2sJTLdG4lUwvedIaLgjnIDEG1J8/5xcPVQJFgRf3m5XEZB4hjG3We/49p+JRVQSpE1+QzG0raYpdNsxBUO+41diQo7qC7S8w2J+TMeGdpKGjCIzKjUDAy2+gOmZdZacanFN/03SydbKVHV0b/NYRWMa4VaZbomKON38IH2ep8pdj++nmSIXeWpQE8LnMEdnUFjvDzp0f0ELSXVW2+5xbl+fcqWgmOupmU4+bxNJLtknLo49Bg5w9jNn7T7rkF\"]}}"
+        );
+        assert_eq!(String::from_utf8_lossy(&header_bytes), expected_header);
+    }
 }
