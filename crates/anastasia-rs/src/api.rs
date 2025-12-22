@@ -861,7 +861,7 @@ pub fn prove_chain_composed_aka_base64(
 }
 
 pub fn prove_chain_composed_aka_as_key_attestation_jwt(
-    circuits_meta: &CircuitMeta,
+    circuit_meta: &CircuitMeta,
     root_cert: &[u8],
     subroot_cert: &[u8],
     intermediate_cert: &[u8],
@@ -872,7 +872,7 @@ pub fn prove_chain_composed_aka_as_key_attestation_jwt(
     is_keccak_mode: bool,
 ) -> Result<String, String> {
     let result = prove_chain_composed_aka_base64(
-        circuits_meta,
+        circuit_meta,
         root_cert,
         subroot_cert,
         intermediate_cert,
