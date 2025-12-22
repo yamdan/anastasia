@@ -884,7 +884,6 @@ pub fn prove_chain_composed_aka_as_key_attestation_jwt(
     )?;
 
     let mut x5c = Vec::new();
-    x5c.push(circuits_meta.id.clone());
     x5c.push(STANDARD.encode(root_cert));
 
     let header = serde_json::json!({
