@@ -13,6 +13,7 @@ use flate2::{Compression, write::GzEncoder};
 use noir::utils::ProofWithPublicInputs;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
+use sha2::{Digest, Sha256};
 
 use crate::{
     cert::ParsedCert,
@@ -67,6 +68,150 @@ pub fn generate_nym_base64(
     let user_sk_field = Fr::from_hex_string(user_sk)?;
     let nym = generate_nym(&user_sk_field, device_pk_x, device_pk_y, context)?;
     Ok(nym.to_base64_url_string())
+}
+
+pub fn generate_pop(
+    circuit_meta: &CircuitMeta,
+    device_pk_x: &[u8; 32],
+    device_pk_y: &[u8; 32],
+    hash: &[u8],
+    sig: &[u8],
+    user_sk: &Fr,
+    context: &str,
+    is_keccak_mode: bool,
+) -> Result<ChainProofResult, String> {
+    let circuit = Circuit::new(&circuit_meta)?;
+
+    let (proof_with_public_inputs, nym) = crate::prove::generate_pop(
+        &circuit,
+        &device_pk_x,
+        &device_pk_y,
+        context,
+        user_sk,
+        hash,
+        sig,
+        is_keccak_mode,
+    )?;
+
+    let proof = proof_with_public_inputs.proof;
+
+    // compress the CBOR data with gzip
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    encoder
+        .write_all(&proof)
+        .map_err(|e| format!("Failed to write proof to compression encoder: {}", e))?;
+    let compressed_proof = encoder
+        .finish()
+        .map_err(|e| format!("Failed to finish compression of proof: {}", e))?;
+
+    Ok(ChainProofResult {
+        now: 0, // TODO: fill in timestamp if needed
+        nym,
+        proofs_and_commitments: compressed_proof,
+    })
+}
+
+pub fn generate_pop_base64(
+    circuit_meta: &CircuitMeta,
+    device_pk_x: &[u8; 32],
+    device_pk_y: &[u8; 32],
+    hash: &[u8],
+    sig: &[u8],
+    user_sk: &str,
+    context: &str,
+    is_keccak_mode: bool,
+) -> Result<ChainProofResultBase64, String> {
+    let user_sk_bytes =
+        hex::decode(user_sk).map_err(|e| format!("Failed to decode user_sk: {}", e))?;
+    if user_sk_bytes.len() > 32 {
+        return Err(format!(
+            "user_sk must be at most 32 bytes (64 hex characters), got {} bytes",
+            user_sk_bytes.len()
+        ));
+    }
+    let user_sk = Fr::from_be_bytes_mod_order(&user_sk_bytes);
+
+    let result = generate_pop(
+        circuit_meta,
+        device_pk_x,
+        device_pk_y,
+        hash,
+        sig,
+        &user_sk,
+        context,
+        is_keccak_mode,
+    )?;
+    let proofs_and_commitments = URL_SAFE_NO_PAD.encode(result.proofs_and_commitments);
+
+    Ok(ChainProofResultBase64 {
+        now: result.now,
+        nym: result.nym.to_base64_url_string(),
+        proofs_and_commitments,
+    })
+}
+
+pub fn generate_pop_tbs_jwt(
+    now: Option<i64>,
+    nonce: &str,
+    context: &str,
+    attestation: &str,
+) -> Result<(String, Vec<u8>), String> {
+    let now = match now {
+        Some(ts) => ts,
+        None => Utc::now().timestamp(),
+    };
+
+    let header = serde_json::json!({
+        "alg": "ANASTASIA-AKA-ES256",
+        "key_attestation": attestation,
+        "typ": "openid4vci-proof+jwt",
+    });
+
+    let payload = serde_json::json!({
+        "aud": context,
+        "iat": now,
+        "nonce": nonce,
+    });
+
+    let header_bytes =
+        serde_json::to_vec(&header).map_err(|e| format!("Failed to serialize header: {}", e))?;
+    let payload_bytes =
+        serde_json::to_vec(&payload).map_err(|e| format!("Failed to serialize payload: {}", e))?;
+
+    let to_be_signed = format!(
+        "{}.{}",
+        URL_SAFE_NO_PAD.encode(&header_bytes),
+        URL_SAFE_NO_PAD.encode(&payload_bytes)
+    );
+
+    let hash = Sha256::digest(to_be_signed.as_bytes()).to_vec();
+
+    Ok((to_be_signed, hash))
+}
+
+pub fn generate_pop_as_key_attestation_jwt(
+    circuit_meta: &CircuitMeta,
+    device_pk_x: &[u8; 32],
+    device_pk_y: &[u8; 32],
+    hash: &[u8],
+    sig: &[u8],
+    user_sk: &str,
+    context: &str,
+    is_keccak_mode: bool,
+) -> Result<String, String> {
+    let result = generate_pop_base64(
+        circuit_meta,
+        device_pk_x,
+        device_pk_y,
+        hash,
+        sig,
+        user_sk,
+        context,
+        is_keccak_mode,
+    )?;
+
+    let proof = format!("{}", result.proofs_and_commitments);
+    Ok(proof)
 }
 
 #[derive(Debug)]
@@ -273,10 +418,10 @@ pub fn prove_chain(
     }
 
     let now_datetime = match now {
-        Some(ts) => chrono::DateTime::from_timestamp_secs(ts)
+        Some(ts) => DateTime::from_timestamp_secs(ts)
             .ok_or_else(|| "Invalid timestamp".to_string())?
-            .with_timezone(&chrono::Utc),
-        None => chrono::Utc::now(),
+            .with_timezone(&Utc),
+        None => Utc::now(),
     };
 
     let mut proofs = Vec::with_capacity(intermediate_certs.len() + 2);
@@ -573,10 +718,10 @@ pub fn prove_chain_composed(
     is_keccak_mode: bool,
 ) -> Result<ChainProofResult, String> {
     let now_datetime = match now {
-        Some(ts) => chrono::DateTime::from_timestamp_secs(ts)
+        Some(ts) => DateTime::from_timestamp_secs(ts)
             .ok_or_else(|| "Invalid timestamp".to_string())?
-            .with_timezone(&chrono::Utc),
-        None => chrono::Utc::now(),
+            .with_timezone(&Utc),
+        None => Utc::now(),
     };
 
     // Parse the root certificate to get the initial issuer public key and authority key identifier
@@ -753,10 +898,10 @@ pub fn prove_chain_composed_aka(
     is_keccak_mode: bool,
 ) -> Result<ChainProofResult, String> {
     let now_datetime = match now {
-        Some(ts) => chrono::DateTime::from_timestamp_secs(ts)
+        Some(ts) => DateTime::from_timestamp_secs(ts)
             .ok_or_else(|| "Invalid timestamp".to_string())?
-            .with_timezone(&chrono::Utc),
-        None => chrono::Utc::now(),
+            .with_timezone(&Utc),
+        None => Utc::now(),
     };
 
     // Parse the root certificate to get the initial issuer public key and authority key identifier
@@ -1458,5 +1603,67 @@ mod tests {
             "{{\"alg\":\"ANASTASIA-AKA-COM\",\"typ\":\"key-attestation+jwt\",\"x5c\":[\"MIIDgDCCAWigAwIBAgIKA4gmZ2BliZaGDTANBgkqhkiG9w0BAQsFADAbMRkwFwYDVQQFExBmOTIwMDllODUzYjZiMDQ1MB4XDTIyMDEyNjIyNDc1MloXDTM3MDEyMjIyNDc1MlowKTETMBEGA1UEChMKR29vZ2xlIExMQzESMBAGA1UEAxMJRHJvaWQgQ0EyMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEuppxbZvJgwNXXe6qQKidXqUt1ooT8M6Q+ysWIwpduM2EalST8v/Cy2JN10aqTfUSThJha/oCtG+F9TUUviOch6RahrpjVyBdhopM9MFDlCfkiCkPCPGu2ODMj7O/bKnko2YwZDAdBgNVHQ4EFgQUu/g2rYmubOLlnpTw1bLX0nrkfEEwHwYDVR0jBBgwFoAUNmHhAHyIBQlRi0RsR/8aTMnqTxIwEgYDVR0TAQH/BAgwBgEB/wIBAjAOBgNVHQ8BAf8EBAMCAQYwDQYJKoZIhvcNAQELBQADggIBAIFxUiFHYfObqrJM0eeXI+kZFT57wBplhq+TEjd+78nIWbKvKGUFlvt7IuXHzZ7YJdtSDs7lFtCsxXdrWEmLckxRDCRcth3Eb1leFespS35NAOd0Hekg8vy2G31OWAe567l6NdLjqytukcF4KAzHIRxoFivN+tlkEJmg7EQw9D2wPq4KpBtug4oJE53R9bLCT5wSVj63hlzEY3hC0NoSAtp0kdthow86UFVzLqxEjR2B1MPCMlyIfoGyBgkyAWhd2gWN6pVeQ8RZoO5gfPmQuCsn8m9kv/dclFMWLaOawgS4kyAn9iRi2yYjEAI0VVi7u3XDgBVnowtYAn4gma5q4BdXgbWbUTaMVVVZsepXKUpDpKzEfss6Iw0zx2Gql75zRDsgyuDyNUDzutvDMw8mgJmFkWjlkqkVM2diDZydzmgi8br2sJTLdG4lUwvedIaLgjnIDEG1J8/5xcPVQJFgRf3m5XEZB4hjG3We/49p+JRVQSpE1+QzG0raYpdNsxBUO+41diQo7qC7S8w2J+TMeGdpKGjCIzKjUDAy2+gOmZdZacanFN/03SydbKVHV0b/NYRWMa4VaZbomKON38IH2ep8pdj++nmSIXeWpQE8LnMEdnUFjvDzp0f0ELSXVW2+5xbl+fcqWgmOupmU4+bxNJLtknLo49Bg5w9jNn7T7rkF\"]}}"
         );
         assert_eq!(String::from_utf8_lossy(&header_bytes), expected_header);
+    }
+
+    use p256::ecdsa::{Signature, SigningKey, VerifyingKey, signature::Signer};
+    use rand_core::OsRng;
+    use x509_parser::nom::AsBytes; // requires 'getrandom' feature
+
+    #[test]
+    #[serial]
+    fn test_generate_pop() {
+        let version = "0.1.0";
+
+        let meta = CircuitMeta::new(
+            format!("es256_pop/{version}"),
+            format!("data/es256_pop/{version}/circuit.json"),
+            format!("data/es256_pop/{version}/vk"),
+            format!("data/es256_pop/{version}/keccak.vk"),
+            format!("data/default_20.srs"),
+        );
+
+        let now = 1763028507; // 2025-11-13T10:08:27Z
+        let user_sk = "deadbeef";
+        let context = "https://credential-issuer.example.com";
+        let nonce = "nonce";
+        let attestation = "attestation";
+
+        setup("data/default_20.srs").unwrap();
+
+        let (tbs, hash) = generate_pop_tbs_jwt(Some(now), nonce, context, attestation).unwrap();
+        assert!(!tbs.is_empty());
+
+        let signing_key = SigningKey::random(&mut OsRng);
+        let signature: Signature = signing_key.sign(tbs.as_bytes());
+        let signature = match signature.normalize_s() {
+            Some(norm_sig) => norm_sig,
+            None => signature,
+        }
+        .to_vec();
+
+        let verifying_key = VerifyingKey::from(&signing_key);
+        let device_pk_bytes = verifying_key.to_encoded_point(false);
+        let device_pk_x = device_pk_bytes.x().unwrap().as_bytes().try_into().unwrap();
+        let device_pk_y = device_pk_bytes.y().unwrap().as_bytes().try_into().unwrap();
+
+        let proof = generate_pop_as_key_attestation_jwt(
+            &meta,
+            device_pk_x,
+            device_pk_y,
+            &hash,
+            &signature,
+            &user_sk,
+            context,
+            false,
+        )
+        .unwrap();
+
+        let header_b64 = tbs.split('.').next().unwrap();
+        let header_bytes = URL_SAFE_NO_PAD.decode(header_b64).unwrap();
+        let expected_header = format!(
+            "{{\"alg\":\"ANASTASIA-AKA-ES256\",\"key_attestation\":\"{attestation}\",\"typ\":\"openid4vci-proof+jwt\"}}"
+        );
+        assert_eq!(String::from_utf8_lossy(&header_bytes), expected_header);
+        assert!(!proof.is_empty());
     }
 }
