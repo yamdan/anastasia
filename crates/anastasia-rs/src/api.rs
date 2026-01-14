@@ -51,10 +51,10 @@ pub fn generate_nym(
 ) -> Result<Fr, String> {
     let device_pk_x: &[u8; 32] = device_pk_x
         .try_into()
-        .map_err(|_| "device_pk_x must be 32 bytes".to_string())?;
+        .map_err(|_| "device_pk_x must be 32 bytes for generate_nym".to_string())?;
     let device_pk_y: &[u8; 32] = device_pk_y
         .try_into()
-        .map_err(|_| "device_pk_y must be 32 bytes".to_string())?;
+        .map_err(|_| "device_pk_y must be 32 bytes for generate_nym".to_string())?;
     let context_field = HASH_TO_SCALAR.hash_to_scalar(context.as_bytes());
     crate::pseudonym::generate_nym(user_sk, &(*device_pk_x, *device_pk_y), &context_field)
 }
@@ -72,8 +72,8 @@ pub fn generate_nym_base64(
 
 pub fn generate_pop(
     circuit_meta: &CircuitMeta,
-    device_pk_x: &[u8; 32],
-    device_pk_y: &[u8; 32],
+    device_pk_x: &[u8],
+    device_pk_y: &[u8],
     hash: &[u8],
     sig: &[u8],
     user_sk: &Fr,
@@ -82,10 +82,17 @@ pub fn generate_pop(
 ) -> Result<ChainProofResult, String> {
     let circuit = Circuit::new(&circuit_meta)?;
 
+    let device_pk_x: &[u8; 32] = device_pk_x
+        .try_into()
+        .map_err(|_| "device_pk_x must be 32 bytes for generate_pop".to_string())?;
+    let device_pk_y: &[u8; 32] = device_pk_y
+        .try_into()
+        .map_err(|_| "device_pk_y must be 32 bytes for generate_pop".to_string())?;
+
     let (proof_with_public_inputs, nym) = crate::prove::generate_pop(
         &circuit,
-        &device_pk_x,
-        &device_pk_y,
+        device_pk_x,
+        device_pk_y,
         context,
         user_sk,
         hash,
@@ -113,8 +120,8 @@ pub fn generate_pop(
 
 pub fn generate_pop_base64(
     circuit_meta: &CircuitMeta,
-    device_pk_x: &[u8; 32],
-    device_pk_y: &[u8; 32],
+    device_pk_x: &[u8],
+    device_pk_y: &[u8],
     hash: &[u8],
     sig: &[u8],
     user_sk: &str,
@@ -150,19 +157,19 @@ pub fn generate_pop_base64(
     })
 }
 
-pub fn generate_pop_tbs_jwt(
+pub fn generate_pop_tbs_as_key_attestation_jwt(
     now: Option<i64>,
     nonce: &str,
     context: &str,
     attestation: &str,
-) -> Result<(String, Vec<u8>), String> {
+) -> Result<String, String> {
     let now = match now {
         Some(ts) => ts,
         None => Utc::now().timestamp(),
     };
 
     let header = serde_json::json!({
-        "alg": "ANASTASIA-AKA-ES256",
+        "alg": "ANASTASIA-ES256",
         "key_attestation": attestation,
         "typ": "openid4vci-proof+jwt",
     });
@@ -184,26 +191,26 @@ pub fn generate_pop_tbs_jwt(
         URL_SAFE_NO_PAD.encode(&payload_bytes)
     );
 
-    let hash = Sha256::digest(to_be_signed.as_bytes()).to_vec();
-
-    Ok((to_be_signed, hash))
+    Ok(to_be_signed)
 }
 
 pub fn generate_pop_as_key_attestation_jwt(
     circuit_meta: &CircuitMeta,
-    device_pk_x: &[u8; 32],
-    device_pk_y: &[u8; 32],
-    hash: &[u8],
+    device_pk_x: &[u8],
+    device_pk_y: &[u8],
+    to_be_signed: &str,
     sig: &[u8],
     user_sk: &str,
     context: &str,
     is_keccak_mode: bool,
 ) -> Result<String, String> {
+    let hash = Sha256::digest(to_be_signed.as_bytes()).to_vec();
+
     let result = generate_pop_base64(
         circuit_meta,
         device_pk_x,
         device_pk_y,
-        hash,
+        &hash,
         sig,
         user_sk,
         context,
@@ -1607,7 +1614,7 @@ mod tests {
 
     use p256::ecdsa::{Signature, SigningKey, VerifyingKey, signature::Signer};
     use rand_core::OsRng;
-    use x509_parser::nom::AsBytes; // requires 'getrandom' feature
+    use x509_parser::nom::AsBytes;
 
     #[test]
     #[serial]
@@ -1630,8 +1637,22 @@ mod tests {
 
         setup("data/default_20.srs").unwrap();
 
-        let (tbs, hash) = generate_pop_tbs_jwt(Some(now), nonce, context, attestation).unwrap();
+        let tbs = generate_pop_tbs_as_key_attestation_jwt(Some(now), nonce, context, attestation)
+            .unwrap();
         assert!(!tbs.is_empty());
+
+        let header_b64 = tbs.split('.').next().unwrap();
+        let header_bytes = URL_SAFE_NO_PAD.decode(header_b64).unwrap();
+        let expected_header = format!(
+            "{{\"alg\":\"ANASTASIA-ES256\",\"key_attestation\":\"{attestation}\",\"typ\":\"openid4vci-proof+jwt\"}}"
+        );
+        assert_eq!(String::from_utf8_lossy(&header_bytes), expected_header);
+
+        let payload_b64 = tbs.split('.').nth(1).unwrap();
+        let payload_bytes = URL_SAFE_NO_PAD.decode(payload_b64).unwrap();
+        let expected_payload =
+            format!("{{\"aud\":\"{context}\",\"iat\":{now},\"nonce\":\"{nonce}\"}}");
+        assert_eq!(String::from_utf8_lossy(&payload_bytes), expected_payload);
 
         let signing_key = SigningKey::random(&mut OsRng);
         let signature: Signature = signing_key.sign(tbs.as_bytes());
@@ -1650,7 +1671,7 @@ mod tests {
             &meta,
             device_pk_x,
             device_pk_y,
-            &hash,
+            &tbs,
             &signature,
             &user_sk,
             context,
@@ -1658,12 +1679,6 @@ mod tests {
         )
         .unwrap();
 
-        let header_b64 = tbs.split('.').next().unwrap();
-        let header_bytes = URL_SAFE_NO_PAD.decode(header_b64).unwrap();
-        let expected_header = format!(
-            "{{\"alg\":\"ANASTASIA-AKA-ES256\",\"key_attestation\":\"{attestation}\",\"typ\":\"openid4vci-proof+jwt\"}}"
-        );
-        assert_eq!(String::from_utf8_lossy(&header_bytes), expected_header);
         assert!(!proof.is_empty());
     }
 }
