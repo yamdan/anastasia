@@ -3,9 +3,15 @@ package org.ethtokyo.hackathon.anastasia.core
 
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
+import org.bouncycastle.asn1.ASN1InputStream
+import org.bouncycastle.asn1.ASN1Integer
+import org.bouncycastle.asn1.ASN1Sequence
+import java.io.ByteArrayInputStream
+import java.math.BigInteger
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.KeyStore
+import java.security.PrivateKey
 import java.security.Signature
 import java.security.cert.Certificate
 import java.security.interfaces.ECPrivateKey
@@ -18,6 +24,8 @@ class ECKeystoreHelper {
         private const val ANDROID_KEYSTORE = "AndroidKeyStore"
         private const val KEY_ALGORITHM = KeyProperties.KEY_ALGORITHM_EC
         private const val EC_CURVE = "secp256r1" // P-256
+        private val ECDSA_Q = BigInteger("FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551", 16)
+        private val ECDSA_Q_HALF = ECDSA_Q.divide(BigInteger.valueOf(2))
     }
 
     private val keyStore: KeyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply {
@@ -82,15 +90,10 @@ class ECKeystoreHelper {
         }
     }
 
-    fun getPrivateKey(alias: String): ECPrivateKey? {
+    fun getPrivateKey(alias: String): PrivateKey? {
         return keyStore.getEntry(alias, null)?.let { entry ->
             if (entry is KeyStore.PrivateKeyEntry) {
-                try {
-                    entry.privateKey as? ECPrivateKey
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    null
-                }
+                entry.privateKey
             } else null
         }
     }
@@ -104,12 +107,33 @@ class ECKeystoreHelper {
         }
     }
 
+    fun getPublicKeyCoordinates(alias: String): Pair<ByteArray, ByteArray>? {
+        val publicKey = getPublicKey(alias) ?: return null
+        return extractECPublicKeyCoordinates(publicKey)
+    }
+
     fun sign(signatureAlgorithm: String, alias: String, data: ByteArray): ByteArray {
-        val private = getPrivateKey(alias)
-        return Signature.getInstance(signatureAlgorithm).run {
+        val private = getPrivateKey(alias) ?: throw Exception("Private key not found")
+        val der = Signature.getInstance(signatureAlgorithm).run {
             initSign(private)
             update(data)
             sign()
         }
+
+        val asn1 = ASN1InputStream(ByteArrayInputStream(der))
+        val seq = asn1.readObject() as ASN1Sequence
+        val rInt =
+            (seq.getObjectAt(0) as ASN1Integer).positiveValue
+        val sInt =
+            (seq.getObjectAt(1) as ASN1Integer).positiveValue
+        val sIntNormalized = if (sInt > ECDSA_Q_HALF) {
+            ECDSA_Q.subtract(sInt)
+        } else {
+            sInt
+        }
+        val r = bigIntegerToFixedSizeByteArray(rInt, 32)
+        val s = bigIntegerToFixedSizeByteArray(sIntNormalized, 32)
+
+        return r + s
     }
 }

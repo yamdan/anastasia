@@ -8,6 +8,7 @@ import org.bouncycastle.asn1.x509.SubjectKeyIdentifier
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import java.math.BigInteger
 import java.security.MessageDigest
+import java.security.PublicKey
 import java.security.cert.Certificate
 import java.security.cert.X509Certificate
 import java.security.interfaces.ECPublicKey
@@ -61,8 +62,13 @@ private fun computeSubjectKeyIdFromPublicKey(cert: X509Certificate): ByteArray {
     return MessageDigest.getInstance("SHA-1").digest(keyBytes)
 }
 
-fun extractECPublicKeyCoordinates(cert: X509Certificate): Pair<ByteArray, ByteArray> {
+fun extractECPublicKeyCoordinatesFromCert(cert: X509Certificate): Pair<ByteArray, ByteArray> {
     val publicKey = cert.publicKey as ECPublicKey
+
+    return extractECPublicKeyCoordinates(publicKey)
+}
+
+fun extractECPublicKeyCoordinates(publicKey: ECPublicKey): Pair<ByteArray, ByteArray> {
     val ecPoint = publicKey.w
 
     // ECPointからx, y座標を取得
@@ -76,7 +82,7 @@ fun extractECPublicKeyCoordinates(cert: X509Certificate): Pair<ByteArray, ByteAr
     return Pair(xBytes, yBytes)
 }
 
-private fun bigIntegerToFixedSizeByteArray(bigInt: BigInteger, size: Int): ByteArray {
+fun bigIntegerToFixedSizeByteArray(bigInt: BigInteger, size: Int): ByteArray {
     val bytes = bigInt.toByteArray()
 
     return when {
@@ -89,6 +95,7 @@ private fun bigIntegerToFixedSizeByteArray(bigInt: BigInteger, size: Int): ByteA
                 throw IllegalArgumentException("BigIntegerが指定サイズを超えています")
             }
         }
+
         else -> {
             // 先頭にゼロを埋める
             ByteArray(size - bytes.size) + bytes
@@ -127,7 +134,7 @@ fun Certificate.isSubroot(): Boolean {
     try {
         val subjectOrgValue = this.getSubjectOrgValue()
         return (subjectOrgValue == "tee" || subjectOrgValue == "strongbox")
-    }catch(_: Exception){
+    } catch (_: Exception) {
         return false
     }
 }
@@ -136,7 +143,7 @@ fun Certificate.isEndEntity(): Boolean {
     try {
         val issuerOrgValue = this.getIssuerOrgValue()
         return (issuerOrgValue == "tee" || issuerOrgValue == "strongbox")
-    }catch(_: Exception){
+    } catch (_: Exception) {
         return false
     }
 }

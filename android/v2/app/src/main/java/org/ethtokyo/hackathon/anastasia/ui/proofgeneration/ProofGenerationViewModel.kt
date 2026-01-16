@@ -1,6 +1,7 @@
 package org.ethtokyo.hackathon.anastasia.ui.proofgeneration
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -9,6 +10,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.bouncycastle.asn1.ASN1InputStream
+import org.bouncycastle.asn1.ASN1Integer
+import org.bouncycastle.asn1.ASN1Sequence
 import org.ethtokyo.hackathon.anastasia.Constants
 import org.ethtokyo.hackathon.anastasia.core.ECKeystoreHelper
 import org.ethtokyo.hackathon.anastasia.core.selectAppropriateCircuit
@@ -16,9 +20,12 @@ import org.ethtokyo.hackathon.anastasia.data.AppSettings
 import org.ethtokyo.hackathon.anastasia.data.ProofGenerationResult
 import org.ethtokyo.hackathon.anastasia.data.ProofGenerationTime
 import uniffi.mopro.CircuitMeta
+import uniffi.mopro.generatePopJwt
+import uniffi.mopro.generatePopTbsJwt
 import uniffi.mopro.proveChainComposedAkaJwt
 import uniffi.mopro.proveChainComposedJwt
 import uniffi.mopro.proveChainJwt
+import java.io.ByteArrayInputStream
 import java.security.cert.Certificate
 
 class ProofGenerationViewModel(private val application: Application) : AndroidViewModel(application) {
@@ -176,6 +183,41 @@ class ProofGenerationViewModel(private val application: Application) : AndroidVi
                 proofAudience,
                 false
             )
+            proofEndTime = System.currentTimeMillis()
+        } else if (circuitType == "es256-pop") {
+            // TODO: avoid hardcoded circuit IDs
+            val circuit = selectAppropriateCircuit(application.applicationContext, "es256_pop/0.1.0")
+
+            val (publicKeyX, publicKeyY) = keystoreHelper.getPublicKeyCoordinates(Constants.KEY_ALIAS) ?: throw Error()
+
+            // TODO: hardcoded values
+            val nonce = "dummy_nonce"
+            val userSk = "deadbeef"
+            val attestation = "dummy_attestation"
+
+            proofStartTime = System.currentTimeMillis()
+            val tbsJwt = generatePopTbsJwt(
+                null,
+                nonce,
+                proofAudience,
+                attestation
+            )
+
+            val sig = keystoreHelper.sign("SHA256withECDSA", Constants.KEY_ALIAS, tbsJwt.toByteArray())
+
+            val proofJwt = generatePopJwt(
+                circuit,
+                publicKeyX,
+                publicKeyY,
+                tbsJwt,
+                sig,
+                userSk,
+                proofAudience,
+                false
+            )
+
+            jwt = "$tbsJwt.$proofJwt"
+
             proofEndTime = System.currentTimeMillis()
         } else {
             throw Error()
