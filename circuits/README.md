@@ -1,5 +1,7 @@
 # Anastasia Circuits Overview
 
+⚠️ **This section contains outdated information -- should be updated.**
+
 ![circuits.png](./circuits.png)
 
 For proving the knowledge of certificates used in **Android Key Attestation**, we define a series of four circuits corresponding to each step in the certificate chain.  
