@@ -53,29 +53,16 @@ fun getFilePathFromAssets(context: Context, assetFileName: String): String {
     return absolutePath
 }
 
-
-fun selectAppropriateCircuit(context: Context, certificate: Certificate): CircuitMeta {
-    val prefix = certificate.getCircuitDir()
-    // todo: 暗号アルゴリズムごとに適切な回路を使用できるようにすべき
-    val vk = getFilePathFromAssets(context, "es256_$prefix/0.1.1/vk") // TODO: fix me
-    val keccak_vk = getFilePathFromAssets(context, "es256_$prefix/0.1.1/keccak.vk") // TODO: fix me
-    val circuit = getFilePathFromAssets(context, "es256_$prefix/0.1.1/circuit.json") // TODO: fix me
-    val srs = getFilePathFromAssets(context, "common.srs")
+fun selectAppropriateCircuit(context: Context, certificate: Certificate, circuitId: String): CircuitMeta {
+    val vk = getFilePathFromAssets(context, "$circuitId/vk")
+    val keccak_vk = getFilePathFromAssets(context, "$circuitId/keccak.vk")
+    val circuit = getFilePathFromAssets(context, "$circuitId/circuit.json")
+    val srs = getFilePathFromAssets(context, "default_20.srs")
     return CircuitMeta(
-        "es256_${prefix.lowercase()}/0.1.1", // TODO: fix me
+        circuitId,
         circuit,
         vk,
         keccak_vk,
         srs,
     )
-}
-
-fun Certificate.getCircuitDir(): String {
-    if (this.isEndEntity()){
-        return "ee"
-    }
-    if (this.isSubroot()){
-        return "subroot"
-    }
-    return "ca"
 }
