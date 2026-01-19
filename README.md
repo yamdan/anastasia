@@ -14,7 +14,7 @@ Inspired by the prior work [Cinderella](https://ieeexplore.ieee.org/document/754
 - Replaces Pinocchio (Linear PCP) with **UltraHonk** (Plonk-style proving system), enabling efficient prover on smartphones.
 - Circuits written in **Noir DSL**, making them maintainable and extensible.
 - Adds **ECDSA signature verification**, supporting Android’s native attestation certificates.
-- Adopts a **split-proof approach**: instead of verifying an entire chain at once, each certificate is proved separately and linked via commitments, reducing memory and CPU load on mobile devices.
+- ~~Adopts a **split-proof approach**: instead of verifying an entire chain at once, each certificate is proved separately and linked via commitments, reducing memory and CPU load on mobile devices.~~
 - Leverages Cinderella’s insight: *parse outside the circuit, re-serialize inside*. Thanks to the bijective property of ASN.1 DER encoding, we can prove correctness without costly parsing inside the circuit.
 
 With Anastasia, we demonstrate that a smartphone can produce a zero-knowledge proof that its attested key truly originates from a Secure Element, without leaking identifiers that would enable tracking.
@@ -42,7 +42,7 @@ Originally built during [ETHTokyo 2025 Hackathon](https://taikai.network/en/etht
 **Prover (Android)**
 - Generates attestation chain (Secure Element)  
 - Parses X.509 certs in Rust, re-serializes inside Noir circuit  
-- Produces ZK proof (split per certificate)  
+- Produces ZK proof
 
 **Verifier (Smart Contract)**
 - Solidity contract (generated via Noir standard toolchain)  
