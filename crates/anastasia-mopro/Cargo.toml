@@ -32,4 +32,8 @@ rust-witness = "0.1"
 # CIRCOM_DEPENDENCIES
 
 [dev-dependencies]
+ark-test-curves = { version = "0.5.0", features = ["bls12_381_scalar_field", "bls12_381_curve"] }
 serial_test = "3.2.0"
+p256 = "0.13.2"
+rand_core = { version = "0.6.4", features = ["getrandom"] }
+nom = "7.1.3"

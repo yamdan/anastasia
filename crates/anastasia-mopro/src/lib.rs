@@ -326,6 +326,44 @@ fn prove_chain_composed_aka_jwt(
     Ok(chain_proof)
 }
 
+#[uniffi::export]
+fn generate_pop_tbs_jwt(
+    now: Option<i64>,
+    nonce: &str,
+    context: &str,
+    attestation: &str,
+) -> Result<String, MoproError> {
+    let tbs_jwt =
+        anastasia_rs::generate_pop_tbs_as_key_attestation_jwt(now, nonce, context, attestation)
+            .map_err(|e| MoproError::NoirError(e.to_string()))?;
+    Ok(tbs_jwt)
+}
+
+#[uniffi::export]
+fn generate_pop_jwt(
+    circuit_meta: CircuitMeta,
+    device_pk_x: &[u8],
+    device_pk_y: &[u8],
+    to_be_signed: &str,
+    sig: &[u8],
+    user_sk: &str,
+    context: &str,
+    is_keccak_mode: Option<bool>,
+) -> Result<String, MoproError> {
+    let proof = anastasia_rs::generate_pop_as_key_attestation_jwt(
+        &circuit_meta.into(),
+        device_pk_x,
+        device_pk_y,
+        to_be_signed,
+        sig,
+        user_sk,
+        context,
+        is_keccak_mode.unwrap_or(false),
+    )
+    .map_err(|e| MoproError::NoirError(e.to_string()))?;
+    Ok(proof)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -711,5 +749,61 @@ mod tests {
         )
         .unwrap();
         assert!(!result.is_empty());
+    }
+
+    use nom::AsBytes;
+    use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
+    use rand_core::OsRng;
+
+    #[test]
+    #[serial]
+    fn test_generate_pop() {
+        let version = "0.1.0";
+
+        let meta = CircuitMeta::new(
+            format!("es256_pop/{version}"),
+            format!("../anastasia-rs/data/es256_pop/{version}/circuit.json"),
+            format!("../anastasia-rs/data/es256_pop/{version}/vk"),
+            format!("../anastasia-rs/data/es256_pop/{version}/keccak.vk"),
+            format!("../anastasia-rs/data/default_20.srs"),
+        );
+
+        let now = 1763028507; // 2025-11-13T10:08:27Z
+        let user_sk = "deadbeef";
+        let context = "https://credential-issuer.example.com";
+        let nonce = "nonce";
+        let attestation = "attestation";
+
+        setup("../anastasia-rs/data/default_20.srs").unwrap();
+
+        let tbs = generate_pop_tbs_jwt(Some(now), nonce, context, attestation).unwrap();
+        assert!(!tbs.is_empty());
+
+        let signing_key = SigningKey::random(&mut OsRng);
+        let signature: Signature = signing_key.sign(tbs.as_bytes());
+        let signature = match signature.normalize_s() {
+            Some(norm_sig) => norm_sig,
+            None => signature,
+        }
+        .to_vec();
+
+        let verifying_key = VerifyingKey::from(&signing_key);
+        let device_pk_bytes = verifying_key.to_encoded_point(false);
+        let device_pk_x = device_pk_bytes.x().unwrap().as_bytes().try_into().unwrap();
+        let device_pk_y = device_pk_bytes.y().unwrap().as_bytes().try_into().unwrap();
+
+        let proof = generate_pop_jwt(
+            meta,
+            device_pk_x,
+            device_pk_y,
+            &tbs,
+            &signature,
+            &user_sk,
+            context,
+            None,
+        )
+        .unwrap();
+
+        assert!(!proof.is_empty());
     }
 }

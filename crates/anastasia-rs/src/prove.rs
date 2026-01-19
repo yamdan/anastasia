@@ -129,7 +129,7 @@ pub fn prove_ee(
     is_keccak_mode: bool,
 ) -> Result<(ProofWithPublicInputs, Fr), String> {
     let start_nym = Instant::now();
-    let (nym, context_field) = generate_nym_and_context_field(user_sk, parsed_cert, context)?;
+    let (nym, context_field) = generate_nym_and_context_field_old(user_sk, parsed_cert, context)?;
     let duration_nym = start_nym.elapsed();
     println!("prove_ee: generate_nym took {:?}", duration_nym);
 
@@ -177,7 +177,8 @@ pub fn prove_composed(
     is_keccak_mode: bool,
 ) -> Result<(ProofWithPublicInputs, Fr), String> {
     let start_nym = Instant::now();
-    let (nym, context_field) = generate_nym_and_context_field(user_sk, parsed_cert_ee, context)?;
+    let (nym, context_field) =
+        generate_nym_and_context_field_old(user_sk, parsed_cert_ee, context)?;
     let duration_nym = start_nym.elapsed();
     println!("prove_composed: generate_nym took {:?}", duration_nym);
 
@@ -222,8 +223,20 @@ pub fn prove_composed_aka(
     parsed_cert_ee: &ParsedCert,
     is_keccak_mode: bool,
 ) -> Result<(ProofWithPublicInputs, Fr), String> {
+    let device_pk_x = parsed_cert_ee
+        .subject_pk_x
+        .clone()
+        .try_into()
+        .map_err(|_| "subject_pk_x must be 32 bytes")?;
+    let device_pk_y = parsed_cert_ee
+        .subject_pk_y
+        .clone()
+        .try_into()
+        .map_err(|_| "subject_pk_y must be 32 bytes")?;
+
     let start_nym = Instant::now();
-    let (nym, context_field) = generate_nym_and_context_field(user_sk, parsed_cert_ee, context)?;
+    let (nym, context_field) =
+        generate_nym_and_context_field(user_sk, &device_pk_x, &device_pk_y, context)?;
     let duration_nym = start_nym.elapsed();
     println!("prove_composed: generate_nym took {:?}", duration_nym);
 
@@ -255,6 +268,34 @@ pub fn prove_composed_aka(
     Ok((proof_with_public_inputs, nym))
 }
 
+pub fn generate_pop(
+    circuit: &Circuit,
+    device_pk_x: &[u8; 32],
+    device_pk_y: &[u8; 32],
+    context: &str,
+    user_sk: &Fr,
+    hash: &[u8],
+    sig: &[u8],
+    is_keccak_mode: bool,
+) -> Result<(ProofWithPublicInputs, Fr), String> {
+    let (nym, context_field) =
+        generate_nym_and_context_field(user_sk, device_pk_x, device_pk_y, context)?;
+
+    let initial_witness = generate_initial_witness_pop(
+        hash,
+        &context_field,
+        &nym,
+        sig,
+        device_pk_x,
+        device_pk_y,
+        user_sk,
+    )?;
+
+    let proof_with_public_inputs = generate_proof(circuit, initial_witness, is_keccak_mode)?;
+
+    Ok((proof_with_public_inputs, nym))
+}
+
 fn generate_commitment(parsed_cert: &ParsedCert) -> Result<(Fr, Fr, Fr), String> {
     let mut rng = OsRng;
     let r = Fr::rand(&mut rng);
@@ -268,7 +309,7 @@ fn generate_commitment(parsed_cert: &ParsedCert) -> Result<(Fr, Fr, Fr), String>
     Ok((x, y, r))
 }
 
-fn generate_nym_and_context_field(
+fn generate_nym_and_context_field_old(
     user_sk: &Fr,
     parsed_cert: &ParsedCert,
     context: &str,
@@ -293,6 +334,22 @@ fn generate_nym_and_context_field(
         .try_into()
         .map_err(|_| "subject_pk_y must be 32 bytes")?;
     let nym = generate_nym(user_sk, &(subject_pk_x, subject_pk_y), &context_field)?;
+    Ok((nym, context_field))
+}
+
+fn generate_nym_and_context_field(
+    user_sk: &Fr,
+    pk_x: &[u8; 32],
+    pk_y: &[u8; 32],
+    context: &str,
+) -> Result<(Fr, Fr), String> {
+    if context.is_empty() {
+        return Err("Context cannot be empty".to_string());
+    }
+    let context_bytes = context.as_bytes();
+    let context_field: Fr = HASH_TO_SCALAR.hash_to_scalar(context_bytes);
+
+    let nym = generate_nym(user_sk, &(*pk_x, *pk_y), &context_field)?;
     Ok((nym, context_field))
 }
 
@@ -747,6 +804,48 @@ fn generate_initial_witness_composed_aka(
     witness.push(parsed_cert_ee.extra_extension_len.into());
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert_ee.not_before));
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert_ee.not_after));
+    witness.push(*user_sk);
+
+    let mut witness_map = WitnessMap::new();
+    for (i, witness) in witness.iter().enumerate() {
+        witness_map.insert(Witness(i as u32), FieldElement::from_repr(*witness));
+    }
+
+    Ok(witness_map)
+}
+
+fn generate_initial_witness_pop(
+    hash: &[u8],
+    context: &Fr,
+    nym: &Fr,
+    sig: &[u8],
+    device_pk_x: &[u8],
+    device_pk_y: &[u8],
+    user_sk: &Fr,
+) -> Result<WitnessMap<GenericFieldElement<Fr>>, String> {
+    let mut witness = Vec::new();
+
+    // public inputs
+    let hash = hash
+        .try_into()
+        .map_err(|e| format!("hash must be 32 bytes: failed to convert: {}", e))?;
+    witness.extend(from_u8_array_to_fr_vec(hash));
+    witness.push(*context);
+    witness.push(*nym);
+
+    let signature = sig
+        .try_into()
+        .map_err(|e| format!("sig must be 64 bytes: failed to convert: {}", e))?;
+    witness.extend(from_u8_array_to_fr_vec(signature));
+
+    let pk_x = device_pk_x
+        .try_into()
+        .map_err(|e| format!("root_pk_x must be 32 bytes: failed to convert: {}", e))?;
+    let pk_y = device_pk_y
+        .try_into()
+        .map_err(|e| format!("root_pk_y must be 32 bytes: failed to convert: {}", e))?;
+    witness.extend(from_u8_array_to_fr_vec(pk_x));
+    witness.extend(from_u8_array_to_fr_vec(pk_y));
     witness.push(*user_sk);
 
     let mut witness_map = WitnessMap::new();

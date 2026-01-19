@@ -749,6 +749,10 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
 // For large crates we prevent `MethodTooLargeException` (see #2340)
 // N.B. the name of the extension is very misleading, since it is 
 // rather `InterfaceTooLargeException`, caused by too many methods 
@@ -773,6 +777,10 @@ fun uniffi_anastasia_mopro_checksum_func_generate_halo2_proof(
 fun uniffi_anastasia_mopro_checksum_func_generate_noir_proof(
 ): Short
 fun uniffi_anastasia_mopro_checksum_func_generate_nym(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_generate_pop_jwt(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_generate_pop_tbs_jwt(
 ): Short
 fun uniffi_anastasia_mopro_checksum_func_generate_user_sk(
 ): Short
@@ -856,6 +864,10 @@ fun uniffi_anastasia_mopro_fn_func_generate_halo2_proof(`srsPath`: RustBuffer.By
 fun uniffi_anastasia_mopro_fn_func_generate_noir_proof(`circuitPath`: RustBuffer.ByValue,`srsPath`: RustBuffer.ByValue,`inputs`: RustBuffer.ByValue,`onChain`: Byte,`vk`: RustBuffer.ByValue,`lowMemoryMode`: Byte,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 fun uniffi_anastasia_mopro_fn_func_generate_nym(`userSk`: RustBuffer.ByValue,`devicePkX`: RustBuffer.ByValue,`devicePkY`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_generate_pop_jwt(`circuitMeta`: RustBuffer.ByValue,`devicePkX`: RustBuffer.ByValue,`devicePkY`: RustBuffer.ByValue,`toBeSigned`: RustBuffer.ByValue,`sig`: RustBuffer.ByValue,`userSk`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,`isKeccakMode`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_generate_pop_tbs_jwt(`now`: RustBuffer.ByValue,`nonce`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,`attestation`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 fun uniffi_anastasia_mopro_fn_func_generate_user_sk(uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
@@ -1024,6 +1036,12 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_anastasia_mopro_checksum_func_generate_nym() != 58234.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_anastasia_mopro_checksum_func_generate_pop_jwt() != 42607.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_anastasia_mopro_checksum_func_generate_pop_tbs_jwt() != 56451.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_anastasia_mopro_checksum_func_generate_user_sk() != 47375.toShort()) {
@@ -2084,6 +2102,26 @@ public object FfiConverterMapStringSequenceString: FfiConverterRustBuffer<Map<ko
     uniffiRustCallWithError(MoproException) { _status ->
     UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_generate_nym(
         FfiConverterString.lower(`userSk`),FfiConverterByteArray.lower(`devicePkX`),FfiConverterByteArray.lower(`devicePkY`),FfiConverterString.lower(`context`),_status)
+}
+    )
+    }
+    
+
+    @Throws(MoproException::class) fun `generatePopJwt`(`circuitMeta`: CircuitMeta, `devicePkX`: kotlin.ByteArray, `devicePkY`: kotlin.ByteArray, `toBeSigned`: kotlin.String, `sig`: kotlin.ByteArray, `userSk`: kotlin.String, `context`: kotlin.String, `isKeccakMode`: kotlin.Boolean?): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_generate_pop_jwt(
+        FfiConverterTypeCircuitMeta.lower(`circuitMeta`),FfiConverterByteArray.lower(`devicePkX`),FfiConverterByteArray.lower(`devicePkY`),FfiConverterString.lower(`toBeSigned`),FfiConverterByteArray.lower(`sig`),FfiConverterString.lower(`userSk`),FfiConverterString.lower(`context`),FfiConverterOptionalBoolean.lower(`isKeccakMode`),_status)
+}
+    )
+    }
+    
+
+    @Throws(MoproException::class) fun `generatePopTbsJwt`(`now`: kotlin.Long?, `nonce`: kotlin.String, `context`: kotlin.String, `attestation`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_generate_pop_tbs_jwt(
+        FfiConverterOptionalLong.lower(`now`),FfiConverterString.lower(`nonce`),FfiConverterString.lower(`context`),FfiConverterString.lower(`attestation`),_status)
 }
     )
     }

@@ -62,7 +62,7 @@ dvZVx2GWfHKWDghfSNmIeeJ5dpPkIaDinCUAGoR0k70+xyBjdzH1K3yY
         println()
 
         // 5. 公開鍵のx, yのバイト列
-        val (pubKeyX, pubKeyY) = extractECPublicKeyCoordinates(certificate)
+        val (pubKeyX, pubKeyY) = extractECPublicKeyCoordinatesFromCert(certificate)
         println("Public Key X coordinate (${pubKeyX.size} bytes):")
         println(bytesToHexString(pubKeyX))
         println()
