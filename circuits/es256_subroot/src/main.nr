@@ -1,6 +1,6 @@
 use es256_common::{check_commitments, prepare_std_ca_extensions, verify_es256_256};
 
-global MAX_TBS_LEN: u32 = 500;
+global MAX_TBS_LEN: u32 = 549;
 global MAX_EXTRA_EXT_LEN: u32 = 30;
 
 fn main(

@@ -745,6 +745,10 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
 // For large crates we prevent `MethodTooLargeException` (see #2340)
 // N.B. the name of the extension is very misleading, since it is 
 // rather `InterfaceTooLargeException`, caused by too many methods 
@@ -777,6 +781,10 @@ fun uniffi_anastasia_mopro_checksum_func_get_noir_verification_key(
 fun uniffi_anastasia_mopro_checksum_func_prove_ca(
 ): Short
 fun uniffi_anastasia_mopro_checksum_func_prove_chain_base64(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_prove_chain_composed_aka_base64(
+): Short
+fun uniffi_anastasia_mopro_checksum_func_prove_chain_composed_aka_jwt(
 ): Short
 fun uniffi_anastasia_mopro_checksum_func_prove_chain_composed_base64(
 ): Short
@@ -856,6 +864,10 @@ fun uniffi_anastasia_mopro_fn_func_get_noir_verification_key(`circuitPath`: Rust
 fun uniffi_anastasia_mopro_fn_func_prove_ca(`circuitMeta`: RustBuffer.ByValue,`cert`: RustBuffer.ByValue,`issuerPkX`: RustBuffer.ByValue,`issuerPkY`: RustBuffer.ByValue,`prevCmtX`: RustBuffer.ByValue,`prevCmtY`: RustBuffer.ByValue,`prevCmtR`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`isKeccakMode`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 fun uniffi_anastasia_mopro_fn_func_prove_chain_base64(`subrootCircuitMeta`: RustBuffer.ByValue,`intermediateCircuitsMeta`: RustBuffer.ByValue,`leafCircuitMeta`: RustBuffer.ByValue,`rootCert`: RustBuffer.ByValue,`subrootCert`: RustBuffer.ByValue,`intermediateCerts`: RustBuffer.ByValue,`leafCert`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`userSk`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,`isKeccakMode`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_prove_chain_composed_aka_base64(`circuitMeta`: RustBuffer.ByValue,`rootCert`: RustBuffer.ByValue,`subrootCert`: RustBuffer.ByValue,`intermediateCert`: RustBuffer.ByValue,`leafCert`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`userSk`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,`isKeccakMode`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_anastasia_mopro_fn_func_prove_chain_composed_aka_jwt(`circuitMeta`: RustBuffer.ByValue,`rootCert`: RustBuffer.ByValue,`subrootCert`: RustBuffer.ByValue,`intermediateCert`: RustBuffer.ByValue,`leafCert`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`userSk`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,`isKeccakMode`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 fun uniffi_anastasia_mopro_fn_func_prove_chain_composed_base64(`circuitMeta`: RustBuffer.ByValue,`rootCert`: RustBuffer.ByValue,`subrootCert`: RustBuffer.ByValue,`intermediateCerts`: RustBuffer.ByValue,`leafCert`: RustBuffer.ByValue,`now`: RustBuffer.ByValue,`userSk`: RustBuffer.ByValue,`context`: RustBuffer.ByValue,`isKeccakMode`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
@@ -1024,6 +1036,12 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_anastasia_mopro_checksum_func_prove_chain_base64() != 29885.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_anastasia_mopro_checksum_func_prove_chain_composed_aka_base64() != 4050.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_anastasia_mopro_checksum_func_prove_chain_composed_aka_jwt() != 10915.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_anastasia_mopro_checksum_func_prove_chain_composed_base64() != 30698.toShort()) {
@@ -2105,6 +2123,26 @@ public object FfiConverterMapStringSequenceString: FfiConverterRustBuffer<Map<ko
     uniffiRustCallWithError(MoproException) { _status ->
     UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_prove_chain_base64(
         FfiConverterTypeCircuitMeta.lower(`subrootCircuitMeta`),FfiConverterSequenceTypeCircuitMeta.lower(`intermediateCircuitsMeta`),FfiConverterTypeCircuitMeta.lower(`leafCircuitMeta`),FfiConverterByteArray.lower(`rootCert`),FfiConverterByteArray.lower(`subrootCert`),FfiConverterSequenceByteArray.lower(`intermediateCerts`),FfiConverterByteArray.lower(`leafCert`),FfiConverterOptionalLong.lower(`now`),FfiConverterString.lower(`userSk`),FfiConverterString.lower(`context`),FfiConverterOptionalBoolean.lower(`isKeccakMode`),_status)
+}
+    )
+    }
+    
+
+    @Throws(MoproException::class) fun `proveChainComposedAkaBase64`(`circuitMeta`: CircuitMeta, `rootCert`: kotlin.ByteArray, `subrootCert`: kotlin.ByteArray, `intermediateCert`: kotlin.ByteArray, `leafCert`: kotlin.ByteArray, `now`: kotlin.Long?, `userSk`: kotlin.String, `context`: kotlin.String, `isKeccakMode`: kotlin.Boolean?): ChainProofResultBase64 {
+            return FfiConverterTypeChainProofResultBase64.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_prove_chain_composed_aka_base64(
+        FfiConverterTypeCircuitMeta.lower(`circuitMeta`),FfiConverterByteArray.lower(`rootCert`),FfiConverterByteArray.lower(`subrootCert`),FfiConverterByteArray.lower(`intermediateCert`),FfiConverterByteArray.lower(`leafCert`),FfiConverterOptionalLong.lower(`now`),FfiConverterString.lower(`userSk`),FfiConverterString.lower(`context`),FfiConverterOptionalBoolean.lower(`isKeccakMode`),_status)
+}
+    )
+    }
+    
+
+    @Throws(MoproException::class) fun `proveChainComposedAkaJwt`(`circuitMeta`: CircuitMeta, `rootCert`: kotlin.ByteArray, `subrootCert`: kotlin.ByteArray, `intermediateCert`: kotlin.ByteArray, `leafCert`: kotlin.ByteArray, `now`: kotlin.Long?, `userSk`: kotlin.String, `context`: kotlin.String, `isKeccakMode`: kotlin.Boolean?): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCallWithError(MoproException) { _status ->
+    UniffiLib.INSTANCE.uniffi_anastasia_mopro_fn_func_prove_chain_composed_aka_jwt(
+        FfiConverterTypeCircuitMeta.lower(`circuitMeta`),FfiConverterByteArray.lower(`rootCert`),FfiConverterByteArray.lower(`subrootCert`),FfiConverterByteArray.lower(`intermediateCert`),FfiConverterByteArray.lower(`leafCert`),FfiConverterOptionalLong.lower(`now`),FfiConverterString.lower(`userSk`),FfiConverterString.lower(`context`),FfiConverterOptionalBoolean.lower(`isKeccakMode`),_status)
 }
     )
     }

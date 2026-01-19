@@ -1,11 +1,11 @@
-use super::utils::{encode_length, UtcTime};
+use super::utils::{encode_length, encode_length_1, UtcTime};
 
 // RFC 5280, Section 4.1.2.2
 // "Given the uniqueness requirements above, serial numbers can be
 // expected to contain long integers.  Certificate users MUST be able to
 // handle serialNumber values up to 20 octets.  Conforming CAs MUST NOT
 // use serialNumber values longer than 20 octets"
-global MAX_SERIAL_NUMBER_LEN: u32 = 20;
+pub global MAX_SERIAL_NUMBER_LEN: u32 = 20;
 
 pub fn prepare_serial_number(
     given_serial_number: [u8; MAX_SERIAL_NUMBER_LEN],
@@ -13,11 +13,11 @@ pub fn prepare_serial_number(
 ) -> ([u8; MAX_SERIAL_NUMBER_LEN + 2], u32) {
     assert(serial_number_len <= MAX_SERIAL_NUMBER_LEN, "Serial number length exceeds maximum");
 
-    let serial_number_len_bytes: [u8; 1] = (serial_number_len as Field).to_be_bytes();
+    let serial_number_len_bytes = encode_length_1(serial_number_len);
 
     let mut serial_number = [0; MAX_SERIAL_NUMBER_LEN + 2];
     serial_number[0] = 0x02; // ASN.1 INTEGER tag
-    serial_number[1] = serial_number_len_bytes[0]; // Length of the serial number
+    serial_number[1] = serial_number_len_bytes; // Length of the serial number
     for i in 0..MAX_SERIAL_NUMBER_LEN {
         if i < serial_number_len {
             serial_number[i + 2] = given_serial_number[i];
@@ -26,7 +26,7 @@ pub fn prepare_serial_number(
     (serial_number, serial_number_len + 2)
 }
 
-global VALIDITY_LEN: u32 = 32;
+pub global VALIDITY_LEN: u32 = 32;
 
 pub fn prepare_validity(
     not_before: UtcTime,
@@ -44,7 +44,7 @@ pub fn prepare_validity(
     (validity, validity.len())
 }
 
-global SUBJECT_PUBLIC_KEY_INFO_LEN: u32 = 91;
+pub global SUBJECT_PUBLIC_KEY_INFO_LEN: u32 = 91;
 
 pub fn prepare_subject_public_key_info_es256(
     subject_pk_x: [u8; 32],
@@ -96,7 +96,7 @@ pub fn prepare_std_ee_extensions() -> ([u8; 16], u32) {
     (ext, ext.len())
 }
 
-global MAX_STD_CA_EXTENSIONS_LEN: u32 = 97; // 31 + 33 + 17 + 16
+pub global MAX_STD_CA_EXTENSIONS_LEN: u32 = 97; // 31 + 33 + 17 + 16
 
 pub fn prepare_std_ca_extensions(
     subject_key_identifier: [u8; 20],
