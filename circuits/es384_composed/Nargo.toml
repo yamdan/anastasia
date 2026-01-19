@@ -1,0 +1,9 @@
+[package]
+name = "es384_composed"
+version = "0.1.0"
+type = "bin"
+authors = ["yamdan"]
+
+[dependencies]
+es256_common = { path = "../lib/es256_common" }
+es384_common = { path = "../lib/es384_common" }

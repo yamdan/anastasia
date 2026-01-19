@@ -164,6 +164,52 @@ pub fn prove_ee(
     Ok((proof_with_public_inputs, nym))
 }
 
+pub fn prove_composed(
+    circuit: &Circuit,
+    now: &DateTime<Utc>,
+    root_pk_x: &[u8],
+    root_pk_y: &[u8],
+    context: &str,
+    user_sk: &Fr,
+    parsed_cert_subroot: &ParsedCert,
+    parsed_certs_ca: &[&ParsedCert],
+    parsed_cert_ee: &ParsedCert,
+    is_keccak_mode: bool,
+) -> Result<(ProofWithPublicInputs, Fr), String> {
+    let start_nym = Instant::now();
+    let (nym, context_field) = generate_nym_and_context_field(user_sk, parsed_cert_ee, context)?;
+    let duration_nym = start_nym.elapsed();
+    println!("prove_composed: generate_nym took {:?}", duration_nym);
+
+    let start_witness = Instant::now();
+    let initial_witness = generate_initial_witness_composed(
+        now,
+        root_pk_x,
+        root_pk_y,
+        &context_field,
+        &nym,
+        user_sk,
+        parsed_cert_subroot,
+        MAX_EXTRA_EXTENSION_LEN_CA,
+        parsed_certs_ca,
+        MAX_EXTRA_EXTENSION_LEN_CA,
+        parsed_cert_ee,
+        MAX_EXTRA_EXTENSION_LEN_EE,
+    )?;
+    let duration_witness = start_witness.elapsed();
+    println!(
+        "prove_composed: generate_initial_witness took {:?}",
+        duration_witness
+    );
+
+    let start_proof = Instant::now();
+    let proof_with_public_inputs = generate_proof(circuit, initial_witness, is_keccak_mode)?;
+    let duration_proof = start_proof.elapsed();
+    println!("prove_composed: generate_proof took {:?}", duration_proof);
+
+    Ok((proof_with_public_inputs, nym))
+}
+
 fn generate_commitment(parsed_cert: &ParsedCert) -> Result<(Fr, Fr, Fr), String> {
     let mut rng = OsRng;
     let r = Fr::rand(&mut rng);
@@ -360,6 +406,91 @@ fn generate_initial_witness_ee(
     Ok(witness_map)
 }
 
+fn generate_initial_witness_composed(
+    now: &DateTime<Utc>,
+    root_pk_x: &[u8],
+    root_pk_y: &[u8],
+    context: &Fr,
+    nym: &Fr,
+    user_sk: &Fr,
+    parsed_cert_subroot: &ParsedCert,
+    max_extra_extension_len_subroot: usize,
+    parsed_certs_ca: &[&ParsedCert],
+    max_extra_extension_len_ca: usize,
+    parsed_cert_ee: &ParsedCert,
+    max_extra_extension_len_ee: usize,
+) -> Result<WitnessMap<GenericFieldElement<Fr>>, String> {
+    let mut witness = Vec::new();
+
+    // public inputs
+    let now = UtcTime {
+        year: now.year() as u16,
+        month: now.month() as u8,
+        day: now.day() as u8,
+        hour: now.hour() as u8,
+        minute: now.minute() as u8,
+        second: now.second() as u8,
+    };
+    let root_pk_x = root_pk_x
+        .try_into()
+        .map_err(|e| format!("root_pk_x must be 32 bytes: failed to convert: {}", e))?;
+    let root_pk_y = root_pk_y
+        .try_into()
+        .map_err(|e| format!("root_pk_y must be 32 bytes: failed to convert: {}", e))?;
+    witness.extend(from_u8_array_to_fr_vec(&now.to_bytes()));
+    witness.extend(from_u8_array_to_fr_vec(root_pk_x));
+    witness.extend(from_u8_array_to_fr_vec(root_pk_y));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert_subroot.issuer));
+    witness.push(parsed_cert_subroot.issuer_len.into());
+    witness.extend(from_u8_array_to_fr_vec(
+        &parsed_cert_subroot.authority_key_identifier,
+    ));
+    witness.push(*context);
+    witness.push(*nym);
+
+    // subroot
+    witness.extend(generate_initial_witness_common_composed(
+        parsed_cert_subroot,
+        max_extra_extension_len_subroot,
+    )?);
+    witness.extend(from_u8_array_to_fr_vec(
+        &parsed_cert_subroot.subject_key_identifier,
+    ));
+    witness.push(parsed_cert_subroot.subject_key_identifier_index.into());
+    witness.push(parsed_cert_subroot.authority_key_identifier_index.into());
+    witness.push(parsed_cert_subroot.basic_constraints_ca_index.into());
+    witness.push(parsed_cert_subroot.key_usage_key_cert_sign_index.into());
+
+    // ca
+    for parsed_cert_ca in parsed_certs_ca.iter() {
+        witness.extend(generate_initial_witness_common_composed(
+            parsed_cert_ca,
+            max_extra_extension_len_ca,
+        )?);
+        witness.extend(from_u8_array_to_fr_vec(
+            &parsed_cert_ca.subject_key_identifier,
+        ));
+        witness.push(parsed_cert_ca.subject_key_identifier_index.into());
+        witness.push(parsed_cert_ca.authority_key_identifier_index.into());
+        witness.push(parsed_cert_ca.basic_constraints_ca_index.into());
+        witness.push(parsed_cert_ca.key_usage_key_cert_sign_index.into());
+    }
+
+    // ee
+    witness.extend(generate_initial_witness_common_composed(
+        parsed_cert_ee,
+        max_extra_extension_len_ee,
+    )?);
+    witness.push(*user_sk);
+
+    let mut witness_map = WitnessMap::new();
+    for (i, witness) in witness.iter().enumerate() {
+        witness_map.insert(Witness(i as u32), FieldElement::from_repr(*witness));
+    }
+
+    Ok(witness_map)
+}
+
 fn generate_initial_witness_common(
     parsed_cert: &ParsedCert,
     now: &DateTime<Utc>,
@@ -419,6 +550,44 @@ fn generate_initial_witness_common(
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.not_before));
     witness.extend(from_u8_array_to_fr_vec(&parsed_cert.not_after));
     witness.extend(from_u8_array_to_fr_vec(&now.to_bytes()));
+
+    Ok(witness)
+}
+
+fn generate_initial_witness_common_composed(
+    parsed_cert: &ParsedCert,
+    max_extra_extension_len: usize,
+) -> Result<Vec<Fr>, String> {
+    let mut witness: Vec<Fr> = Vec::new();
+
+    // TODO: support other signature algorithms
+    let signature = if parsed_cert.algorithm_oid == OID_SIG_ECDSA_WITH_SHA256
+        || parsed_cert.algorithm_oid == OID_SIG_ECDSA_WITH_SHA384
+    {
+        parsed_cert.extract_normalized_ecdsa_sig()?
+    } else {
+        return Err(format!(
+            "Unsupported signature algorithm OID: {}",
+            parsed_cert.algorithm_oid
+        ));
+    };
+    witness.extend(from_u8_array_to_fr_vec(&signature));
+
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.serial_number));
+    witness.push(parsed_cert.serial_number_len.into());
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.subject));
+    witness.push(parsed_cert.subject_len.into());
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.subject_pk_x));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.subject_pk_y));
+
+    let mut extra_extension_array = vec![0u8; max_extra_extension_len];
+    let copy_len = std::cmp::min(parsed_cert.extra_extension.len(), max_extra_extension_len);
+    extra_extension_array[..copy_len].copy_from_slice(&parsed_cert.extra_extension[..copy_len]);
+
+    witness.extend(from_u8_array_to_fr_vec(&extra_extension_array));
+    witness.push(parsed_cert.extra_extension_len.into());
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.not_before));
+    witness.extend(from_u8_array_to_fr_vec(&parsed_cert.not_after));
 
     Ok(witness)
 }

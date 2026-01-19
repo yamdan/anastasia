@@ -19,8 +19,7 @@ fn prepare_algorithm() -> ([u8; 12], u32) {
 pub fn verify_es384_256<let MAX_TBS_LEN: u32, let MAX_STD_EXT_LEN: u32, let MAX_EXTRA_EXT_LEN: u32>(
     issuer_pk_x: [u8; 48],
     issuer_pk_y: [u8; 48],
-    sig_r: [u8; 48],
-    sig_s: [u8; 48],
+    sig: [u8; 96],
     serial_number: [u8; 20],
     serial_number_len: u32,
     issuer: [u8; 124],
@@ -92,6 +91,12 @@ pub fn verify_es384_256<let MAX_TBS_LEN: u32, let MAX_STD_EXT_LEN: u32, let MAX_
 
     let ipkx: Secp384r1_Fq = Secp384r1_Fq::from_limbs(to_bignum_limbs(issuer_pk_x));
     let ipky: Secp384r1_Fq = Secp384r1_Fq::from_limbs(to_bignum_limbs(issuer_pk_y));
+    let mut sig_r = [0u8; 48];
+    let mut sig_s = [0u8; 48];
+    for i in 0..48 {
+        sig_r[i] = sig[i];
+        sig_s[i] = sig[48 + i];
+    }
     let sig = (
         Secp384r1_Fr::from_limbs(to_bignum_limbs(sig_r)),
         Secp384r1_Fr::from_limbs(to_bignum_limbs(sig_s)),

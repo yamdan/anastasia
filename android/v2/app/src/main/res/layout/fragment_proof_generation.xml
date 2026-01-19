@@ -104,6 +104,14 @@
             android:text="Start with ES384 and ES256"
             android:textSize="16sp"
             style="@style/Widget.MaterialComponents.Button" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_start_384_composed"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="Start with ES384 and ES256 (Composed Circuits)"
+            android:textSize="16sp"
+            style="@style/Widget.MaterialComponents.Button" />
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

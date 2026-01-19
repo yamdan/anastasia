@@ -53,7 +53,7 @@ fun getFilePathFromAssets(context: Context, assetFileName: String): String {
     return absolutePath
 }
 
-fun selectAppropriateCircuit(context: Context, certificate: Certificate, circuitId: String): CircuitMeta {
+fun selectAppropriateCircuit(context: Context, circuitId: String): CircuitMeta {
     val vk = getFilePathFromAssets(context, "$circuitId/vk")
     val keccak_vk = getFilePathFromAssets(context, "$circuitId/keccak.vk")
     val circuit = getFilePathFromAssets(context, "$circuitId/circuit.json")
